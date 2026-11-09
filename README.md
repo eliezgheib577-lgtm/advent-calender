@@ -16,20 +16,35 @@ Open `site/index.html`. This is what students see:
    counts. Once they log it, the ornament opens and reveals the day's picture.
 5. **The prize.** Students who answer all 24 days see the prize message.
 
-### Member IDs (from the Excel sheet)
+### Member IDs (the shared Excel sheet)
 
-```bash
-python3 tools/import_members.py path/to/members.xlsx
-```
+The member list is read from its **shared link**, so daily updates reach the website by
+themselves. The workflow `.github/workflows/publish-site.yml` runs every 30 minutes:
 
-This reads the first sheet, takes the column whose header mentions "ID" (or the one named
-with `--column "LeMSIC ID"`), and writes `site/assets/members.js`. The website never gets
-the IDs themselves, only salted SHA-256 fingerprints of them. The browser fingerprints what a
-student types the same way and looks for a match. IDs are compared ignoring case, spaces and
-dashes. Re-run it whenever the member list changes.
+1. it downloads the sheet from the link;
+2. it turns the IDs into salted SHA-256 fingerprints (`site/assets/members.js`);
+3. it publishes the site to GitHub Pages.
 
-The list in the repository now is a **sample** (`tools/sample-members.csv`). For testing, use
-`DEMO-0001`, `DEMO-0002` or `TEST-1234`.
+The website never contains the IDs or the link. The browser fingerprints what a student types
+the same way and looks for a match, ignoring case, spaces and dashes. If the sheet can't be
+read, nothing is published and the last good version stays online.
+
+Setup, once, in the repository's **Settings**:
+
+1. **Secrets and variables › Actions › New repository secret**: name it `MEMBERS_SHEET_URL`
+   and paste the shared link. Excel links from OneDrive or SharePoint and Google Sheets links
+   all work. The link must let *anyone with the link view* the file without signing in.
+2. If the ID column's header doesn't contain "ID", add a **variable** `MEMBERS_ID_COLUMN`
+   with the header's exact text.
+3. **Pages › Build and deployment › Source: GitHub Actions.**
+
+It runs from the default branch. To refresh straight away, use **Actions › Publish site ›
+Run workflow**. To update the list by hand instead, run
+`python3 tools/fetch_members.py "<shared link>"` or
+`python3 tools/import_members.py members.xlsx`.
+
+Until the link is set up, the site uses a **sample** list (`tools/sample-members.csv`). For
+testing, use `DEMO-0001`, `DEMO-0002` or `TEST-1234`.
 
 ### Questions, pictures and settings
 
