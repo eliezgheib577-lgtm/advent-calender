@@ -57,6 +57,69 @@ CAMERA = Vector((0.0, -9.4, 2.15))
 CAMERA_TARGET = Vector((0.0, 0.0, 1.66))
 
 
+# ---------------------------------------------------------------- tree styles
+# A style picks the tree's shape, needles, decorations and topper. "serpent" is the
+# original design; the others are alternatives to choose from.
+SHAPES = {
+    "tiers": dict(n=9, z=(2.84, 0.64), r=[0.30, 0.42, 0.55, 0.67, 0.79, 0.91, 1.02, 1.13, 1.24],
+                  lop=0.11, nb=(12, 2.0), prof=(0.10, 0.15), tilt=(-0.18, 0.30), twig=1.0),
+    "fir": dict(n=17, z=(2.95, 0.50), r=None, lop=0.0, nb=(7, 0.7), prof=(0.12, 0.24),
+                tilt=(-0.35, 0.45), twig=0.85),
+    "cedar": dict(n=7, z=(2.75, 0.72), r=[0.42, 0.62, 0.82, 1.0, 1.18, 1.34, 1.46], lop=0.2,
+                  nb=(14, 2.2), prof=(0.04, 0.08), tilt=(-0.05, 0.38), twig=1.15),
+}
+NEEDLE_SETS = {
+    "fir": dict(dark=(0.012, 0.040, 0.016), mid=(0.030, 0.085, 0.030), tip=(0.085, 0.190, 0.045),
+                blue=(0.016, 0.055, 0.048), length=(0.020, 0.032)),
+    "cedar": dict(dark=(0.010, 0.035, 0.030), mid=(0.025, 0.075, 0.060), tip=(0.060, 0.150, 0.100),
+                  blue=(0.020, 0.060, 0.070), length=(0.012, 0.020)),
+}
+STYLES = {
+    "serpent": dict(label="Pearl Serpent", shape="tiers", needles="fir", palette="classic", placement="serpent",
+                    serpent="pearl", topper="star", lights="warm", ornament="bauble", flock=0.0),
+    "classic": dict(label="Classic Fir", shape="fir", needles="fir", palette="classic", placement="scatter",
+                    serpent="none", topper="star", lights="warm", ornament="bauble", flock=0.0),
+    "lemsic": dict(label="LeMSIC Blue", shape="fir", needles="fir", palette="blue_silver", placement="serpent",
+                   serpent="ribbon", topper="emblem", lights="white", ornament="bauble", flock=0.0),
+    "snowy": dict(label="Snowy", shape="fir", needles="fir", palette="blue_silver", placement="scatter",
+                  serpent="none", topper="silver_star", lights="warm", ornament="bauble", flock=0.75),
+    "cedar": dict(label="Cedar of Lebanon", shape="cedar", needles="cedar", palette="gold_white",
+                  placement="serpent", serpent="gold", topper="star", lights="warm", ornament="bauble", flock=0.0),
+    "rustic": dict(label="Rustic", shape="fir", needles="fir", palette="classic", placement="scatter",
+                   serpent="none", topper="wood_star", lights="warm", ornament="wood", flock=0.0),
+    "glow": dict(label="Glowing Serpent", shape="fir", needles="fir", palette="classic", placement="serpent",
+                 serpent="lights", topper="star", lights="warm_few", ornament="bauble", flock=0.0),
+}
+STYLE_NAME = "serpent"
+STYLE = STYLES[STYLE_NAME]
+SHAPE = SHAPES["tiers"]
+NEEDLES = NEEDLE_SETS["fir"]
+
+
+def apply_style(name):
+    """Switch the tree to one of STYLES (call before build_tree)."""
+    global STYLE_NAME, STYLE, SHAPE, NEEDLES, N_TIERS, TIER_Z, TIER_R
+    STYLE_NAME, STYLE = name, STYLES[name]
+    SHAPE = SHAPES[STYLE["shape"]]
+    NEEDLES = NEEDLE_SETS[STYLE["needles"]]
+    N_TIERS = SHAPE["n"]
+    TIER_Z = np.linspace(SHAPE["z"][0], SHAPE["z"][1], N_TIERS)
+    if SHAPE["r"] is None:                                   # a cone, slightly full in the middle
+        t = np.linspace(0, 1, N_TIERS)
+        TIER_R = 0.14 + 1.01 * t ** 0.9
+    else:
+        TIER_R = np.array(SHAPE["r"])
+
+
+for _a in ARGS:
+    if _a.startswith("--style="):
+        apply_style(_a[8:])
+        OUT_DIR = os.path.join(OUT_DIR, "options")
+        OUT_NAME = f"tree-{STYLE_NAME}.png"
+    if _a.startswith("--density="):
+        DENSITY = float(_a[10:])
+
+
 def trunk_radius(z):
     t = (z - TRUNK_BOTTOM) / (TRUNK_TOP - TRUNK_BOTTOM)
     return 0.078 * (1 - t) ** 0.85 + 0.006
@@ -65,7 +128,7 @@ def trunk_radius(z):
 def lopsided(theta, i):
     """Tiers reach further left and right alternately, like the emblem."""
     bias = math.pi if i % 2 else 0.0
-    return 1.0 + 0.11 * np.cos(theta - bias)
+    return 1.0 + SHAPE["lop"] * np.cos(theta - bias)
 
 
 # ---------------------------------------------------------------- mesh helpers
@@ -292,7 +355,8 @@ NEEDLE_TIP = np.array([0.085, 0.190, 0.045])
 NEEDLE_BLUE = np.array([0.016, 0.055, 0.048])
 
 
-def needles(P, D, Lt, spacing=0.0042, per=3, length=(0.020, 0.032), width=0.0024):
+def needles(P, D, Lt, spacing=0.0042, per=3, length=None, width=0.0024, flock=0.0):
+    length = length or NEEDLES["length"]
     spacing = spacing / DENSITY
     counts = np.maximum((Lt / spacing).astype(int), 2) * per
     idx = np.repeat(np.arange(len(P)), counts)
@@ -314,11 +378,15 @@ def needles(P, D, Lt, spacing=0.0042, per=3, length=(0.020, 0.032), width=0.0024
     verts = np.stack([base - wv * w, base + wv * w, tip + wv * w * 0.15, tip - wv * w * 0.15], axis=1).reshape(-1, 3)
     quads = np.arange(n * 4).reshape(-1, 4)
     # colour: dark inside, fresh light-green growth at the twig tips, some bluish needles
+    dark, mid, tipc, bluec = (np.array(NEEDLES[k]) for k in ("dark", "mid", "tip", "blue"))
     mix = rng.random(n)[:, None]
-    col = NEEDLE_DARK + (NEEDLE_MID - NEEDLE_DARK) * mix
+    col = dark + (mid - dark) * mix
     blue = rng.random(n) < 0.25
-    col[blue] = col[blue] * 0.5 + NEEDLE_BLUE * 0.5
-    col += (NEEDLE_TIP - col) * (u ** 5 * 0.85)[:, None]
+    col[blue] = col[blue] * 0.5 + bluec * 0.5
+    col += (tipc - col) * (u ** 5 * 0.85)[:, None]
+    if flock:                                    # snow resting on the upward-facing needles
+        snowy = (nd[:, 2] > 0.05) & (rng.random(n) < flock * np.clip(nd[:, 2] + 0.6, 0, 1))
+        col[snowy] = np.array([0.80, 0.82, 0.86]) * rng.uniform(0.85, 1.0, (snowy.sum(), 1))
     rgba = np.concatenate([col, np.ones((n, 1))], axis=1)
     return verts, quads, np.repeat(rgba, 4, axis=0)
 
@@ -332,7 +400,7 @@ def rotate_z(vecs, angles):
 def build_tier(i):
     """One flat tier of branches. Returns wood segments, twigs, and tier surface samples."""
     z0, R = TIER_Z[i], TIER_R[i]
-    nb = int(12 + 2.0 * i)
+    nb = int(SHAPE["nb"][0] + SHAPE["nb"][1] * i)
     thetas = rng.uniform(0, 2 * np.pi) + np.arange(nb) * 2 * np.pi / nb + rng.uniform(-0.2, 0.2, nb)
     wood = ([], [], [], [])
     tw_P, tw_D, tw_L = [], [], []
@@ -342,7 +410,7 @@ def build_tier(i):
         t = np.linspace(0, 1, 13)
         ang = th + rng.uniform(-0.25, 0.25) * t ** 2
         rad = r0 + t * L
-        zz = z0 + L * (0.10 * t - 0.15 * t ** 2) + rng.uniform(-0.05, 0.05)
+        zz = z0 + L * (SHAPE["prof"][0] * t - SHAPE["prof"][1] * t ** 2) + rng.uniform(-0.05, 0.05)
         pts = np.stack([rad * np.cos(ang), rad * np.sin(ang), zz], axis=1)
         rb = (0.010 + 0.011 * R) * (1 - 0.8 * t)
         wood[0].append(pts[:-1]); wood[1].append(pts[1:]); wood[2].append(rb[:-1]); wood[3].append(rb[1:])
@@ -362,9 +430,9 @@ def build_tier(i):
             s = 1 if k % 2 else -1
             rot = s * np.radians(rng.uniform(38, 68))
             d2 = rotate_z(dsp[None], np.array([rot]))[0]
-            d2[2] = rng.uniform(-0.18, 0.30)
+            d2[2] = rng.uniform(*SHAPE["tilt"])
             d2 /= np.linalg.norm(d2)
-            l2 = (0.08 + 0.36 * (1 - tk)) * min(L, 1.15) * rng.uniform(0.8, 1.15) + 0.05
+            l2 = ((0.08 + 0.36 * (1 - tk)) * min(L, 1.15) * rng.uniform(0.8, 1.15) + 0.05) * SHAPE["twig"]
             tw_P.append(p[None]); tw_D.append(d2[None]); tw_L.append(np.array([l2]))
             wood[0].append(p[None]); wood[1].append((p + d2 * l2 * 0.9)[None])
             wood[2].append(np.array([0.003])); wood[3].append(np.array([0.0012]))
@@ -402,7 +470,7 @@ def tier_surface(i, theta, frac=0.92):
     r = TIER_R[i] * lopsided(theta, i) * frac
     L = TIER_R[i]
     t = frac
-    z = TIER_Z[i] + L * (0.10 * t - 0.15 * t ** 2) + 0.02
+    z = TIER_Z[i] + L * (SHAPE["prof"][0] * t - SHAPE["prof"][1] * t ** 2) + 0.02
     return np.array([r * math.cos(theta), r * math.sin(theta), z])
 
 
@@ -450,7 +518,7 @@ def build_tree():
     P = np.concatenate([t[0] for t in twig_parts])
     D = np.concatenate([t[1] for t in twig_parts])
     Lt = np.concatenate([t[2] for t in twig_parts])
-    v, q, c = needles(P, D, Lt)
+    v, q, c = needles(P, D, Lt, flock=STYLE["flock"])
     mesh_object("Needles", v, q, colors=c, mat=mat_needles)
     print(f"  needles: {len(q):,}  twigs: {len(P):,}")
 
@@ -460,7 +528,8 @@ def build_tree():
 
 
 def fairy_lights():
-    n = int(260 * max(DENSITY, 0.6))
+    kind = STYLE["lights"]
+    n = int((120 if kind == "warm_few" else 260) * max(DENSITY, 0.6))
     pts = []
     for _ in range(n):
         i = int(rng.integers(0, N_TIERS))
@@ -469,7 +538,8 @@ def fairy_lights():
         p[2] += rng.uniform(-0.03, 0.02)
         pts.append(p)
     v, q = spheres(np.array(pts), 0.011, icosphere_template(1))
-    mat = simple_material("Bulb", (1.0, 0.75, 0.4), rough=0.3, emit=(1.0, 0.62, 0.28), emit_strength=28)
+    glow = (0.80, 0.88, 1.0) if kind == "white" else (1.0, 0.62, 0.28)
+    mat = simple_material("Bulb", (1.0, 0.75, 0.4), rough=0.3, emit=glow, emit_strength=28)
     ob = tri_mesh_object("FairyLights", v, q[:, :3], mat=mat)
     ob.visible_shadow = False
 
@@ -545,16 +615,35 @@ def stand_and_presents():
 BAUBLE_STYLES = [
     # base finish, number finish
     (dict(color=(0.50, 0.015, 0.025), rough=0.12, metal=0.6, coat=1.0),
-     dict(color=(0.92, 0.86, 0.72), rough=0.45)),                                                         # red
+     dict(color=(0.92, 0.86, 0.72), rough=0.45)),                                         # red
     (dict(color=(0.95, 0.62, 0.20), rough=0.28, metal=0.75, coat=0.6),
      dict(color=(0.20, 0.004, 0.01), rough=0.4)),                                          # gold
     (dict(color=(0.015, 0.17, 0.05), rough=0.14, metal=0.5, coat=1.0),
-     dict(color=(0.92, 0.86, 0.72), rough=0.45)),                                                         # green
+     dict(color=(0.92, 0.86, 0.72), rough=0.45)),                                         # green
     (dict(color=(0.26, 0.015, 0.10), rough=0.30, metal=0.4, coat=0.5),
-     dict(color=(0.92, 0.86, 0.72), rough=0.45)),                                                         # plum, satin
+     dict(color=(0.92, 0.86, 0.72), rough=0.45)),                                         # plum, satin
     (dict(color=(0.86, 0.88, 0.92), rough=0.26, metal=0.6, coat=0.6),
      dict(color=(0.035, 0.11, 0.33), rough=0.3)),                                          # silver, LeMSIC blue
 ]
+WHITE_NUM = dict(color=(0.92, 0.92, 0.94), rough=0.4)
+BLUE_NUM = dict(color=(0.03, 0.10, 0.32), rough=0.35)
+GOLD_NUM = dict(color=(1.0, 0.72, 0.30), rough=0.25, metal=1.0)
+PALETTES = {
+    "classic": BAUBLE_STYLES,
+    "blue_silver": [
+        (dict(color=(0.025, 0.08, 0.30), rough=0.12, metal=0.5, coat=1.0), WHITE_NUM),     # LeMSIC blue
+        (dict(color=(0.85, 0.87, 0.90), rough=0.14, metal=1.0), BLUE_NUM),                 # mirror silver
+        (dict(color=(0.80, 0.80, 0.82), rough=0.45, coat=0.3), BLUE_NUM),                  # white satin
+        (dict(color=(0.30, 0.45, 0.72), rough=0.35, metal=0.3, coat=0.5), WHITE_NUM),      # ice blue
+        (dict(color=(0.008, 0.02, 0.07), rough=0.12, coat=1.0), WHITE_NUM),                # midnight
+    ],
+    "gold_white": [
+        (dict(color=(0.95, 0.62, 0.20), rough=0.22, metal=0.85, coat=0.6), dict(color=(0.25, 0.005, 0.01), rough=0.4)),
+        (dict(color=(0.72, 0.68, 0.60), rough=0.2, coat=1.0), GOLD_NUM),                   # ivory pearl
+        (dict(color=(0.40, 0.012, 0.02), rough=0.15, metal=0.5, coat=1.0), GOLD_NUM),      # deep red
+        (dict(color=(0.75, 0.58, 0.40), rough=0.45, metal=0.5), WHITE_NUM),                # champagne satin
+    ],
+}
 
 
 def face_camera_angle(pos):
@@ -602,29 +691,63 @@ def serpent_path():
     return np.array(out), side
 
 
-def serpent_body(path):
-    """A pearl serpent: a string of pearls tapering to the tail, with a head at the top."""
+def serpent_body(path, kind):
+    """Draw the serpent along `path`: pearls or gold beads with a head, a satin ribbon, or lights."""
+    if kind == "none":
+        return
     seg = np.linalg.norm(np.diff(path, axis=0), axis=1)
     arc = np.concatenate([[0], np.cumsum(seg)])
     L = arc[-1]
+    at = lambda s_at: np.array([np.interp(s_at, arc, path[:, k]) for k in range(3)])
+
+    if kind == "ribbon":
+        tang = np.gradient(path, axis=0)
+        tang /= np.linalg.norm(tang, axis=1, keepdims=True)
+        radial = path.copy()
+        radial[:, 2] = 0
+        radial /= np.linalg.norm(radial, axis=1, keepdims=True)
+        across = np.cross(tang, radial)
+        across /= np.linalg.norm(across, axis=1, keepdims=True)
+        width = 0.032 * (1 - 0.55 * (arc / L))[:, None]
+        verts = np.concatenate([path + across * width, path - across * width])
+        n = len(path)
+        quads = np.array([(i, i + 1, n + i + 1, n + i) for i in range(n - 1)])
+        satin = simple_material("Satin", (0.80, 0.80, 0.80), rough=0.32)
+        satin.node_tree.nodes["Principled BSDF"].inputs["Sheen Weight"].default_value = 0.8
+        mesh_object("SerpentRibbon", verts, quads, mat=satin, smooth=True)
+        return
+
+    if kind == "lights":
+        wire = simple_material("Wire", (0.01, 0.025, 0.012), rough=0.5)
+        v, q = tubes(path[:-1], path[1:], np.full(len(path) - 1, 0.0028), np.full(len(path) - 1, 0.0028), sides=5)
+        mesh_object("SerpentWire", v, q, mat=wire, smooth=True)
+        bulbs = np.array([at(x) for x in np.arange(0.02, L, 0.042)])
+        v, q = spheres(bulbs, 0.0105, icosphere_template(2))
+        mat = simple_material("SerpentBulb", (1.0, 0.8, 0.5), rough=0.3, emit=(1.0, 0.66, 0.30), emit_strength=40)
+        ob = tri_mesh_object("SerpentLights", v, q[:, :3], mat=mat)
+        ob.visible_shadow = False
+        return
+
+    # beads (pearl or gold), tapering to the tail, with a head at the top
     centers, radii = [], []
     s_at = 0.05
     while s_at < L:
         f = s_at / L
         r = 0.016 - 0.011 * f ** 0.8
-        centers.append([np.interp(s_at, arc, path[:, k]) for k in range(3)])
+        centers.append(at(s_at))
         radii.append(r)
         s_at += r * 1.9
-    template = icosphere_template(2)
-    v, tris = template
+    v, tris = icosphere_template(2)
     centers, radii = np.array(centers), np.array(radii)
     verts = (centers[:, None, :] + v[None] * radii[:, None, None]).reshape(-1, 3)
     faces = (tris[None] + (np.arange(len(centers)) * len(v))[:, None, None]).reshape(-1, 3)
-    pearl = simple_material("SerpentPearl", (0.66, 0.63, 0.56), rough=0.2, coat=1.0)
-    pearl.node_tree.nodes["Principled BSDF"].inputs["Sheen Weight"].default_value = 0.4
-    tri_mesh_object("Serpent", verts, faces, mat=pearl)
+    if kind == "gold":
+        bead = simple_material("SerpentGold", (0.95, 0.66, 0.25), rough=0.18, metal=1.0)
+    else:
+        bead = simple_material("SerpentPearl", (0.66, 0.63, 0.56), rough=0.2, coat=1.0)
+        bead.node_tree.nodes["Principled BSDF"].inputs["Sheen Weight"].default_value = 0.4
+    tri_mesh_object("Serpent", verts, faces, mat=bead)
 
-    # the head: a glazed white snake head with dark eyes and a red tongue, looking out to the left
     head_pos = path[0]
     out_dir = path[0] - path[6]
     out_dir[2] = 0.0
@@ -640,7 +763,7 @@ def serpent_body(path):
         vx.co = co
     head.data.update()
     bpy.ops.object.shade_smooth()
-    head.data.materials.append(pearl)
+    head.data.materials.append(bead)
     head.rotation_euler = Vector((out_dir[0], out_dir[1], 0.25)).to_track_quat("X", "Z").to_euler()
     head.location = Vector(head_pos) + Vector(out_dir.tolist()) * 0.06 + Vector((0, 0, 0.014))
     head.name = "SerpentHead"
@@ -658,72 +781,193 @@ def serpent_body(path):
         v2, q2 = tubes([a[:], (0.097, 0, -0.007)], [(0.097, 0, -0.007), b[:]], [0.0022, 0.0019], [0.0019, 0.0013], sides=6)
         t = mesh_object("Tongue", v2, q2, mat=tongue, smooth=True)
         t.parent = head
-    return head
+
+
+def ornament_slots():
+    """Where days 1-23 hang: along the serpent (in order) or scattered over the tree (mixed)."""
+    if STYLE["placement"] == "serpent":
+        path, side = serpent_path()
+        serpent_body(path, STYLE["serpent"])
+        seg = np.linalg.norm(np.diff(path, axis=0), axis=1)
+        arc = np.concatenate([[0], np.cumsum(seg)])
+        facing = (side < SERPENT_SPAN * 0.80) & (arc > 0.12) & (arc < arc[-1] - 0.12)
+        seg_facing = np.concatenate([[0], np.where(facing[1:] & facing[:-1], seg, 0)])
+        usable = np.cumsum(seg_facing)
+        slots = []
+        for u in (np.arange(23) + 0.5) / 23 * usable[-1]:
+            s_at = np.interp(u, usable, arc)
+            slots.append(np.array([np.interp(s_at, arc, path[:, k]) for k in range(3)]))
+        return list(zip(range(1, 24), slots))
+    # scattered in staggered rows over the front of the tree; days in a mixed order
+    rows = [1, 2, 3, 3, 4, 5, 5]
+    zs = np.linspace(2.55, 0.95, len(rows))
+    slots = []
+    for count, z in zip(rows, zs):
+        span = math.radians(14 + 7 * count)
+        phis = np.linspace(-span, span, count) if count > 1 else np.array([0.0])
+        for phi in phis:
+            th = -math.pi / 2 + phi + rng.uniform(-0.06, 0.06)
+            zz = z + rng.uniform(-0.05, 0.05)
+            r = surface_radius(zz, th) * 0.97 + 0.03
+            slots.append(np.array([r * math.cos(th), r * math.sin(th), zz + 0.06]))
+    days = list(range(1, 24))
+    random.Random(1964).shuffle(days)
+    return list(zip(days, slots))
+
+
+def hang_bauble(day, n, attach, gold, thread):
+    palette = PALETTES[STYLE["palette"]]
+    center = attach - np.array([0, 0, 0.018 + 0.02 + BAUBLE_R])
+    base_kw, dec_kw = palette[n % len(palette)]
+    mat = decal_material(f"Bauble{day}", base_kw, dec_kw,
+                         os.path.join(DECALS, f"num-{day:02d}.png"), BAUBLE_R * 0.78)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=BAUBLE_R, segments=48, ring_count=24, location=center)
+    ob = bpy.context.active_object
+    ob.name = f"Ornament{day:02d}"
+    ob.rotation_euler = (0, 0, face_camera_angle(center))
+    ob.data.materials.append(mat)
+    bpy.ops.object.shade_smooth()
+    top = center + np.array([0, 0, BAUBLE_R])
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.016, depth=0.02, location=top + np.array([0, 0, 0.006]))
+    bpy.context.active_object.data.materials.append(gold)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.007, minor_radius=0.0016,
+                                     location=top + np.array([0, 0, 0.022]), rotation=(math.radians(90), 0, 0))
+    bpy.context.active_object.data.materials.append(gold)
+    v, q = tubes([top + np.array([0, 0, 0.024])], [attach], [0.0011], [0.0011], sides=4)
+    mesh_object("Thread", v, q, mat=thread)
+    return center, BAUBLE_R
+
+
+def hang_wood_slice(day, attach, twine):
+    """A slice of log with the day burnt into it, hung on red twine."""
+    r, d = 0.075, 0.022
+    center = attach - np.array([0, 0, 0.03 + r])
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=r, depth=d)
+    ob = bpy.context.active_object
+    me = ob.data
+    for vx in me.vertices:                       # disc axis along local Y, face towards -Y
+        x, y, z = vx.co
+        jag = 1 + 0.05 * math.sin(7 * math.atan2(y, x)) * (abs(z) < d / 2 + 1e-6)
+        vx.co = (x * jag, -z, y * jag)
+    me.update()
+    face = decal_material(f"Slice{day}", dict(color=(0.48, 0.32, 0.18), rough=0.7),
+                          dict(color=(0.05, 0.022, 0.01), rough=0.85),
+                          os.path.join(DECALS, f"num-{day:02d}.png"), r * 0.82)
+    me.materials.append(face)
+    me.materials.append(bpy.data.materials["Bark"])
+    for poly in me.polygons:
+        poly.material_index = 0 if abs(poly.normal.y) > 0.5 else 1
+    bpy.ops.object.shade_smooth()
+    bev = ob.modifiers.new("bevel", "BEVEL")
+    bev.width = 0.004
+    ob.location = center
+    ob.rotation_euler = (0, 0, face_camera_angle(center))
+    ob.name = f"Ornament{day:02d}"
+    v, q = tubes([center + np.array([0, 0, r * 0.95])], [attach], [0.0016], [0.0016], sides=5)
+    mesh_object("Twine", v, q, mat=twine)
+    return center, r
+
+
+def star_mesh(name, mat):
+    verts = [(0, -0.11, 0), (0, 0.11, 0)]
+    for k in range(10):
+        rr = 0.23 if k % 2 == 0 else 0.10
+        a = math.radians(k * 36)
+        verts.append((rr * math.sin(a), 0, rr * math.cos(a)))
+    tris = []
+    for k in range(10):
+        a, b = 2 + k, 2 + (k + 1) % 10
+        tris += [(0, a, b), (1, b, a)]
+    star = tri_mesh_object(name, verts, tris, mat=mat, smooth=False)
+    star.location = (0, 0, STAR_Z)
+    star.rotation_euler = (0, 0, face_camera_angle((0, 0, STAR_Z)))
+    return star
+
+
+def topper():
+    """Day 24 on top of the tree: a star, or the LeMSIC emblem."""
+    kind = STYLE["topper"]
+    num24 = os.path.join(DECALS, "num-24.png")
+    glow_col = (1.0, 0.75, 0.4)
+    if kind == "star":
+        mat = decal_material("Star", dict(color=(1.0, 0.50, 0.06), rough=0.22, metal=1.0, coat=0.5,
+                                          emit=(1.0, 0.45, 0.06), emit_strength=0.45),
+                             dict(color=(0.16, 0.002, 0.006), rough=0.4), num24, 0.10)
+        star_mesh("Star", mat)
+    elif kind == "silver_star":
+        mat = decal_material("Star", dict(color=(0.88, 0.9, 0.95), rough=0.15, metal=1.0,
+                                          emit=(0.7, 0.8, 1.0), emit_strength=0.25), BLUE_NUM, num24, 0.10)
+        star_mesh("Star", mat)
+        glow_col = (0.85, 0.9, 1.0)
+    elif kind == "wood_star":
+        mat = decal_material("Star", dict(color=(0.45, 0.28, 0.14), rough=0.6),
+                             dict(color=(0.05, 0.022, 0.01), rough=0.85), num24, 0.10)
+        star_mesh("Star", mat)
+    else:                                        # the LeMSIC emblem as a medallion
+        R = 0.19
+        bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=R, depth=0.03)
+        ob = bpy.context.active_object
+        for vx in ob.data.vertices:
+            x, y, z = vx.co
+            vx.co = (x, -z, y)
+        ob.data.update()
+        m, nt, out = new_material("Star")
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        u = nt.nodes.new("ShaderNodeMath"); u.operation = "MULTIPLY_ADD"
+        u.inputs[1].default_value = 0.5 / R * 378 / 453; u.inputs[2].default_value = 0.5
+        v = nt.nodes.new("ShaderNodeMath"); v.operation = "MULTIPLY_ADD"
+        v.inputs[1].default_value = 0.5 / R; v.inputs[2].default_value = 0.5
+        comb = nt.nodes.new("ShaderNodeCombineXYZ")
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = bpy.data.images.load(EMBLEM, check_existing=True)
+        tex.extension = "EXTEND"
+        b = principled(nt, (0.1, 0.2, 0.5), rough=0.3, emit=(1, 1, 1), emit_strength=0.0)
+        b.inputs["Coat Weight"].default_value = 1.0
+        em = nt.nodes.new("ShaderNodeMath"); em.operation = "MULTIPLY"; em.inputs[1].default_value = 0.6
+        L = nt.links.new
+        L(tc.outputs["Object"], sep.inputs[0])
+        L(sep.outputs["X"], u.inputs[0]); L(sep.outputs["Z"], v.inputs[0])
+        L(u.outputs[0], comb.inputs["X"]); L(v.outputs[0], comb.inputs["Y"])
+        L(comb.outputs[0], tex.inputs["Vector"])
+        L(tex.outputs["Color"], b.inputs["Base Color"])
+        L(tex.outputs["Color"], b.inputs["Emission Color"])
+        L(tex.outputs["Alpha"], em.inputs[0])
+        L(em.outputs[0], b.inputs["Emission Strength"])
+        L(b.outputs[0], out.inputs["Surface"])
+        ob.data.materials.append(m)
+        ob.location = (0, 0, STAR_Z)
+        ob.rotation_euler = (0, 0, face_camera_angle((0, 0, STAR_Z)))
+        ob.name = "Star"
+        rim = simple_material("MedallionRim", (0.88, 0.9, 0.95), rough=0.15, metal=1.0)
+        bpy.ops.mesh.primitive_torus_add(major_radius=R, minor_radius=0.014, major_segments=64,
+                                         location=(0, 0, STAR_Z), rotation=(math.radians(90), 0, 0))
+        tor = bpy.context.active_object
+        tor.rotation_euler = (math.radians(90), 0, face_camera_angle((0, 0, STAR_Z)))
+        tor.data.materials.append(rim)
+        bpy.ops.object.shade_smooth()
+        glow_col = (0.85, 0.9, 1.0)
+    glow = bpy.data.lights.new("StarGlow", "POINT")
+    glow.energy = 25
+    glow.color = glow_col
+    glow.shadow_soft_size = 0.05
+    gl = link(bpy.data.objects.new("StarGlow", glow))
+    gl.location = (0, -0.25, STAR_Z - 0.05)
+    return {"day": 24, "center": [0, 0, STAR_Z], "radius": 0.23}
 
 
 def ornaments():
     gold = simple_material("CapGold", (0.9, 0.62, 0.22), rough=0.2, metal=1.0)
     thread = simple_material("Thread", (0.9, 0.7, 0.3), rough=0.4, metal=0.6)
+    twine = simple_material("Twine", (0.35, 0.02, 0.02), rough=0.9)
     spots = []
-    path, side = serpent_path()
-    serpent_body(path)
-    seg = np.linalg.norm(np.diff(path, axis=0), axis=1)
-    arc = np.concatenate([[0], np.cumsum(seg)])
-    # days 1-23 follow the serpent from its head (top) to its tail (bottom),
-    # on the parts of each sweep that face the room (not in the turns at the sides)
-    facing = (side < SERPENT_SPAN * 0.80) & (arc > 0.12) & (arc < arc[-1] - 0.12)
-    seg_facing = np.concatenate([[0], np.where(facing[1:] & facing[:-1], seg, 0)])
-    usable = np.cumsum(seg_facing)
-    targets = (np.arange(23) + 0.5) / 23 * usable[-1]
-    for n, u in enumerate(targets):
-        s_at = np.interp(u, usable, arc)
-        day = n + 1
-        attach = np.array([np.interp(s_at, arc, path[:, k]) for k in range(3)])
-        attach[2] -= 0.008
-        center = attach - np.array([0, 0, 0.018 + 0.02 + BAUBLE_R])
-        base_kw, dec_kw = BAUBLE_STYLES[n % len(BAUBLE_STYLES)]
-        mat = decal_material(f"Bauble{day}", base_kw, dec_kw,
-                             os.path.join(DECALS, f"num-{day:02d}.png"), BAUBLE_R * 0.78)
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=BAUBLE_R, segments=48, ring_count=24, location=center)
-        ob = bpy.context.active_object
-        ob.name = f"Ornament{day:02d}"
-        ob.rotation_euler = (0, 0, face_camera_angle(center))
-        ob.data.materials.append(mat)
-        bpy.ops.object.shade_smooth()
-        top = center + np.array([0, 0, BAUBLE_R])
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.016, depth=0.02, location=top + np.array([0, 0, 0.006]))
-        bpy.context.active_object.data.materials.append(gold)
-        bpy.ops.mesh.primitive_torus_add(major_radius=0.007, minor_radius=0.0016,
-                                         location=top + np.array([0, 0, 0.022]), rotation=(math.radians(90), 0, 0))
-        bpy.context.active_object.data.materials.append(gold)
-        v, q = tubes([top + np.array([0, 0, 0.024])], [attach], [0.0011], [0.0011], sides=4)
-        mesh_object("Thread", v, q, mat=thread)
-        spots.append({"day": day, "center": center.tolist(), "radius": BAUBLE_R})
-
-    # day 24: the star on top
-    star_mat = decal_material("Star", dict(color=(1.0, 0.50, 0.06), rough=0.22, metal=1.0, coat=0.5,
-                                           emit=(1.0, 0.45, 0.06), emit_strength=0.45),
-                              dict(color=(0.16, 0.002, 0.006), rough=0.4),
-                              os.path.join(DECALS, "num-24.png"), 0.10)
-    verts = [(0, -0.11, 0), (0, 0.11, 0)]
-    for k in range(10):
-        r = 0.23 if k % 2 == 0 else 0.10
-        a = math.radians(k * 36)
-        verts.append((r * math.sin(a), 0, r * math.cos(a)))
-    tris = []
-    for k in range(10):
-        a, b = 2 + k, 2 + (k + 1) % 10
-        tris += [(0, a, b), (1, b, a)]
-    star = tri_mesh_object("Star", verts, tris, mat=star_mat, smooth=False)
-    star.location = (0, 0, STAR_Z)
-    star.rotation_euler = (0, 0, face_camera_angle((0, 0, STAR_Z)))
-    glow = bpy.data.lights.new("StarGlow", "POINT")
-    glow.energy = 25
-    glow.color = (1.0, 0.75, 0.4)
-    glow.shadow_soft_size = 0.05
-    gl = link(bpy.data.objects.new("StarGlow", glow))
-    gl.location = (0, -0.25, STAR_Z - 0.05)
-    spots.append({"day": 24, "center": [0, 0, STAR_Z], "radius": 0.23})
+    for n, (day, attach) in enumerate(ornament_slots()):
+        if STYLE["ornament"] == "wood":
+            c, r = hang_wood_slice(day, attach, twine)
+        else:
+            c, r = hang_bauble(day, n, attach, gold, thread)
+        spots.append({"day": day, "center": c.tolist(), "radius": r})
+    spots.append(topper())
     return spots
 
 
