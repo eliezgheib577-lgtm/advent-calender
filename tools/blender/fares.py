@@ -77,8 +77,8 @@ def yarn():
     bump = nt.nodes.new("ShaderNodeBump")
     bump.inputs["Strength"].default_value = 0.9
     bump.inputs["Distance"].default_value = 0.0012
-    b = principled(nt, (0.006, 0.0055, 0.0055), rough=0.62)
-    b.inputs["Sheen Weight"].default_value = 0.35
+    b = principled(nt, (0.004, 0.0038, 0.0038), rough=0.7)
+    b.inputs["Sheen Weight"].default_value = 0.08
     b.inputs["Sheen Roughness"].default_value = 0.3
     nt.links.new(tc.outputs["Object"], w.inputs["Vector"])
     nt.links.new(w.outputs["Fac"], bump.inputs["Height"])
@@ -123,9 +123,9 @@ def tumbler_material():
     tc = nt.nodes.new("ShaderNodeTexCoord")
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     u = nt.nodes.new("ShaderNodeMath"); u.operation = "MULTIPLY_ADD"
-    u.inputs[1].default_value = 1 / 0.052; u.inputs[2].default_value = 0.5
+    u.inputs[1].default_value = 1 / 0.044; u.inputs[2].default_value = 0.5
     v = nt.nodes.new("ShaderNodeMath"); v.operation = "MULTIPLY_ADD"
-    v.inputs[1].default_value = 1 / 0.044; v.inputs[2].default_value = 0.5
+    v.inputs[1].default_value = 1 / 0.037; v.inputs[2].default_value = 0.5
     comb = nt.nodes.new("ShaderNodeCombineXYZ")
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = bpy.data.images.load(EMBLEM, check_existing=True)
@@ -294,150 +294,193 @@ def ring_around(center, d, radius, n=30):
 
 
 # ---------------------------------------------------------------- Fares
+def gold_lame():
+    """Crinkled gold lamé fabric (the hat band and the sash)."""
+    if "GoldLame" in bpy.data.materials:
+        return bpy.data.materials["GoldLame"]
+    m, nt, out = new_material("GoldLame")
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    n = nt.nodes.new("ShaderNodeTexNoise")
+    n.inputs["Scale"].default_value = 70.0
+    n.inputs["Detail"].default_value = 8.0
+    n.inputs["Distortion"].default_value = 1.5
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.7
+    bump.inputs["Distance"].default_value = 0.004
+    b = principled(nt, (0.70, 0.50, 0.20), rough=0.3, metal=0.9)
+    nt.links.new(tc.outputs["Object"], n.inputs["Vector"])
+    nt.links.new(n.outputs["Fac"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], b.inputs["Normal"])
+    nt.links.new(b.outputs[0], out.inputs["Surface"])
+    return m
+
+
+def yarn_coloured(name, color):
+    m = yarn().copy()
+    m.name = name
+    m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*color, 1)
+    return m
+
+
+def oriented(name, center, radii, normal, mat, seg=24, rings=12):
+    """An ellipsoid whose local Y axis follows `normal` (for flat patches on a surface)."""
+    ob = ellipsoid(name, tuple(center), radii, mat, seg=seg, rings=rings)
+    ob.rotation_euler = Vector((-np.asarray(normal)).tolist()).to_track_quat("Y", "Z").to_euler()
+    return ob
+
+
+def bow(name, at, size, mat, facing=(0, -1, 0)):
+    """A small ribbon bow: two loops and two tails."""
+    f = np.asarray(facing, float)
+    f /= np.linalg.norm(f)
+    right = np.cross(f, [0, 0, 1.0])
+    right /= np.linalg.norm(right)
+    parts = []
+    for s in (-1, 1):
+        loop = [at + right * s * size * (0.55 + 0.45 * math.cos(t)) + np.array([0, 0, 1.0]) * size * 0.45 * math.sin(t)
+                for t in np.linspace(0, 2 * math.pi, 16)]
+        parts.append(tube(name + "Loop", loop, [size * 0.12] * 16, mat, sides=8, caps=False, squash=0.4))
+        tail = [at, at + right * s * size * 0.3 - np.array([0, 0, size * 0.8]),
+                at + right * s * size * 0.45 - np.array([0, 0, size * 1.4])]
+        parts.append(tube(name + "Tail", tail, [size * 0.12, size * 0.12, size * 0.1], mat, sides=8, squash=0.35))
+    parts.append(ellipsoid(name + "Knot", tuple(at), (size * 0.18, size * 0.12, size * 0.18), mat, seg=12, rings=6))
+    return parts
+
+
 def build_fares():
-    black = fabric("FleeceBlack", (0.006, 0.0055, 0.0055), sheen=0.14, sheen_tint=(0.5, 0.5, 0.52))
-    red = fabric("FeltRed", (0.30, 0.006, 0.006), sheen=0.08, fuzz=0.45, scale=900, sheen_tint=(1, 0.4, 0.4))
-    scarf_red = fabric("ScarfRed", (0.42, 0.015, 0.018), sheen=0.3, rough=0.7)
-    green = fabric("VelvetGreen", (0.012, 0.035, 0.016), sheen=0.6, rough=0.75, sheen_tint=(0.4, 0.7, 0.45))
-    satin = fabric("SatinSash", (0.45, 0.37, 0.24), sheen=0.4, rough=0.38, fuzz=0.15, scale=200)
-    skin = fabric("FaceCotton", (0.80, 0.68, 0.56), sheen=0.25, fuzz=0.1, scale=900)
-    skin.node_tree.nodes["Principled BSDF"].inputs["Subsurface Weight"].default_value = 0.2
-    white = fabric("FeltWhite", (0.78, 0.78, 0.76), sheen=0.3)
-    gold = gold_cord()
-    yn = yarn()
-    bead = plain("EyeBead", (0.012, 0.007, 0.005), rough=0.06, coat=1.0)
-    lip = fabric("FeltLip", (0.36, 0.02, 0.03), sheen=0.2)
+    """Fares as the real rag doll: soft cloth body, embroidered face, yarn hair and mustache."""
+    black = fabric("ClothBlack", (0.006, 0.0056, 0.0056), sheen=0.07, rough=0.85, fuzz=0.2, scale=700,
+                   sheen_tint=(0.5, 0.5, 0.52))
+    red = fabric("ClothRed", (0.40, 0.008, 0.01), sheen=0.06, rough=0.85, fuzz=0.25, scale=700, sheen_tint=(1, 0.3, 0.3))
+    green = fabric("ClothGreen", (0.014, 0.045, 0.02), sheen=0.4, rough=0.75, sheen_tint=(0.4, 0.7, 0.45))
+    skin = fabric("ClothBeige", (0.66, 0.54, 0.41), sheen=0.12, fuzz=0.15, scale=900)
+    lame = gold_lame()
+    trim = gold_cord()
+    black_yarn = yarn()
+    navy_yarn = yarn_coloured("YarnNavy", (0.004, 0.005, 0.013))
+    thread = plain("Thread", (0.003, 0.003, 0.003), rough=0.6)
+    nose_thread = yarn_coloured("NoseThread", (0.12, 0.02, 0.015))
+    ribbon = plain("RibbonWhite", (0.82, 0.78, 0.8), rough=0.22)
+    ribbon.node_tree.nodes["Principled BSDF"].inputs["Sheen Weight"].default_value = 0.6
+    pink = plain("RibbonPink", (0.6, 0.08, 0.32), rough=0.3)
     parts = []
     add = parts.append
+    extend = parts.extend
 
-    # ---------- sherwal: a baggy seat and two billowing legs, gathered at the ankle
-    seat = ellipsoid("Seat", (0, 0.04, 0.125), (0.19, 0.17, 0.125), black)
-    add(soften(seat, 1, 0.012, 0.05))
+    # ---------- legs: thin black cloth legs stretched out in front, rounded feet
     for s in (-1, 1):
-        leg = tube("Leg", [(s * 0.09, -0.02, 0.13), (s * 0.105, -0.17, 0.14), (s * 0.115, -0.31, 0.12),
-                           (s * 0.12, -0.42, 0.095), (s * 0.122, -0.47, 0.085)],
-                   [0.1, 0.104, 0.092, 0.07, 0.048], black, sides=28)
-        add(soften(leg, 1, 0.014, 0.045))
-        cuff = tube("AnkleCuff", [(s * 0.122, -0.455, 0.086), (s * 0.123, -0.478, 0.084)], [0.05, 0.05], black, sides=24)
-        add(soften(cuff, 1))
-        add(ellipsoid("Shoe", (s * 0.125, -0.53, 0.085), (0.05, 0.08, 0.052), black, rot=(math.radians(-38), 0, 0)))
+        add(soften(tube("Leg", [(s * 0.07, -0.08, 0.058), (s * 0.09, -0.25, 0.052), (s * 0.11, -0.42, 0.046)],
+                        [0.043, 0.041, 0.038], black, sides=22), 1, 0.006, 0.04))
+        add(ellipsoid("Foot", (s * 0.113, -0.46, 0.055), (0.04, 0.046, 0.052), black, rot=(math.radians(-15), 0, 0)))
 
-    # ---------- body: vest, sash and the open jacket
-    def jacket_gap(z):
-        return math.radians(26 + 24 * max(0.0, (0.3 - z) / 0.14))     # opens wider towards the hem
-    vest, _ = lathe("Vest", [(0.22, 0.135, 0.105, 0.03), (0.32, 0.14, 0.11, 0.03), (0.42, 0.135, 0.105, 0.03),
-                             (0.5, 0.11, 0.09, 0.03), (0.54, 0.075, 0.07, 0.03)], green)
+    # ---------- the long black robe: open over a green vest, skirt spread on the floor
+    vest, _ = lathe("Vest", [(0.19, 0.14, 0.11, 0.03), (0.3, 0.142, 0.112, 0.03), (0.4, 0.13, 0.104, 0.03),
+                             (0.45, 0.1, 0.085, 0.03)], green)
     add(soften(vest, 2))
-    for z in np.linspace(0.29, 0.5, 9):                                    # gold buttons
-        ry = 0.11 if z < 0.45 else 0.092
-        add(ellipsoid("Button", (0.0, 0.03 - ry - 0.002, z), (0.007, 0.005, 0.007), gold, seg=12, rings=6))
-    for s in (-1, 1):                                                      # gold braid down the vest
-        zs = np.linspace(0.29, 0.5, 10)
-        pts = [(s * 0.03, 0.03 - (0.107 if z < 0.45 else 0.09) - 0.001, z) for z in zs]
-        add(tube("VestBraid", pts, [0.0035] * len(pts), gold, sides=8))
-    sash_rows = []
-    for k, z in enumerate(np.linspace(0.19, 0.29, 7)):
-        bulge = 0.012 * math.sin(k / 6 * math.pi) + 0.004 * math.sin(k * 2.7)
-        sash_rows.append((z, 0.165 + bulge, 0.135 + bulge, 0.03))
-    sash, _ = lathe("Sash", sash_rows, satin)
-    add(soften(sash, 2, 0.008, 0.03))
-    jacket, rows = lathe("Jacket", [(0.16, 0.2, 0.17, 0.035), (0.2, 0.18, 0.15, 0.03), (0.28, 0.165, 0.13, 0.03),
-                                    (0.38, 0.165, 0.13, 0.03), (0.46, 0.16, 0.12, 0.03), (0.52, 0.13, 0.1, 0.03),
-                                    (0.555, 0.085, 0.075, 0.03)], black, gap=jacket_gap)
-    sol = jacket.modifiers.new("thick", "SOLIDIFY")
-    sol.thickness = 0.01
-    add(soften(jacket, 2, 0.006, 0.05))
-    for side in (0, -1):                                                   # braid along both open edges
-        edge = [np.array(r[side]) for r in rows]
-        edge = [e + (e - np.array([0, 0.03, e[2]])) * 0.05 for e in edge]
-        add(tube("EdgeBraid", edge, [0.006] * len(edge), gold, sides=10))
-    hem = [np.array(p) * np.array([1.04, 1.04, 1]) for p in rows[0]]
-    add(tube("HemBraid", hem, [0.006] * len(hem), gold, sides=10))
+    for x in (-0.05, -0.032, -0.014, 0.014, 0.032, 0.05):                  # gold embroidery down the vest
+        pts = []
+        for z in np.linspace(0.24, 0.44, 9):
+            rx, ry = (0.141, 0.111) if z < 0.4 else (0.12, 0.096)
+            pts.append((x, 0.03 - ry * math.sqrt(max(0.0, 1 - (x / rx) ** 2)) - 0.0015, z))
+        add(tube("VestStripe", pts, [0.0022] * 9, trim, sides=6))
+    sash_rows = [(z, 0.158 + 0.006 * math.sin(k * 1.9), 0.128 + 0.006 * math.sin(k * 1.9), 0.03)
+                 for k, z in enumerate(np.linspace(0.175, 0.235, 6))]
+    sash, _ = lathe("Sash", sash_rows, lame)
+    add(soften(sash, 2, 0.006, 0.02))
 
-    # ---------- scarf
-    sc = tube("Scarf", [(0.075 * math.cos(a), 0.03 + 0.07 * math.sin(a), 0.548 + 0.008 * math.sin(3 * a))
-                        for a in np.linspace(0, 2 * math.pi, 40)], [0.024] * 40, scarf_red, sides=16, caps=False,
-              squash=0.7)
-    add(soften(sc, 1, 0.006, 0.02))
-    tip = mesh_from("ScarfTip", [(0.0, -0.045, 0.55), (0.07, -0.05, 0.545), (0.05, -0.058, 0.515), (0.015, -0.055, 0.52)],
-                    [(0, 1, 2, 3)], white)
-    tip.modifiers.new("thick", "SOLIDIFY").thickness = 0.006
-    add(soften(tip, 2))
+    def upper_gap(z):
+        return math.radians(20 + 12 * max(0.0, (0.42 - z) / 0.22))
+    upper, urows = lathe("Robe", [(0.2, 0.158, 0.13, 0.03), (0.28, 0.152, 0.124, 0.03), (0.36, 0.146, 0.118, 0.03),
+                                  (0.42, 0.132, 0.106, 0.03), (0.458, 0.092, 0.08, 0.03)], black, gap=upper_gap)
+    upper.modifiers.new("thick", "SOLIDIFY").thickness = 0.006
+    add(soften(upper, 2, 0.004, 0.05))
 
-    # ---------- head: soft cream fabric, a little wider at the jaw
-    hc, hr = (0.0, 0.025, 0.665), (0.128, 0.115, 0.14)
+    def skirt_gap(z):
+        return math.radians(32 + 30 * (0.2 - z) / 0.2)
+    skirt, srows = lathe("RobeSkirt", [(0.2, 0.162, 0.134, 0.03), (0.14, 0.19, 0.165, 0.045), (0.08, 0.232, 0.212, 0.055),
+                                       (0.035, 0.27, 0.255, 0.06), (0.01, 0.288, 0.275, 0.06)], black, gap=skirt_gap)
+    skirt.modifiers.new("thick", "SOLIDIFY").thickness = 0.006
+    add(soften(skirt, 2, 0.012, 0.06))
+    for rows in (urows, srows):                                            # thin gold trim on the open edges
+        for side in (0, -1):
+            edge = [np.array(r[side]) + np.array([0, -0.004, 0]) for r in rows]
+            add(tube("RobeTrim", edge, [0.0035] * len(edge), trim, sides=8))
+    hem = [np.array(p) + np.array([0, 0, 0.004]) for p in srows[-1]]
+    add(tube("HemTrim", hem, [0.0035] * len(hem), trim, sides=8))
+
+    # ---------- neck: knotted red scarf, a white satin bow pinned beside it
+    scarf = tube("Scarf", [(0.068 * math.cos(a), 0.03 + 0.062 * math.sin(a), 0.452 + 0.006 * math.sin(2 * a))
+                           for a in np.linspace(0, 2 * math.pi, 36)], [0.02] * 36, red, sides=14, caps=False, squash=0.7)
+    add(soften(scarf, 1, 0.005, 0.02))
+    knot = np.array([0.025, -0.035, 0.44])
+    add(ellipsoid("ScarfKnot", tuple(knot), (0.022, 0.014, 0.02), red))
+    for tail in ([knot, knot + np.array([0.05, -0.012, -0.02]), knot + np.array([0.09, -0.01, -0.035])],
+                 [knot, knot + np.array([0.035, -0.018, -0.035]), knot + np.array([0.055, -0.02, -0.07])]):
+        add(soften(tube("ScarfTail", tail, [0.016, 0.014, 0.01], red, sides=12, squash=0.35), 1))
+    extend(bow("ChestBow", np.array([0.075, -0.09, 0.405]), 0.03, ribbon))
+    extend(bow("PinkPin", np.array([-0.075, -0.1, 0.36]), 0.012, pink))
+
+    # ---------- head: round beige cloth with an embroidered face
+    hc, hr = (0.0, 0.02, 0.565), (0.112, 0.102, 0.118)
     head = ellipsoid("Head", hc, hr, skin, seg=56, rings=28)
-    for vx in head.data.vertices:              # widen the jaw, flatten the face a touch
-        x, y, z = vx.co
-        if z < 0:
-            vx.co.x = x * (1 + 0.06 * (-z))
-        if y < 0:
-            vx.co.y = y * 0.93
+    for vx in head.data.vertices:
+        if vx.co.y < 0:
+            vx.co.y *= 0.92
     head.data.update()
     add(head)
-    nose_p, _ = on_head(hc, hr, 0.0, 0.648)
-    add(ellipsoid("Nose", tuple(nose_p - np.array([0, 0.004, 0])), (0.016, 0.012, 0.014),
-                  fabric("NoseCotton", (0.8, 0.6, 0.5), sheen=0.2, fuzz=0.1, scale=900)))
-    catch = plain("Catch", (0.9, 0.9, 0.9), rough=0.2)
     for s in (-1, 1):
-        ep, en = on_head(hc, hr, s * 0.043, 0.68)
-        add(ellipsoid("EyeWhite", tuple(ep - en * 0.003), (0.017, 0.006, 0.019), white, seg=24, rings=12))
-        add(ellipsoid("EyeBead", tuple(ep + en * 0.002), (0.0115, 0.006, 0.0125), bead, seg=20, rings=10))
-        add(ellipsoid("Catchlight", tuple(ep + en * 0.008 + np.array([-0.003 * s, 0, 0.004])),
-                      (0.0025, 0.0015, 0.0025), catch, seg=8, rings=4))
-        lashes = []
+        ep, en = on_head(hc, hr, s * 0.04, 0.578, 0.001)
+        add(oriented("EyeStitch", ep, (0.013, 0.0025, 0.0085), en, thread))
+        lid = [on_head(hc, hr, s * x, 0.578 + 0.006 * math.sin((x - 0.024) / 0.032 * math.pi), 0.002)[0]
+               for x in np.linspace(0.024, 0.056, 7)]
+        lashes = [lid]
         for k in range(4):
-            a, an = on_head(hc, hr, s * (0.03 + 0.008 * k), 0.697, 0.002)
-            lashes.append([a, a + an * 0.006 + np.array([s * 0.004, 0, 0.007])])
-        add(curves("Lashes", lashes, 0.0011, yn, res=1))
-        brow = []                              # looped yarn eyebrows, inner ends lower
-        for k in range(26):
-            f = rng.uniform(0, 1)
-            x = s * (0.018 + 0.06 * f)
-            z = 0.718 + 0.012 * math.sin(f * math.pi) - 0.008 * (1 - f) + rng.normal(0, 0.003)
-            p, n = on_head(hc, hr, x, z, 0.004)
-            brow.append(curl(p, n, rng.uniform(0.004, 0.006), 1.4, 0.004, 16))
-        add(curves("Brow", brow, 0.0028, yn))
-
-    # bushy yarn mustache: two lobes sweeping out under the nose, the ends curling down
+            a, an = on_head(hc, hr, s * (0.03 + 0.007 * k), 0.587, 0.002)
+            lashes.append([a, a + np.array([s * 0.003, -0.002, 0.008])])
+        add(curves("Lashes", lashes, 0.0011, thread, res=1))
+        brow = [on_head(hc, hr, s * x, 0.604 + 0.006 * math.sin((x - 0.02) / 0.045 * math.pi), 0.0015)[0]
+                for x in np.linspace(0.02, 0.065, 8)]
+        add(curves("Brow", [brow], 0.0017, thread, res=1))
+    add(curves("Nose", [[on_head(hc, hr, 0.0, z, 0.0015)[0] for z in np.linspace(0.565, 0.54, 5)]], 0.0018, nose_thread, res=1))
+    # the thick black yarn mustache: a bundle of strands sweeping out and curling down at the ends
     mus = []
     for s in (-1, 1):
-        for k in range(230):
-            f = rng.uniform(0, 1) ** 0.85
-            x = s * (0.006 + 0.082 * f)
-            zc = 0.628 - 0.018 * f ** 2.2
-            half_h = 0.019 * (1 - 0.55 * f) + 0.006
-            z = zc + rng.uniform(-half_h, half_h)
-            p, n = on_head(hc, hr, x, z, rng.uniform(0.004, 0.022) * (1 - 0.4 * f))
-            mus.append(curl(p, n, rng.uniform(0.006, 0.009), rng.uniform(1.2, 1.8), 0.005, 18))
-    add(curves("Mustache", mus, 0.0032, yn))
-    mouth = [on_head(hc, hr, x, 0.6 - 0.006 * (1 - (x / 0.018) ** 2), 0.002)[0] for x in np.linspace(-0.018, 0.018, 7)]
-    add(tube("Mouth", mouth, [0.0045] * 7, lip, sides=8))
-
-    # black curly yarn hair: round the back and sides below the tarboush, full at the sides
+        ctrl = [(0.004, 0.528), (0.03, 0.531), (0.058, 0.524), (0.076, 0.511), (0.082, 0.495)]
+        cx = np.array([c[0] for c in ctrl])
+        cz = np.array([c[1] for c in ctrl])
+        tt = np.linspace(0, 1, len(ctrl))
+        for k in range(60):
+            dz, dout = rng.uniform(-1, 1), rng.uniform(0, 1)
+            strand = []
+            for t in np.linspace(0, 1, 14):
+                taper = 1 - 0.55 * t
+                x = s * np.interp(t, tt, cx)
+                z = np.interp(t, tt, cz) + dz * 0.011 * taper
+                strand.append(on_head(hc, hr, x, z, 0.004 + dout * 0.012 * taper)[0] + rng.normal(0, 0.0008, 3))
+            mus.append(strand)
+    add(curves("Mustache", mus, 0.0032, black_yarn))
+    # navy curly yarn hair at the sides and back, under the hat
     hair = []
-    for k in range(900):
-        az = rng.uniform(math.radians(-40), math.radians(220))           # 0 = his left side, 90 = back
-        zz = rng.uniform(0.555, 0.745)
-        if math.sin(az) < -0.35:                                           # keep the face clear
+    for k in range(650):
+        az = rng.uniform(math.radians(-35), math.radians(215))
+        zz = rng.uniform(0.47, 0.63)
+        if math.sin(az) < -0.3:
             continue
         cosz = (zz - hc[2]) / hr[2]
         if abs(cosz) >= 1:
             continue
         rad = math.sqrt(1 - cosz ** 2)
-        p = np.array([hc[0] + hr[0] * rad * math.cos(az) * (1 + 0.06 * max(0, -cosz)),
-                      hc[1] + hr[1] * rad * math.sin(az), zz])
+        p = np.array([hc[0] + hr[0] * rad * math.cos(az), hc[1] + hr[1] * rad * math.sin(az), zz])
         n = (p - np.array(hc)) / np.array(hr) ** 2
         n /= np.linalg.norm(n)
         side = abs(math.cos(az))
-        volume = 0.008 + 0.03 * side * (1 - abs(cosz)) + rng.uniform(0, 0.012)
-        hair.append(curl(p + n * rng.uniform(0.003, volume), n, rng.uniform(0.009, 0.014), rng.uniform(1.3, 2.0), 0.006, 22))
-    add(curves("Hair", hair, 0.0038, yn))
+        hair.append(curl(p + n * rng.uniform(0.003, 0.008 + 0.022 * side), n, rng.uniform(0.008, 0.012),
+                         rng.uniform(1.3, 2.0), 0.006, 20))
+    add(curves("Hair", hair, 0.0034, navy_yarn))
 
-    # ---------- tarboush: red felt, a twisted gold cord round the base, a black yarn pom-pom
-    base, height = 0.732, 0.15
-    prof = [(0.132, base - 0.012), (0.134, base + 0.02), (0.13, base + 0.08), (0.124, base + height - 0.02),
-            (0.112, base + height - 0.004), (0.08, base + height + 0.004), (0.0, base + height + 0.008)]
+    # ---------- the tarboush: soft red cloth, puffy, wrapped at the base in gold lamé
+    prof = [(0.116, 0.615), (0.124, 0.64), (0.13, 0.668), (0.128, 0.695), (0.119, 0.72), (0.104, 0.742),
+            (0.083, 0.758), (0.056, 0.769), (0.028, 0.774), (0.0, 0.775)]
     seg = 56
     V, F = [], []
     for r_, z_ in prof:
@@ -446,81 +489,71 @@ def build_fares():
     for i in range(len(prof) - 1):
         for a in range(seg):
             F.append((i * seg + a, i * seg + (a + 1) % seg, (i + 1) * seg + (a + 1) % seg, (i + 1) * seg + a))
-    fez = soften(mesh_from("Tarboush", V, F, red), 2, 0.003, 0.03)
-    add(fez)
-    plies = []
-    for ph in (0.0, math.pi):
-        pts = []
-        for u in np.linspace(0, 2 * math.pi, 600):
-            c = np.array([0.139 * math.cos(u), hc[1] + 0.139 * math.sin(u), base + 0.012])
-            nrm = np.array([math.cos(u), math.sin(u), 0.0])
-            w = 46 * u + ph
-            pts.append(c + 0.008 * (math.cos(w) * nrm + math.sin(w) * np.array([0, 0, 1.0])))
-        plies.append(pts)
-    add(curves("GoldCord", plies, 0.0078, gold, res=3))
-    knot_at = np.array([-0.142, hc[1] - 0.02, base + 0.012])
-    add(ellipsoid("CordKnot", tuple(knot_at), (0.02, 0.022, 0.024), gold))
-    ends = [[knot_at + np.array([-0.004 + 0.003 * math.sin(t * 6), -0.008 * k, -0.01 - 0.012 * t])
-             for t in np.linspace(0, 3, 12)] for k in range(2)]
-    add(curves("CordEnds", ends, 0.0065, gold))
-    top = np.array([0.012, hc[1] + 0.018, base + height + 0.006])
-    pom = []
-    for k in range(110):
-        d = np.array([rng.normal(0.15, 0.4), rng.normal(0.25, 0.4), rng.uniform(0.5, 1.0)])
-        d /= np.linalg.norm(d)
-        L = rng.uniform(0.04, 0.085)
-        wob = rng.normal(0, 1, 3)
-        pom.append([top + d * L * t + wob * 0.004 * math.sin(t * 5) for t in np.linspace(0, 1, 8)])
-    add(curves("PomPom", pom, 0.0026, yn))
+    add(soften(mesh_from("Tarboush", V, F, red), 2, 0.008, 0.04))
+    band_rows = [(z, 0.127 + 0.004 * math.sin(k * 2.3), 0.127 + 0.004 * math.sin(k * 2.3), hc[1])
+                 for k, z in enumerate(np.linspace(0.615, 0.66, 5))]
+    band, _ = lathe("HatBand", band_rows, lame)
+    add(soften(band, 2, 0.006, 0.015))
 
-    # ---------- arms: the right hand holds the tumbler to his lips, the left rests on his knee
-    mouth_pt = on_head(hc, hr, -0.03, 0.598, 0.004)[0]
-    axis = np.array([0.42, -0.35, 0.84])
+    # ---------- arms: wide black sleeves with gold cuffs, cream mitten hands
+    mouth_pt = on_head(hc, hr, -0.02, 0.515, 0.006)[0]
+    axis = np.array([0.45, -0.3, 0.84])
     axis /= np.linalg.norm(axis)
-    lid_top = mouth_pt + np.array([-0.012, -0.02, -0.004])
-    t_center = lid_top - axis * 0.11                                    # middle of the tumbler
+    lid_top = mouth_pt + np.array([-0.01, -0.016, -0.004])
+    t_center = lid_top - axis * 0.092
     side = np.cross(axis, [0.0, -1.0, 0.0])
     side /= np.linalg.norm(side)
     toward = np.cross(side, axis)
-    grip = t_center - axis * 0.035
-    wrist = grip - toward * 0.05 + side * 0.04 - axis * 0.015
-    right = [(-0.15, 0.03, 0.47), (-0.215, -0.02, 0.37), (-0.2, -0.09, 0.33), tuple(wrist)]
-    left = [(0.15, 0.03, 0.47), (0.21, 0.0, 0.35), (0.205, -0.09, 0.285), (0.16, -0.2, 0.27)]
+    grip = t_center - axis * 0.02
+    wrist = grip - toward * 0.045 + side * 0.03 - axis * 0.02
+    right = [(-0.12, 0.03, 0.43), (-0.21, -0.01, 0.37), (-0.2, -0.1, 0.34), tuple(wrist)]
+    left = [(0.12, 0.03, 0.43), (0.22, 0.0, 0.39), (0.31, -0.04, 0.33), (0.38, -0.07, 0.29)]
     for pts in (right, left):
-        sl = tube("Sleeve", pts, [0.054, 0.052, 0.048, 0.043], black, sides=26)
-        add(soften(sl, 1, 0.01, 0.035))
+        add(soften(tube("Sleeve", pts, [0.05, 0.052, 0.056, 0.062], black, sides=26), 1, 0.008, 0.035))
         w = np.array(pts[-1])
         d = w - np.array(pts[-2])
-        add(tube("CuffBraid", ring_around(w - d / np.linalg.norm(d) * 0.012, d, 0.046), [0.0055] * 30, gold,
-                 sides=8, caps=False))
-    # right hand round the tumbler: palm behind it, fingers wrapped across the front, thumb above
-    add(ellipsoid("Palm", tuple(grip - toward * 0.042), (0.036, 0.022, 0.04), skin,
+        add(tube("Cuff", ring_around(w - d / np.linalg.norm(d) * 0.006, d, 0.062), [0.0035] * 30, trim, sides=8,
+                 caps=False))
+    # right mitten round the tumbler
+    add(ellipsoid("RightMitten", tuple(grip - toward * 0.036), (0.034, 0.024, 0.042), skin,
                   rot=tuple(Vector(axis.tolist()).to_track_quat("Z", "Y").to_euler())))
-    for k in range(4):
-        h = -0.03 + 0.017 * k
-        arc = [grip + axis * h + 0.041 * (math.cos(a) * -toward + math.sin(a) * side) for a in np.linspace(-1.9, 0.6, 9)]
-        add(tube("Finger", arc, [0.0105, 0.011, 0.011, 0.0105, 0.01, 0.0095, 0.009, 0.0085, 0.008], skin, sides=12))
-    thumb = [grip + axis * 0.035 - toward * 0.03 + side * 0.03, grip + axis * 0.04 + side * 0.04,
-             grip + axis * 0.035 + toward * 0.025 + side * 0.035]
-    add(tube("Thumb", thumb, [0.012, 0.0115, 0.01], skin, sides=12))
-    lw = np.array(left[-1])                                             # left hand resting on the knee
-    ld = np.array([-0.15, -1.0, -0.25])
+    add(tube("RightThumb", [grip - toward * 0.02 + side * 0.03, grip + side * 0.036, grip + toward * 0.02 + side * 0.03],
+             [0.012, 0.0115, 0.01], skin, sides=12))
+    # left mitten held out to the side, thumb up, a white ribbon tied at the wrist
+    lw = np.array(left[-1])
+    ld = lw - np.array(left[-2])
     ld /= np.linalg.norm(ld)
-    add(tube("LeftHand", [lw + ld * 0.01, lw + ld * 0.045, lw + ld * 0.075], [0.03, 0.036, 0.026], skin, sides=20,
-             squash=0.6))
-    add(tube("LeftThumb", [lw + ld * 0.025 + np.array([-0.03, 0, 0.012]), lw + ld * 0.05 + np.array([-0.04, 0, 0.016])],
+    add(tube("LeftMitten", [lw + ld * 0.005, lw + ld * 0.04, lw + ld * 0.075], [0.03, 0.036, 0.026], skin, sides=20,
+             squash=0.65))
+    add(tube("LeftThumb", [lw + ld * 0.025 + np.array([0, -0.004, 0.02]), lw + ld * 0.04 + np.array([0, -0.006, 0.042])],
              [0.012, 0.01], skin, sides=12))
+    add(tube("WristRibbon", ring_around(lw - ld * 0.004, ld, 0.05), [0.003] * 30, ribbon, sides=6, caps=False))
+    for k in range(2):
+        add(tube("WristRibbonTail", [lw + np.array([0, -0.04, -0.03]), lw + np.array([0.005 * k, -0.05, -0.08]),
+                                     lw + np.array([0.012 * k - 0.004, -0.045, -0.12])], [0.0035, 0.003, 0.0025],
+                 ribbon, sides=6, squash=0.4))
+    # a white pin badge on the left sleeve
+    badge = bpy.data.objects.new("BadgeRig", None)
+    link(badge)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.017, depth=0.004)
+    disc = bpy.context.active_object
+    disc.data.materials.append(plain("BadgeWhite", (0.8, 0.8, 0.8), rough=0.3, coat=0.8))
+    disc.parent = badge
+    bp = np.array([0.23, -0.045, 0.39])
+    badge.location = tuple(bp)
+    badge.rotation_euler = Vector((0.4, -1.0, 0.2)).to_track_quat("Z", "Y").to_euler()
+    add(badge)
 
-    # the white LeMSIC tumbler with its steel ring and smoky lid
+    # the white LeMSIC tumbler
     rig = bpy.data.objects.new("TumblerRig", None)
     link(rig)
-    bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=0.031, radius2=0.037, depth=0.18, location=(0, 0, -0.01))
+    bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=0.026, radius2=0.031, depth=0.15, location=(0, 0, -0.008))
     body = bpy.context.active_object
     body.data.materials.append(tumbler_material())
-    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.0378, depth=0.014, location=(0, 0, 0.087))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.0318, depth=0.012, location=(0, 0, 0.073))
     steel = bpy.context.active_object
     steel.data.materials.append(plain("Steel", (0.75, 0.75, 0.76), rough=0.22, metal=1.0))
-    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.039, depth=0.024, location=(0, 0, 0.105))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.033, depth=0.02, location=(0, 0, 0.089))
     lid = bpy.context.active_object
     lid.data.materials.append(plain("SmokyLid", (0.03, 0.03, 0.035), rough=0.12, coat=1.0))
     for ob in (body, steel, lid):
@@ -550,8 +583,8 @@ if __name__ == "__main__":
     cam_data = bpy.data.cameras.new("Cam")
     cam_data.lens = 60
     cam = link(bpy.data.objects.new("Cam", cam_data))
-    cam.location = (0.35, -1.9, 0.72) if view == "front" else (-0.9, -2.6, 1.2)
-    cam.rotation_euler = (Vector((0, 0, 0.44)) - cam.location).to_track_quat("-Z", "Y").to_euler()
+    cam.location = (0.15, -1.75, 0.62) if view == "front" else (-0.9, -2.6, 1.2)
+    cam.rotation_euler = (Vector((0, 0, 0.37)) - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
     for loc, power, size in (((-1.2, -1.6, 1.6), 260, 1.6), ((1.6, -1.0, 1.0), 90, 1.2), ((0.3, 1.4, 1.6), 140, 1.0)):
         ld = bpy.data.lights.new("L", "AREA")
