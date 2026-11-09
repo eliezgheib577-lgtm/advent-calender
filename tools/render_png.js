@@ -9,6 +9,7 @@ const img = path.join(root, 'images');
 const pad = (d) => String(d).padStart(2, '0');
 
 const jobs = [
+  ['lemsic-tree-calendar-3d.svg', 'png/lemsic-tree-calendar-3d.png', 1800, 2200],
   ['lemsic-tree-calendar.svg', 'png/lemsic-tree-calendar.png', 1800, 2040],
   ['advent-calendar.svg', 'png/advent-calendar.png', 1800, 1550],
 ];
@@ -24,8 +25,11 @@ for (let d = 1; d <= 24; d++) {
     const out = path.join(img, dest);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     await page.setViewportSize({ width: w, height: h });
-    const svg = fs.readFileSync(path.join(img, src), 'utf8');
-    await page.setContent(`<html><body style="margin:0;background:transparent">${svg}</body></html>`);
+    const file = path.join(img, src);
+    if (!fs.existsSync(file)) { console.log(`skip ${src} (not generated)`); continue; }
+    // load from disk so relative image links (the 3D render) resolve
+    await page.goto('file://' + file);
+    await page.waitForLoadState('load');
     await page.locator('svg').first().screenshot({ path: out, omitBackground: true });
   }
   await browser.close();
