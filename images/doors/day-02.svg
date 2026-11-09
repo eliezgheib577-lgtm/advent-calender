@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300" role="img" aria-label="Day 2: Christmas Tree">
+  <title>Day 2 — Christmas Tree</title>
+  <defs>
+    <linearGradient id="d02-bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#B02A33"/><stop offset="1" stop-color="#6E141B"/>
+    </linearGradient>
+    <linearGradient id="d02-num" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE39A"/><stop offset="0.55" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+    </linearGradient>
+    <radialGradient id="d02-vig" cx="0.5" cy="0.42" r="0.7">
+      <stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="296" height="296" rx="22" fill="#A8761F"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="url(#d02-bg)"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="url(#d02-vig)"/>
+  <circle cx="65" cy="260" r="1.6" fill="#fff" opacity="0.20"/><circle cx="105" cy="150" r="2.8" fill="#fff" opacity="0.33"/><circle cx="57" cy="59" r="1.2" fill="#fff" opacity="0.45"/><circle cx="99" cy="175" r="1.2" fill="#fff" opacity="0.41"/><circle cx="175" cy="70" r="1.6" fill="#fff" opacity="0.26"/><circle cx="228" cy="95" r="2.8" fill="#fff" opacity="0.35"/><circle cx="115" cy="208" r="2.2" fill="#fff" opacity="0.21"/><circle cx="76" cy="260" r="2.2" fill="#fff" opacity="0.18"/><circle cx="128" cy="54" r="2.2" fill="#fff" opacity="0.33"/><circle cx="40" cy="200" r="1.2" fill="#fff" opacity="0.40"/><circle cx="230" cy="231" r="1.6" fill="#fff" opacity="0.36"/><circle cx="270" cy="257" r="2.8" fill="#fff" opacity="0.21"/><circle cx="215" cy="71" r="1.6" fill="#fff" opacity="0.18"/><circle cx="128" cy="208" r="1.6" fill="#fff" opacity="0.40"/><circle cx="264" cy="161" r="1.2" fill="#fff" opacity="0.19"/><circle cx="252" cy="270" r="2.8" fill="#fff" opacity="0.19"/><circle cx="66" cy="94" r="1.6" fill="#fff" opacity="0.25"/><circle cx="189" cy="72" r="1.6" fill="#fff" opacity="0.34"/><circle cx="153" cy="152" r="2.8" fill="#fff" opacity="0.21"/><circle cx="214" cy="230" r="2.2" fill="#fff" opacity="0.22"/><circle cx="216" cy="84" r="1.2" fill="#fff" opacity="0.29"/><circle cx="135" cy="174" r="1.6" fill="#fff" opacity="0.38"/><circle cx="207" cy="266" r="2.8" fill="#fff" opacity="0.19"/><circle cx="61" cy="226" r="2.8" fill="#fff" opacity="0.42"/><circle cx="138" cy="196" r="1.6" fill="#fff" opacity="0.39"/><circle cx="56" cy="74" r="2.2" fill="#fff" opacity="0.28"/>
+  <rect x="20" y="20" width="260" height="260" rx="12" fill="none" stroke="#FFF4DC" stroke-opacity="0.28" stroke-width="2"/>
+  
+  <g fill="#E8B84A">
+    <circle cx="32" cy="268" r="3.5"/><circle cx="268" cy="268" r="3.5"/>
+    <circle cx="32" cy="58" r="3.5"/><circle cx="268" cy="58" r="3.5"/>
+  </g>
+  <path d="M6 30 L6 22 Q6 6 22 6 L278 6 Q294 6 294 22 L294 30 Q282 32 271 32 Q259 33 247 30 Q233 30 218 31 Q205 32 192 30 Q179 47 166 28 Q156 39 146 32 Q133 37 120 32 Q106 39 91 32 Q79 45 67 29 Q52 49 37 33 Q27 39 16 31 Q11 38 6 30 Z" fill="#F2F7FB"/>
+  <path d="M6 30 L6 22 Q6 6 22 6 L278 6 Q294 6 294 22 L294 30 Q282 32 271 32 Q259 33 247 30 Q233 30 218 31 Q205 32 192 30 Q179 47 166 28 Q156 39 146 32 Q133 37 120 32 Q106 39 91 32 Q79 45 67 29 Q52 49 37 33 Q27 39 16 31 Q11 38 6 30 Z" fill="none" stroke="#C9D8E4" stroke-width="1.2" opacity="0.7"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="none" stroke="#E8B84A" stroke-width="5"/>
+  <g transform="translate(150 128) scale(1.0)">
+  <rect x="-9" y="38" width="18" height="18" rx="2" fill="#9A6532"/>
+  <polygon points="0,-50 -32,-12 32,-12" fill="#2E8B57" stroke="#1B5E3A" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="0,-30 -44,14 44,14" fill="#2E8B57" stroke="#1B5E3A" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="0,-6 -55,40 55,40" fill="#2E8B57" stroke="#1B5E3A" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M-24 -10 Q0 2 22 -14 M-36 16 Q0 30 38 12" stroke="#E8B84A" stroke-width="3" fill="none" stroke-dasharray="2 5" stroke-linecap="round"/>
+  <circle cx="-14" cy="-20" r="5" fill="#D63A3A"/><circle cx="16" cy="-2" r="5" fill="#E8B84A"/>
+  <circle cx="-22" cy="6" r="5" fill="#FFF4DC"/><circle cx="-30" cy="32" r="6" fill="#E8B84A"/>
+  <circle cx="6" cy="28" r="6" fill="#D63A3A"/><circle cx="34" cy="32" r="5" fill="#FFF4DC"/>
+  <polygon points="0.0,-68.0 3.5,-58.8 13.3,-58.3 5.6,-52.2 8.2,-42.7 0.0,-48.1 -8.2,-42.7 -5.6,-52.2 -13.3,-58.3 -3.5,-58.8" fill="#E8B84A" stroke="#A8761F" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <text x="152" y="266" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+        font-size="56" fill="#000" opacity="0.35">2</text>
+  <text x="150" y="263" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+        font-size="56" fill="url(#d02-num)" stroke="#A8761F" stroke-width="1"
+        paint-order="stroke">2</text>
+  <g transform="translate(274 160)">
+    <circle r="7" fill="#A8761F"/><circle r="5.5" fill="#E8B84A"/><circle cx="-1.8" cy="-1.8" r="2" fill="#FFE39A"/>
+  </g>
+</svg>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300" role="img" aria-label="Day 7: Snowflake">
+  <title>Day 7 — Snowflake</title>
+  <defs>
+    <linearGradient id="d07-bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#26406A"/><stop offset="1" stop-color="#0F1C33"/>
+    </linearGradient>
+    <linearGradient id="d07-num" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE39A"/><stop offset="0.55" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+    </linearGradient>
+    <radialGradient id="d07-vig" cx="0.5" cy="0.42" r="0.7">
+      <stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="296" height="296" rx="22" fill="#A8761F"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="url(#d07-bg)"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="url(#d07-vig)"/>
+  <circle cx="33" cy="240" r="2.2" fill="#fff" opacity="0.29"/><circle cx="131" cy="208" r="2.2" fill="#fff" opacity="0.23"/><circle cx="113" cy="199" r="2.8" fill="#fff" opacity="0.22"/><circle cx="128" cy="202" r="2.2" fill="#fff" opacity="0.34"/><circle cx="224" cy="142" r="2.8" fill="#fff" opacity="0.17"/><circle cx="198" cy="155" r="1.2" fill="#fff" opacity="0.39"/><circle cx="82" cy="123" r="1.6" fill="#fff" opacity="0.24"/><circle cx="66" cy="265" r="1.2" fill="#fff" opacity="0.25"/><circle cx="66" cy="257" r="2.2" fill="#fff" opacity="0.29"/><circle cx="152" cy="87" r="1.2" fill="#fff" opacity="0.31"/><circle cx="52" cy="154" r="1.6" fill="#fff" opacity="0.37"/><circle cx="36" cy="130" r="1.2" fill="#fff" opacity="0.33"/><circle cx="252" cy="122" r="1.6" fill="#fff" opacity="0.21"/><circle cx="258" cy="103" r="1.6" fill="#fff" opacity="0.25"/><circle cx="229" cy="82" r="2.8" fill="#fff" opacity="0.17"/><circle cx="113" cy="110" r="2.8" fill="#fff" opacity="0.22"/><circle cx="242" cy="176" r="1.2" fill="#fff" opacity="0.32"/><circle cx="255" cy="83" r="2.8" fill="#fff" opacity="0.31"/><circle cx="214" cy="64" r="1.6" fill="#fff" opacity="0.41"/><circle cx="169" cy="217" r="2.8" fill="#fff" opacity="0.23"/><circle cx="129" cy="253" r="2.2" fill="#fff" opacity="0.39"/><circle cx="138" cy="50" r="2.2" fill="#fff" opacity="0.29"/><circle cx="75" cy="166" r="1.6" fill="#fff" opacity="0.43"/><circle cx="173" cy="264" r="2.8" fill="#fff" opacity="0.16"/><circle cx="170" cy="261" r="1.2" fill="#fff" opacity="0.28"/><circle cx="160" cy="255" r="1.6" fill="#fff" opacity="0.17"/>
+  <rect x="20" y="20" width="260" height="260" rx="12" fill="none" stroke="#FFF4DC" stroke-opacity="0.28" stroke-width="2"/>
+  
+  <g fill="#E8B84A">
+    <circle cx="32" cy="268" r="3.5"/><circle cx="268" cy="268" r="3.5"/>
+    <circle cx="32" cy="58" r="3.5"/><circle cx="268" cy="58" r="3.5"/>
+  </g>
+  <path d="M6 30 L6 22 Q6 6 22 6 L278 6 Q294 6 294 22 L294 30 Q280 46 266 31 Q255 34 244 30 Q230 45 217 29 Q206 34 194 29 Q184 37 174 32 Q161 38 148 30 Q133 35 119 29 Q110 35 101 32 Q89 52 78 32 Q67 37 56 29 Q43 44 30 28 Q19 49 9 28 Q8 33 6 30 Z" fill="#F2F7FB"/>
+  <path d="M6 30 L6 22 Q6 6 22 6 L278 6 Q294 6 294 22 L294 30 Q280 46 266 31 Q255 34 244 30 Q230 45 217 29 Q206 34 194 29 Q184 37 174 32 Q161 38 148 30 Q133 35 119 29 Q110 35 101 32 Q89 52 78 32 Q67 37 56 29 Q43 44 30 28 Q19 49 9 28 Q8 33 6 30 Z" fill="none" stroke="#C9D8E4" stroke-width="1.2" opacity="0.7"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="none" stroke="#E8B84A" stroke-width="5"/>
+  <g transform="translate(150 128) scale(1.0)">
+  <circle r="58" fill="#FFFFFF" opacity="0.08"/>
+  <g stroke="#CFE6FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"><g transform="rotate(0)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(60)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(120)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(180)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(240)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(300)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g></g>
+  <g stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(0)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(60)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(120)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(180)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(240)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g><g transform="rotate(300)"><line x1="0" y1="0" x2="0" y2="-56"/><polyline points="-13,-40 0,-28 13,-40" fill="none"/><polyline points="-10,-56 0,-46 10,-56" fill="none"/></g></g>
+  <polygon points="0.0,-12.0 3.5,-6.1 10.4,-6.0 7.0,0.0 10.4,6.0 3.5,6.1 0.0,12.0 -3.5,6.1 -10.4,6.0 -7.0,0.0 -10.4,-6.0 -3.5,-6.1" fill="#FFFFFF"/>
+  <circle r="4" fill="#9CC9F5"/>
+  </g>
+  <text x="152" y="266" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+        font-size="56" fill="#000" opacity="0.35">7</text>
+  <text x="150" y="263" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+        font-size="56" fill="url(#d07-num)" stroke="#A8761F" stroke-width="1"
+        paint-order="stroke">7</text>
+  <g transform="translate(274 160)">
+    <circle r="7" fill="#A8761F"/><circle r="5.5" fill="#E8B84A"/><circle cx="-1.8" cy="-1.8" r="2" fill="#FFE39A"/>
+  </g>
+</svg>

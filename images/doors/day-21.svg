@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300" role="img" aria-label="Day 21: Letter to Santa">
+  <title>Day 21 — Letter to Santa</title>
+  <defs>
+    <linearGradient id="d21-bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#26406A"/><stop offset="1" stop-color="#0F1C33"/>
+    </linearGradient>
+    <linearGradient id="d21-num" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE39A"/><stop offset="0.55" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+    </linearGradient>
+    <radialGradient id="d21-vig" cx="0.5" cy="0.42" r="0.7">
+      <stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="296" height="296" rx="22" fill="#A8761F"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="url(#d21-bg)"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="url(#d21-vig)"/>
+  <circle cx="223" cy="167" r="1.2" fill="#fff" opacity="0.28"/><circle cx="41" cy="249" r="2.2" fill="#fff" opacity="0.21"/><circle cx="210" cy="215" r="2.2" fill="#fff" opacity="0.42"/><circle cx="159" cy="133" r="2.2" fill="#fff" opacity="0.38"/><circle cx="46" cy="124" r="1.2" fill="#fff" opacity="0.31"/><circle cx="106" cy="86" r="1.2" fill="#fff" opacity="0.42"/><circle cx="186" cy="117" r="2.2" fill="#fff" opacity="0.37"/><circle cx="222" cy="257" r="1.6" fill="#fff" opacity="0.43"/><circle cx="121" cy="205" r="1.2" fill="#fff" opacity="0.42"/><circle cx="244" cy="55" r="2.8" fill="#fff" opacity="0.30"/><circle cx="85" cy="212" r="1.2" fill="#fff" opacity="0.18"/><circle cx="93" cy="153" r="1.6" fill="#fff" opacity="0.17"/><circle cx="30" cy="88" r="2.2" fill="#fff" opacity="0.40"/><circle cx="166" cy="205" r="1.6" fill="#fff" opacity="0.43"/><circle cx="180" cy="145" r="2.8" fill="#fff" opacity="0.29"/><circle cx="147" cy="239" r="1.6" fill="#fff" opacity="0.22"/><circle cx="196" cy="243" r="2.8" fill="#fff" opacity="0.40"/><circle cx="114" cy="194" r="2.8" fill="#fff" opacity="0.36"/><circle cx="207" cy="235" r="1.2" fill="#fff" opacity="0.43"/><circle cx="169" cy="73" r="2.8" fill="#fff" opacity="0.22"/><circle cx="102" cy="138" r="1.6" fill="#fff" opacity="0.19"/><circle cx="241" cy="100" r="2.8" fill="#fff" opacity="0.19"/><circle cx="108" cy="183" r="2.8" fill="#fff" opacity="0.36"/><circle cx="270" cy="223" r="2.2" fill="#fff" opacity="0.24"/><circle cx="182" cy="160" r="1.6" fill="#fff" opacity="0.24"/><circle cx="107" cy="94" r="2.2" fill="#fff" opacity="0.27"/>
+  <rect x="20" y="20" width="260" height="260" rx="12" fill="none" stroke="#FFF4DC" stroke-opacity="0.28" stroke-width="2"/>
+  
+  <g fill="#E8B84A">
+    <circle cx="32" cy="268" r="3.5"/><circle cx="268" cy="268" r="3.5"/>
+    <circle cx="32" cy="58" r="3.5"/><circle cx="268" cy="58" r="3.5"/>
+  </g>
+  <path d="M6 30 L6 22 Q6 6 22 6 L278 6 Q294 6 294 22 L294 30 Q284 40 275 31 Q263 37 252 28 Q240 40 228 32 Q214 37 199 28 Q189 49 180 31 Q171 32 162 32 Q149 36 137 28 Q126 31 115 32 Q100 31 86 30 Q76 33 66 33 Q55 51 45 33 Q33 39 21 29 Q13 35 6 28 Z" fill="#F2F7FB"/>
+  <path d="M6 30 L6 22 Q6 6 22 6 L278 6 Q294 6 294 22 L294 30 Q284 40 275 31 Q263 37 252 28 Q240 40 228 32 Q214 37 199 28 Q189 49 180 31 Q171 32 162 32 Q149 36 137 28 Q126 31 115 32 Q100 31 86 30 Q76 33 66 33 Q55 51 45 33 Q33 39 21 29 Q13 35 6 28 Z" fill="none" stroke="#C9D8E4" stroke-width="1.2" opacity="0.7"/>
+  <rect x="6" y="6" width="288" height="288" rx="18" fill="none" stroke="#E8B84A" stroke-width="5"/>
+  <g transform="translate(150 128) scale(1.0)">
+  <g transform="rotate(-6)">
+    <rect x="-52" y="-32" width="104" height="70" rx="4" fill="#FFF4DC" stroke="#D8C49A" stroke-width="2"/>
+    <path d="M-52 -32 L0 10 L52 -32" fill="#F6E6C4" stroke="#D8C49A" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M-52 38 L-12 4 M52 38 L12 4" stroke="#D8C49A" stroke-width="2"/>
+    <rect x="28" y="-26" width="18" height="22" fill="#2E8B57" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="3 2"/>
+    <polygon points="37.0,-21.0 38.5,-17.1 42.7,-16.9 39.5,-14.2 40.5,-10.1 37.0,-12.4 33.5,-10.1 34.5,-14.2 31.3,-16.9 35.5,-17.1" fill="#FFE39A"/>
+    <circle cx="0" cy="10" r="12" fill="#D63A3A" stroke="#951B22" stroke-width="2"/>
+    <path d="M0 16 C-10 8 -6 0 0 5 C6 0 10 8 0 16Z" fill="#951B22"/>
+  </g>
+  <path d="M-50 -54 Q-50 -46 -42 -46 Q-50 -46 -50 -38 Q-50 -46 -58 -46 Q-50 -46 -50 -54Z" fill="#FFE39A"/><path d="M50 37 Q50 44 57 44 Q50 44 50 51 Q50 44 43 44 Q50 44 50 37Z" fill="#FFE39A"/>
+  </g>
+  <text x="152" y="266" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+        font-size="56" fill="#000" opacity="0.35">21</text>
+  <text x="150" y="263" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+        font-size="56" fill="url(#d21-num)" stroke="#A8761F" stroke-width="1"
+        paint-order="stroke">21</text>
+  <g transform="translate(274 160)">
+    <circle r="7" fill="#A8761F"/><circle r="5.5" fill="#E8B84A"/><circle cx="-1.8" cy="-1.8" r="2" fill="#FFE39A"/>
+  </g>
+</svg>
