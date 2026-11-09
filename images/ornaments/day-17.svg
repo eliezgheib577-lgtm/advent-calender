@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 108" width="120" height="108" role="img" aria-label="Day 17 ornament"><title>Day 17</title><g transform="translate(60 4)"><g>
+    <defs>
+      <radialGradient id="s17-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#6FD49A"/><stop offset="0.55" stop-color="#2E8B57"/><stop offset="1" stop-color="#1B5E3A"/>
+      </radialGradient>
+      <clipPath id="s17-clip"><circle cx="0" cy="60" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="14" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="13" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="64" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="60" r="38" fill="url(#s17-g)" stroke="#1B5E3A" stroke-width="1.5"/>
+    <g clip-path="url(#s17-clip)"><circle cx="25.8" cy="60.0" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="20.9" cy="75.2" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="8.0" cy="84.6" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-8.0" cy="84.6" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-20.9" cy="75.2" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-25.8" cy="60.0" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-20.9" cy="44.8" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-8.0" cy="35.4" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="8.0" cy="35.4" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="20.9" cy="44.8" r="2.6" fill="#FFFFFF" opacity="0.85"/></g>
+    <rect x="-9" y="16" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="42.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 42.9)"/>
+    <text x="1.5" y="72.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#0C3320" opacity="0.6">17</text>
+    <text x="0" y="71.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">17</text>
+  </g></g></svg>

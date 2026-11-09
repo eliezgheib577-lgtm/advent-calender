@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="220" height="220" role="img" aria-label="Day 24 star"><title>Day 24 — Christmas Eve star</title><g transform="translate(110 110)"><g>
+    <defs>
+      <radialGradient id="s24-halo"><stop offset="0" stop-color="#FFE39A" stop-opacity="0.85"/>
+        <stop offset="1" stop-color="#FFE39A" stop-opacity="0"/></radialGradient>
+      <linearGradient id="s24-star" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFE39A"/><stop offset="0.6" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+      </linearGradient>
+    </defs>
+    <circle r="96" fill="url(#s24-halo)"/>
+    <polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(11.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(33.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(56.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(78.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(101.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(123.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(146.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(168.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(191.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(213.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(236.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(258.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(281.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(303.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(326.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(348.75)"/>
+    <polygon points="0.0,-62.0 16.5,-18.7 62.8,-16.4 26.6,12.7 38.8,57.4 0.0,32.0 -38.8,57.4 -26.6,12.7 -62.8,-16.4 -16.5,-18.7" fill="#000" opacity="0.2"/>
+    <polygon points="0.0,-66.0 16.5,-22.7 62.8,-20.4 26.6,8.7 38.8,53.4 0.0,28.0 -38.8,53.4 -26.6,8.7 -62.8,-20.4 -16.5,-22.7" fill="url(#s24-star)" stroke="#A8761F" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="0.0,-50.0 12.3,-17.0 47.6,-15.5 20.0,6.5 29.4,40.5 0.0,21.0 -29.4,40.5 -20.0,6.5 -47.6,-15.5 -12.3,-17.0" fill="none" stroke="#FFE39A" stroke-width="1.5" opacity="0.8"/>
+    <text x="1.5" y="15.5" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold" font-size="38" fill="#FFF3C8" opacity="0.6">24</text>
+    <text x="0" y="14" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold" font-size="38" fill="#7A1018">24</text>
+    <path d="M-74 -53 Q-74 -44 -65 -44 Q-74 -44 -74 -35 Q-74 -44 -83 -44 Q-74 -44 -74 -53Z" fill="#FFFFFF"/><path d="M76 -45 Q76 -38 83 -38 Q76 -38 76 -31 Q76 -38 69 -38 Q76 -38 76 -45Z" fill="#FFFFFF"/><path d="M62 54 Q62 60 68 60 Q62 60 62 66 Q62 60 56 60 Q62 60 62 54Z" fill="#FFFFFF"/><path d="M-66 49 Q-66 56 -59 56 Q-66 56 -66 63 Q-66 56 -73 56 Q-66 56 -66 49Z" fill="#FFFFFF"/>
+  </g></g></svg>

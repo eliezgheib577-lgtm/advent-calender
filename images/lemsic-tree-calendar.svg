@@ -1,0 +1,531 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 2040" width="1800" height="2040" role="img" aria-label="LeMSIC Advent Calendar">
+  <title>LeMSIC Advent Calendar</title>
+  <defs>
+    <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7A4A22"/><stop offset="0.5" stop-color="#5A3517"/><stop offset="1" stop-color="#3A210D"/>
+    </linearGradient>
+    <linearGradient id="snow" gradientUnits="userSpaceOnUse" x1="0" y1="492" x2="0" y2="1790">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#EEF4FB"/>
+    </linearGradient>
+    <radialGradient id="vig" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.6" stop-color="#0A1A33" stop-opacity="0"/><stop offset="1" stop-color="#0A1A33" stop-opacity="0.45"/>
+    </radialGradient>
+    <path id="arcOut" d="M-50 1150 A950 950 0 0 1 1850 1150"/>
+    <path id="arcIn" d="M20 1150 A880 880 0 0 1 1780 1150"/>
+  </defs>
+
+  <rect width="1800" height="2040" rx="30" fill="url(#frame)"/>
+  <rect x="14" y="14" width="1772" height="2012" rx="22" fill="none" stroke="#9A6532" stroke-width="3" opacity="0.6"/>
+  <rect x="40" y="40" width="1720" height="1960" rx="14" fill="#3C6BAD"/>
+  <circle cx="1135" cy="1541" r="2" fill="#fff" opacity="0.20"/><circle cx="110" cy="912" r="2" fill="#fff" opacity="0.17"/><circle cx="1309" cy="769" r="2.5" fill="#fff" opacity="0.33"/><circle cx="725" cy="388" r="2" fill="#fff" opacity="0.21"/><circle cx="1471" cy="626" r="3.2" fill="#fff" opacity="0.34"/><circle cx="751" cy="795" r="2.5" fill="#fff" opacity="0.21"/><circle cx="325" cy="1102" r="3.2" fill="#fff" opacity="0.23"/><circle cx="692" cy="1891" r="2" fill="#fff" opacity="0.39"/><circle cx="1426" cy="1220" r="1.5" fill="#fff" opacity="0.19"/><circle cx="571" cy="358" r="2" fill="#fff" opacity="0.28"/><circle cx="1216" cy="902" r="2" fill="#fff" opacity="0.30"/><circle cx="774" cy="1068" r="2" fill="#fff" opacity="0.43"/><circle cx="525" cy="1357" r="2" fill="#fff" opacity="0.31"/><circle cx="659" cy="238" r="2.5" fill="#fff" opacity="0.30"/><circle cx="1598" cy="1261" r="2.5" fill="#fff" opacity="0.16"/><circle cx="1332" cy="601" r="2.5" fill="#fff" opacity="0.25"/><circle cx="968" cy="620" r="3.2" fill="#fff" opacity="0.44"/><circle cx="445" cy="1349" r="1.5" fill="#fff" opacity="0.38"/><circle cx="110" cy="64" r="2" fill="#fff" opacity="0.50"/><circle cx="385" cy="1171" r="2.5" fill="#fff" opacity="0.17"/><circle cx="840" cy="310" r="2" fill="#fff" opacity="0.37"/><circle cx="565" cy="793" r="2.5" fill="#fff" opacity="0.47"/><circle cx="766" cy="1367" r="2" fill="#fff" opacity="0.42"/><circle cx="663" cy="601" r="2" fill="#fff" opacity="0.19"/><circle cx="908" cy="324" r="3.2" fill="#fff" opacity="0.24"/><circle cx="466" cy="928" r="2" fill="#fff" opacity="0.31"/><circle cx="1336" cy="491" r="3.2" fill="#fff" opacity="0.42"/><circle cx="992" cy="865" r="3.2" fill="#fff" opacity="0.23"/><circle cx="199" cy="1320" r="2.5" fill="#fff" opacity="0.32"/><circle cx="1353" cy="620" r="1.5" fill="#fff" opacity="0.31"/><circle cx="1330" cy="1812" r="2.5" fill="#fff" opacity="0.25"/><circle cx="174" cy="345" r="3.2" fill="#fff" opacity="0.17"/><circle cx="76" cy="873" r="2.5" fill="#fff" opacity="0.27"/><circle cx="1568" cy="1631" r="2" fill="#fff" opacity="0.36"/><circle cx="1705" cy="1641" r="2" fill="#fff" opacity="0.15"/><circle cx="996" cy="1366" r="2" fill="#fff" opacity="0.26"/><circle cx="328" cy="426" r="2.5" fill="#fff" opacity="0.41"/><circle cx="990" cy="1759" r="3.2" fill="#fff" opacity="0.46"/><circle cx="969" cy="539" r="2.5" fill="#fff" opacity="0.48"/><circle cx="1110" cy="851" r="3.2" fill="#fff" opacity="0.35"/><circle cx="1712" cy="1240" r="3.2" fill="#fff" opacity="0.20"/><circle cx="632" cy="1577" r="2.5" fill="#fff" opacity="0.35"/><circle cx="1305" cy="382" r="2.5" fill="#fff" opacity="0.41"/><circle cx="207" cy="501" r="3.2" fill="#fff" opacity="0.24"/><circle cx="628" cy="1621" r="2" fill="#fff" opacity="0.28"/><circle cx="1063" cy="1906" r="2.5" fill="#fff" opacity="0.35"/><circle cx="744" cy="718" r="1.5" fill="#fff" opacity="0.48"/><circle cx="1374" cy="446" r="2" fill="#fff" opacity="0.40"/><circle cx="332" cy="714" r="2.5" fill="#fff" opacity="0.50"/><circle cx="1380" cy="932" r="2.5" fill="#fff" opacity="0.19"/><circle cx="185" cy="1154" r="3.2" fill="#fff" opacity="0.21"/><circle cx="746" cy="1326" r="1.5" fill="#fff" opacity="0.17"/><circle cx="1074" cy="419" r="2" fill="#fff" opacity="0.23"/><circle cx="1461" cy="128" r="2" fill="#fff" opacity="0.41"/><circle cx="1464" cy="895" r="2.5" fill="#fff" opacity="0.16"/><circle cx="425" cy="519" r="3.2" fill="#fff" opacity="0.37"/><circle cx="721" cy="1235" r="1.5" fill="#fff" opacity="0.46"/><circle cx="1442" cy="956" r="2.5" fill="#fff" opacity="0.38"/><circle cx="1180" cy="1800" r="1.5" fill="#fff" opacity="0.23"/><circle cx="223" cy="1497" r="2" fill="#fff" opacity="0.39"/><circle cx="610" cy="1382" r="2" fill="#fff" opacity="0.21"/><circle cx="408" cy="1897" r="2.5" fill="#fff" opacity="0.42"/><circle cx="444" cy="124" r="2" fill="#fff" opacity="0.21"/><circle cx="302" cy="339" r="3.2" fill="#fff" opacity="0.42"/><circle cx="1158" cy="1221" r="2" fill="#fff" opacity="0.33"/><circle cx="1121" cy="1544" r="2" fill="#fff" opacity="0.40"/><circle cx="1128" cy="608" r="1.5" fill="#fff" opacity="0.15"/><circle cx="539" cy="1150" r="2.5" fill="#fff" opacity="0.44"/><circle cx="1195" cy="1318" r="2.5" fill="#fff" opacity="0.49"/><circle cx="1708" cy="737" r="1.5" fill="#fff" opacity="0.42"/><circle cx="704" cy="1590" r="3.2" fill="#fff" opacity="0.44"/><circle cx="1692" cy="811" r="2" fill="#fff" opacity="0.43"/><circle cx="201" cy="470" r="2" fill="#fff" opacity="0.21"/><circle cx="1592" cy="453" r="3.2" fill="#fff" opacity="0.32"/><circle cx="432" cy="1555" r="1.5" fill="#fff" opacity="0.49"/><circle cx="919" cy="1518" r="2.5" fill="#fff" opacity="0.29"/><circle cx="1196" cy="303" r="3.2" fill="#fff" opacity="0.21"/><circle cx="995" cy="563" r="1.5" fill="#fff" opacity="0.41"/><circle cx="526" cy="86" r="2" fill="#fff" opacity="0.45"/><circle cx="1200" cy="1527" r="1.5" fill="#fff" opacity="0.47"/><circle cx="152" cy="1321" r="1.5" fill="#fff" opacity="0.33"/><circle cx="1252" cy="601" r="2" fill="#fff" opacity="0.38"/><circle cx="626" cy="114" r="3.2" fill="#fff" opacity="0.18"/><circle cx="1612" cy="1267" r="3.2" fill="#fff" opacity="0.35"/><circle cx="1421" cy="1445" r="2.5" fill="#fff" opacity="0.18"/><circle cx="803" cy="1307" r="1.5" fill="#fff" opacity="0.34"/><circle cx="63" cy="750" r="2.5" fill="#fff" opacity="0.39"/><circle cx="123" cy="112" r="2.5" fill="#fff" opacity="0.25"/><circle cx="1582" cy="891" r="3.2" fill="#fff" opacity="0.48"/><circle cx="1028" cy="221" r="1.5" fill="#fff" opacity="0.46"/><circle cx="1091" cy="1356" r="1.5" fill="#fff" opacity="0.19"/><circle cx="227" cy="1547" r="2" fill="#fff" opacity="0.16"/><circle cx="1640" cy="81" r="3.2" fill="#fff" opacity="0.42"/><circle cx="417" cy="299" r="3.2" fill="#fff" opacity="0.46"/><circle cx="1637" cy="1551" r="2" fill="#fff" opacity="0.24"/><circle cx="145" cy="1224" r="3.2" fill="#fff" opacity="0.50"/><circle cx="344" cy="966" r="1.5" fill="#fff" opacity="0.49"/><circle cx="843" cy="713" r="1.5" fill="#fff" opacity="0.33"/><circle cx="1618" cy="973" r="3.2" fill="#fff" opacity="0.36"/><circle cx="1402" cy="1769" r="3.2" fill="#fff" opacity="0.19"/><circle cx="454" cy="908" r="2.5" fill="#fff" opacity="0.48"/><circle cx="1553" cy="1049" r="3.2" fill="#fff" opacity="0.26"/><circle cx="200" cy="772" r="2.5" fill="#fff" opacity="0.36"/><circle cx="216" cy="1095" r="1.5" fill="#fff" opacity="0.40"/><circle cx="294" cy="1288" r="1.5" fill="#fff" opacity="0.47"/><circle cx="453" cy="934" r="2.5" fill="#fff" opacity="0.34"/><circle cx="1203" cy="1437" r="3.2" fill="#fff" opacity="0.17"/><circle cx="1554" cy="410" r="1.5" fill="#fff" opacity="0.28"/><circle cx="605" cy="1271" r="2" fill="#fff" opacity="0.22"/><circle cx="547" cy="1143" r="3.2" fill="#fff" opacity="0.45"/><circle cx="1516" cy="722" r="2" fill="#fff" opacity="0.31"/><circle cx="267" cy="994" r="2.5" fill="#fff" opacity="0.32"/><circle cx="1256" cy="1298" r="2" fill="#fff" opacity="0.44"/><circle cx="1071" cy="219" r="1.5" fill="#fff" opacity="0.41"/><circle cx="764" cy="1828" r="3.2" fill="#fff" opacity="0.28"/><circle cx="361" cy="824" r="2.5" fill="#fff" opacity="0.19"/><circle cx="1223" cy="1758" r="1.5" fill="#fff" opacity="0.31"/><circle cx="68" cy="1232" r="2.5" fill="#fff" opacity="0.48"/><circle cx="983" cy="1526" r="3.2" fill="#fff" opacity="0.24"/><circle cx="146" cy="1475" r="2.5" fill="#fff" opacity="0.33"/><circle cx="686" cy="1740" r="2" fill="#fff" opacity="0.15"/><circle cx="405" cy="1949" r="3.2" fill="#fff" opacity="0.30"/><circle cx="298" cy="749" r="3.2" fill="#fff" opacity="0.28"/><circle cx="688" cy="984" r="1.5" fill="#fff" opacity="0.49"/><circle cx="1059" cy="269" r="1.5" fill="#fff" opacity="0.34"/><circle cx="668" cy="126" r="2" fill="#fff" opacity="0.49"/><circle cx="1328" cy="818" r="3.2" fill="#fff" opacity="0.48"/><circle cx="671" cy="1733" r="2" fill="#fff" opacity="0.36"/><circle cx="790" cy="121" r="2" fill="#fff" opacity="0.38"/><circle cx="1348" cy="208" r="1.5" fill="#fff" opacity="0.40"/><circle cx="1077" cy="184" r="2" fill="#fff" opacity="0.50"/><circle cx="1013" cy="1276" r="2.5" fill="#fff" opacity="0.23"/><circle cx="929" cy="541" r="2.5" fill="#fff" opacity="0.50"/><circle cx="649" cy="856" r="2" fill="#fff" opacity="0.26"/><circle cx="1466" cy="503" r="1.5" fill="#fff" opacity="0.45"/><circle cx="579" cy="1142" r="2" fill="#fff" opacity="0.44"/><circle cx="88" cy="965" r="1.5" fill="#fff" opacity="0.36"/><circle cx="1340" cy="1743" r="1.5" fill="#fff" opacity="0.21"/><circle cx="719" cy="724" r="3.2" fill="#fff" opacity="0.42"/><circle cx="339" cy="568" r="1.5" fill="#fff" opacity="0.38"/><circle cx="561" cy="1946" r="2" fill="#fff" opacity="0.43"/><circle cx="582" cy="154" r="2" fill="#fff" opacity="0.45"/><circle cx="1237" cy="950" r="3.2" fill="#fff" opacity="0.27"/><circle cx="610" cy="1443" r="2" fill="#fff" opacity="0.45"/><circle cx="1297" cy="771" r="2.5" fill="#fff" opacity="0.24"/><circle cx="478" cy="624" r="2" fill="#fff" opacity="0.22"/><circle cx="810" cy="344" r="2" fill="#fff" opacity="0.45"/><circle cx="1512" cy="656" r="3.2" fill="#fff" opacity="0.16"/><circle cx="225" cy="871" r="3.2" fill="#fff" opacity="0.16"/><circle cx="453" cy="1043" r="3.2" fill="#fff" opacity="0.49"/><circle cx="61" cy="1515" r="3.2" fill="#fff" opacity="0.33"/><circle cx="1556" cy="1757" r="2.5" fill="#fff" opacity="0.33"/><circle cx="63" cy="613" r="3.2" fill="#fff" opacity="0.47"/><circle cx="340" cy="1226" r="1.5" fill="#fff" opacity="0.28"/><circle cx="1568" cy="1662" r="1.5" fill="#fff" opacity="0.42"/><circle cx="1470" cy="1385" r="1.5" fill="#fff" opacity="0.21"/><circle cx="1439" cy="583" r="3.2" fill="#fff" opacity="0.22"/><circle cx="1498" cy="1224" r="2" fill="#fff" opacity="0.45"/><circle cx="721" cy="541" r="1.5" fill="#fff" opacity="0.39"/><circle cx="1361" cy="73" r="2.5" fill="#fff" opacity="0.30"/><circle cx="1212" cy="1019" r="3.2" fill="#fff" opacity="0.40"/><circle cx="232" cy="802" r="2.5" fill="#fff" opacity="0.16"/><circle cx="712" cy="380" r="2" fill="#fff" opacity="0.26"/><circle cx="249" cy="1867" r="1.5" fill="#fff" opacity="0.31"/><circle cx="1017" cy="996" r="2" fill="#fff" opacity="0.18"/><circle cx="1463" cy="267" r="2" fill="#fff" opacity="0.48"/><circle cx="968" cy="1637" r="1.5" fill="#fff" opacity="0.42"/><circle cx="584" cy="1451" r="2.5" fill="#fff" opacity="0.36"/><circle cx="927" cy="1820" r="2.5" fill="#fff" opacity="0.44"/><circle cx="1606" cy="260" r="2.5" fill="#fff" opacity="0.34"/>
+  <path d="M490 730 Q490 738 498 738 Q490 738 490 746 Q490 738 482 738 Q490 738 490 730Z" fill="#FFFFFF"/><path d="M942 1219 Q942 1225 948 1225 Q942 1225 942 1231 Q942 1225 936 1225 Q942 1225 942 1219Z" fill="#FFFFFF"/><path d="M401 1221 Q401 1227 407 1227 Q401 1227 401 1233 Q401 1227 395 1227 Q401 1227 401 1221Z" fill="#FFFFFF"/><path d="M481 712 Q481 720 489 720 Q481 720 481 728 Q481 720 473 720 Q481 720 481 712Z" fill="#FFFFFF"/><path d="M728 590 Q728 598 736 598 Q728 598 728 606 Q728 598 720 598 Q728 598 728 590Z" fill="#FFFFFF"/><path d="M486 1009 Q486 1015 492 1015 Q486 1015 486 1021 Q486 1015 480 1015 Q486 1015 486 1009Z" fill="#FFFFFF"/><path d="M604 821 Q604 826 609 826 Q604 826 604 831 Q604 826 599 826 Q604 826 604 821Z" fill="#FFFFFF"/><path d="M1407 777 Q1407 783 1413 783 Q1407 783 1407 789 Q1407 783 1401 783 Q1407 783 1407 777Z" fill="#FFFFFF"/><path d="M1191 1018 Q1191 1024 1197 1024 Q1191 1024 1191 1030 Q1191 1024 1185 1024 Q1191 1024 1191 1018Z" fill="#FFFFFF"/><path d="M1187 781 Q1187 789 1195 789 Q1187 789 1187 797 Q1187 789 1179 789 Q1187 789 1187 781Z" fill="#FFFFFF"/><path d="M1009 1200 Q1009 1206 1015 1206 Q1009 1206 1009 1212 Q1009 1206 1003 1206 Q1009 1206 1009 1200Z" fill="#FFFFFF"/><path d="M1076 187 Q1076 193 1082 193 Q1076 193 1076 199 Q1076 193 1070 193 Q1076 193 1076 187Z" fill="#FFFFFF"/><path d="M187 318 Q187 323 192 323 Q187 323 187 328 Q187 323 182 323 Q187 323 187 318Z" fill="#FFFFFF"/><path d="M628 1134 Q628 1139 633 1139 Q628 1139 628 1144 Q628 1139 623 1139 Q628 1139 628 1134Z" fill="#FFFFFF"/>
+
+  <text font-family="'Avenir Next', 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif" font-weight="600" font-size="66" letter-spacing="8" fill="#FFFFFF">
+    <textPath href="#arcOut" startOffset="50%" text-anchor="middle">LeMSIC Advent Calendar</textPath>
+  </text>
+  <text font-family="'Avenir Next', 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif" font-size="28" letter-spacing="9" fill="#FFFFFF" opacity="0.92">
+    <textPath href="#arcIn" startOffset="50%" text-anchor="middle">1 – 24 december 2026</textPath>
+  </text>
+
+  <g transform="translate(78.4 1354.6) rotate(348.0) scale(1.15)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(93.4 1414.4) rotate(343.8) scale(1.12)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(112.7 1472.8) rotate(339.6) scale(1.09)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(136.2 1529.7) rotate(335.4) scale(1.06)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(163.9 1584.7) rotate(331.2) scale(1.03)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(195.5 1637.5) rotate(327.0) scale(1.00)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(230.9 1687.9) rotate(322.8) scale(0.97)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(269.9 1735.5) rotate(318.6) scale(0.94)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(312.3 1780.2) rotate(314.4) scale(0.91)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(357.8 1821.6) rotate(310.2) scale(0.88)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(406.3 1859.6) rotate(306.0) scale(0.85)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(457.4 1893.9) rotate(301.8) scale(0.82)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g>
+  <g transform="translate(1721.6 1354.6) rotate(12.0) scale(1.15)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1706.6 1414.4) rotate(16.2) scale(1.12)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1687.3 1472.8) rotate(20.4) scale(1.09)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1663.8 1529.7) rotate(24.6) scale(1.06)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1636.1 1584.7) rotate(28.8) scale(1.03)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1604.5 1637.5) rotate(33.0) scale(1.00)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1569.1 1687.9) rotate(37.2) scale(0.97)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1530.1 1735.5) rotate(41.4) scale(0.94)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1487.7 1780.2) rotate(45.6) scale(0.91)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1442.2 1821.6) rotate(49.8) scale(0.88)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1393.7 1859.6) rotate(54.0) scale(0.85)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g><g transform="translate(1342.6 1893.9) rotate(58.2) scale(0.82)"><path d="M0 0 L-16 -26 L-8 -28 L0 -12 L8 -28 L16 -26Z" fill="#FFFFFF"/></g>
+
+  <path d="M879 492 L921 492 L921 1750 Q921 1790 934 1790 L866 1790 Q879 1790 879 1750Z" fill="#FFFFFF" stroke="#3C6BAD" stroke-width="12" paint-order="stroke"/>
+  <path d="M814 478 L986 478 L970 500 L921 506 L879 506 L830 500Z" fill="#FFFFFF" stroke="#3C6BAD" stroke-width="12" paint-order="stroke"/>
+  <path d="M834 575 L1000 593 C1082.6 593 1082.6 711 1000 711 L744 729 C661.4 729 661.4 847 744 847 L1112 865 C1194.6 865 1194.6 983 1112 983 L632 1001 C549.4 1001 549.4 1119 632 1119 L1224 1137 C1306.6 1137 1306.6 1255 1224 1255 L520 1273 C437.4 1273 437.4 1391 520 1391 L1336 1409 C1418.6 1409 1418.6 1527 1336 1527 L408 1545 C325.4 1545 325.4 1663 408 1663 L1011.2 1673.4" fill="none" stroke="#3C6BAD" stroke-width="54" stroke-linejoin="round"/>
+  <path d="M1010.2 1652.4 Q1244.6 1656.4 1478.0 1715.0 Q1224.6 1692.4 1010.2 1694.4Z" fill="#3C6BAD" stroke="#3C6BAD" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M836 558 C814 553 786 557 778 571 C774 581 784 591 804 590 C818 590 828 592 836 592Z" transform="translate(834 575) scale(1.235) translate(-834 -575)" fill="#3C6BAD" stroke="#3C6BAD" stroke-width="12"/>
+  <path d="M834 575 L1000 593 C1082.6 593 1082.6 711 1000 711 L744 729 C661.4 729 661.4 847 744 847 L1112 865 C1194.6 865 1194.6 983 1112 983 L632 1001 C549.4 1001 549.4 1119 632 1119 L1224 1137 C1306.6 1137 1306.6 1255 1224 1255 L520 1273 C437.4 1273 437.4 1391 520 1391 L1336 1409 C1418.6 1409 1418.6 1527 1336 1527 L408 1545 C325.4 1545 325.4 1663 408 1663 L1011.2 1673.4" fill="none" stroke="url(#snow)" stroke-width="42" stroke-linejoin="round"/>
+  <path d="M1010.2 1652.4 Q1244.6 1656.4 1478.0 1715.0 Q1224.6 1692.4 1010.2 1694.4Z" fill="url(#snow)"/>
+  <path d="M836 558 C814 553 786 557 778 571 C774 581 784 591 804 590 C818 590 828 592 836 592Z" transform="translate(834 575) scale(1.235) translate(-834 -575)" fill="#FFFFFF"/>
+  <rect x="873" y="687.0" width="54" height="62" fill="#3C6BAD"/><rect x="879" y="685.0" width="42" height="66" fill="#FFFFFF"/>
+  <rect x="873" y="960.0" width="54" height="62" fill="#3C6BAD"/><rect x="879" y="958.0" width="42" height="66" fill="#FFFFFF"/>
+  <rect x="873" y="1232.3" width="54" height="62" fill="#3C6BAD"/><rect x="879" y="1230.3" width="42" height="66" fill="#FFFFFF"/>
+  <rect x="873" y="1504.5" width="54" height="62" fill="#3C6BAD"/><rect x="879" y="1502.5" width="42" height="66" fill="#FFFFFF"/>
+  <g transform="translate(834 575) scale(1.235) translate(-834 -575)"><path d="M777 579 L762 581 M766 580 L758 575 M766 580 L759 587" stroke="#D63A3A" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="800" cy="576" r="4" fill="#284D85"/><g transform="translate(800 559) rotate(-24)"><path d="M-20 0 C-16 -22 0 -40 22 -38 C14 -30 10 -16 18 0Z" fill="#D63A3A" stroke="#951B22" stroke-width="2"/><circle cx="23" cy="-38" r="7" fill="#FFFFFF" stroke="#C9D8E4" stroke-width="1.5"/><rect x="-24" y="-5" width="46" height="12" rx="6" fill="#FFFFFF" stroke="#C9D8E4" stroke-width="1.5"/></g></g>
+  <circle cx="945" cy="585" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="945" cy="585" r="3.6" fill="#E8B84A"/><circle cx="949" cy="714" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="949" cy="714" r="3.6" fill="#E8B84A"/><circle cx="846" cy="718" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="846" cy="718" r="3.6" fill="#FFE39A"/><circle cx="795" cy="721" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="795" cy="721" r="3.6" fill="#FFE39A"/><circle cx="790" cy="845" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="790" cy="845" r="3.6" fill="#FFE39A"/><circle cx="836" cy="849" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="836" cy="849" r="3.6" fill="#E8B84A"/><circle cx="974" cy="858" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="974" cy="858" r="3.6" fill="#E8B84A"/><circle cx="1020" cy="858" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="1020" cy="858" r="3.6" fill="#FFE39A"/><circle cx="1066" cy="862" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="1066" cy="862" r="3.6" fill="#FFE39A"/><circle cx="1064" cy="981" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="1064" cy="981" r="3.6" fill="#E8B84A"/><circle cx="1016" cy="988" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="1016" cy="988" r="3.6" fill="#FFE39A"/><circle cx="968" cy="993" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="968" cy="993" r="3.6" fill="#FFE39A"/><circle cx="824" cy="995" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="824" cy="995" r="3.6" fill="#E8B84A"/><circle cx="776" cy="1000" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="776" cy="1000" r="3.6" fill="#E8B84A"/><circle cx="728" cy="998" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="728" cy="998" r="3.6" fill="#E8B84A"/><circle cx="680" cy="997" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="680" cy="997" r="3.6" fill="#E8B84A"/><circle cx="681" cy="1121" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="681" cy="1121" r="3.6" fill="#FFE39A"/><circle cx="731" cy="1120" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="731" cy="1120" r="3.6" fill="#E8B84A"/><circle cx="780" cy="1120" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="780" cy="1120" r="3.6" fill="#FFE39A"/><circle cx="829" cy="1126" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="829" cy="1126" r="3.6" fill="#FF6B6B"/><circle cx="977" cy="1125" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="977" cy="1125" r="3.6" fill="#E8B84A"/><circle cx="1027" cy="1132" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="1027" cy="1132" r="3.6" fill="#FFE39A"/><circle cx="1076" cy="1130" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="1076" cy="1130" r="3.6" fill="#FFE39A"/><circle cx="1125" cy="1133" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="1125" cy="1133" r="3.6" fill="#FF6B6B"/><circle cx="1175" cy="1135" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="1175" cy="1135" r="3.6" fill="#7DE39C"/><circle cx="1177" cy="1255" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="1177" cy="1255" r="3.6" fill="#E8B84A"/><circle cx="1130" cy="1260" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="1130" cy="1260" r="3.6" fill="#E8B84A"/><circle cx="1083" cy="1254" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="1083" cy="1254" r="3.6" fill="#FF6B6B"/><circle cx="1036" cy="1260" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="1036" cy="1260" r="3.6" fill="#FF6B6B"/><circle cx="989" cy="1263" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="989" cy="1263" r="3.6" fill="#FF6B6B"/><circle cx="942" cy="1263" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="942" cy="1263" r="3.6" fill="#E8B84A"/><circle cx="849" cy="1261" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="849" cy="1261" r="3.6" fill="#7DE39C"/><circle cx="802" cy="1262" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="802" cy="1262" r="3.6" fill="#FF6B6B"/><circle cx="755" cy="1264" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="755" cy="1264" r="3.6" fill="#7DE39C"/><circle cx="708" cy="1267" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="708" cy="1267" r="3.6" fill="#E8B84A"/><circle cx="661" cy="1272" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="661" cy="1272" r="3.6" fill="#FFE39A"/><circle cx="614" cy="1273" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="614" cy="1273" r="3.6" fill="#FF6B6B"/><circle cx="567" cy="1270" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="567" cy="1270" r="3.6" fill="#FF6B6B"/><circle cx="568" cy="1393" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="568" cy="1393" r="3.6" fill="#FFE39A"/><circle cx="616" cy="1396" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="616" cy="1396" r="3.6" fill="#E8B84A"/><circle cx="664" cy="1398" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="664" cy="1398" r="3.6" fill="#FF6B6B"/><circle cx="712" cy="1395" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="712" cy="1395" r="3.6" fill="#E8B84A"/><circle cx="760" cy="1392" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="760" cy="1392" r="3.6" fill="#FF6B6B"/><circle cx="808" cy="1399" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="808" cy="1399" r="3.6" fill="#7DE39C"/><circle cx="856" cy="1396" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="856" cy="1396" r="3.6" fill="#7DE39C"/><circle cx="952" cy="1404" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="952" cy="1404" r="3.6" fill="#FF6B6B"/><circle cx="1000" cy="1397" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="1000" cy="1397" r="3.6" fill="#7DE39C"/><circle cx="1048" cy="1401" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="1048" cy="1401" r="3.6" fill="#FFE39A"/><circle cx="1096" cy="1400" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="1096" cy="1400" r="3.6" fill="#E8B84A"/><circle cx="1144" cy="1402" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="1144" cy="1402" r="3.6" fill="#FF6B6B"/><circle cx="1192" cy="1402" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="1192" cy="1402" r="3.6" fill="#E8B84A"/><circle cx="1240" cy="1406" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="1240" cy="1406" r="3.6" fill="#7DE39C"/><circle cx="1288" cy="1404" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="1288" cy="1404" r="3.6" fill="#7DE39C"/><circle cx="1290" cy="1527" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="1290" cy="1527" r="3.6" fill="#FF6B6B"/><circle cx="1243" cy="1533" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="1243" cy="1533" r="3.6" fill="#7DE39C"/><circle cx="1197" cy="1533" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="1197" cy="1533" r="3.6" fill="#FF6B6B"/><circle cx="1150" cy="1533" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="1150" cy="1533" r="3.6" fill="#FF6B6B"/><circle cx="1104" cy="1533" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="1104" cy="1533" r="3.6" fill="#7DE39C"/><circle cx="1058" cy="1537" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="1058" cy="1537" r="3.6" fill="#E8B84A"/><circle cx="1011" cy="1529" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="1011" cy="1529" r="3.6" fill="#E8B84A"/><circle cx="965" cy="1532" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="965" cy="1532" r="3.6" fill="#E8B84A"/><circle cx="826" cy="1532" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="826" cy="1532" r="3.6" fill="#FFE39A"/><circle cx="779" cy="1535" r="9" fill="#FF6B6B" opacity="0.25"/><circle cx="779" cy="1535" r="3.6" fill="#FF6B6B"/><circle cx="733" cy="1534" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="733" cy="1534" r="3.6" fill="#7DE39C"/><circle cx="686" cy="1540" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="686" cy="1540" r="3.6" fill="#FFE39A"/><circle cx="640" cy="1541" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="640" cy="1541" r="3.6" fill="#E8B84A"/><circle cx="594" cy="1543" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="594" cy="1543" r="3.6" fill="#FFE39A"/><circle cx="547" cy="1547" r="9" fill="#E8B84A" opacity="0.25"/><circle cx="547" cy="1547" r="3.6" fill="#E8B84A"/><circle cx="501" cy="1543" r="9" fill="#FFE39A" opacity="0.25"/><circle cx="501" cy="1543" r="3.6" fill="#FFE39A"/><circle cx="454" cy="1543" r="9" fill="#7DE39C" opacity="0.25"/><circle cx="454" cy="1543" r="3.6" fill="#7DE39C"/>
+
+  <g transform="translate(900 418)" id="cal-day-24"><g>
+    <defs>
+      <radialGradient id="cal-o24-halo"><stop offset="0" stop-color="#FFE39A" stop-opacity="0.85"/>
+        <stop offset="1" stop-color="#FFE39A" stop-opacity="0"/></radialGradient>
+      <linearGradient id="cal-o24-star" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFE39A"/><stop offset="0.6" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+      </linearGradient>
+    </defs>
+    <circle r="96" fill="url(#cal-o24-halo)"/>
+    <polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(11.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(33.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(56.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(78.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(101.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(123.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(146.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(168.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(191.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(213.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(236.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(258.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(281.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(303.75)"/><polygon points="0,-5 92,0 0,5" fill="#FFE39A" opacity="0.45" transform="rotate(326.25)"/><polygon points="0,-5 70,0 0,5" fill="#FFE39A" opacity="0.28" transform="rotate(348.75)"/>
+    <polygon points="0.0,-62.0 16.5,-18.7 62.8,-16.4 26.6,12.7 38.8,57.4 0.0,32.0 -38.8,57.4 -26.6,12.7 -62.8,-16.4 -16.5,-18.7" fill="#000" opacity="0.2"/>
+    <polygon points="0.0,-66.0 16.5,-22.7 62.8,-20.4 26.6,8.7 38.8,53.4 0.0,28.0 -38.8,53.4 -26.6,8.7 -62.8,-20.4 -16.5,-22.7" fill="url(#cal-o24-star)" stroke="#A8761F" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="0.0,-50.0 12.3,-17.0 47.6,-15.5 20.0,6.5 29.4,40.5 0.0,21.0 -29.4,40.5 -20.0,6.5 -47.6,-15.5 -12.3,-17.0" fill="none" stroke="#FFE39A" stroke-width="1.5" opacity="0.8"/>
+    <text x="1.5" y="15.5" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold" font-size="38" fill="#FFF3C8" opacity="0.6">24</text>
+    <text x="0" y="14" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold" font-size="38" fill="#7A1018">24</text>
+    <path d="M-74 -53 Q-74 -44 -65 -44 Q-74 -44 -74 -35 Q-74 -44 -83 -44 Q-74 -44 -74 -53Z" fill="#FFFFFF"/><path d="M76 -45 Q76 -38 83 -38 Q76 -38 76 -31 Q76 -38 69 -38 Q76 -38 76 -45Z" fill="#FFFFFF"/><path d="M62 54 Q62 60 68 60 Q62 60 62 66 Q62 60 56 60 Q62 60 62 54Z" fill="#FFFFFF"/><path d="M-66 49 Q-66 56 -59 56 Q-66 56 -66 63 Q-66 56 -73 56 Q-66 56 -66 49Z" fill="#FFFFFF"/>
+  </g></g>
+  <g transform="translate(804.0 743.8)" id="cal-day-8"><g>
+    <defs>
+      <radialGradient id="cal-o8-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FF7B7B"/><stop offset="0.55" stop-color="#D63A3A"/><stop offset="1" stop-color="#951B22"/>
+      </radialGradient>
+      <clipPath id="cal-o8-clip"><circle cx="0" cy="61" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="15" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="14" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="65" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="61" r="38" fill="url(#cal-o8-g)" stroke="#951B22" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o8-clip)"><path d="M-38 32 L-38 32 L-30 38 L-22 32 L-14 38 L-6 32 L2 38 L10 32 L18 38 L26 32 L34 38 L42 32 L38 39 L30 45 L22 39 L14 45 L6 39 L-2 45 L-10 39 L-18 45 L-26 39 L-34 45 L-42 39Z" fill="#E8B84A" opacity="0.9"/></g>
+    <rect x="-9" y="17" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="43.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 43.9)"/>
+    <text x="1.5" y="74.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#5A0E12" opacity="0.6">8</text>
+    <text x="0" y="72.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFF4DC">8</text>
+  </g></g>
+  <g transform="translate(804.0 868.9)" id="cal-day-22"><g>
+    <defs>
+      <radialGradient id="cal-o22-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFE39A"/><stop offset="0.55" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+      </radialGradient>
+      <clipPath id="cal-o22-clip"><circle cx="0" cy="55" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="8" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="59" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="55" r="38" fill="url(#cal-o22-g)" stroke="#A8761F" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o22-clip)"><rect x="-38" y="31" width="76" height="4" fill="#D63A3A"/><rect x="-38" y="76" width="76" height="4" fill="#D63A3A"/></g>
+    <rect x="-9" y="11" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="37.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 37.9)"/>
+    <text x="1.5" y="67.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF3C8" opacity="0.6">22</text>
+    <text x="0" y="66.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#7A1018">22</text>
+  </g></g>
+  <g transform="translate(1024.0 879.7)" id="cal-day-14"><g>
+    <defs>
+      <radialGradient id="cal-o14-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#6FD49A"/><stop offset="0.55" stop-color="#2E8B57"/><stop offset="1" stop-color="#1B5E3A"/>
+      </radialGradient>
+      <clipPath id="cal-o14-clip"><circle cx="0" cy="55" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="8" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="59" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="55" r="38" fill="url(#cal-o14-g)" stroke="#1B5E3A" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o14-clip)"><path d="M-38 26 L-38 26 L-30 32 L-22 26 L-14 32 L-6 26 L2 32 L10 26 L18 32 L26 26 L34 32 L42 26 L38 33 L30 39 L22 33 L14 39 L6 33 L-2 39 L-10 33 L-18 39 L-26 33 L-34 39 L-42 33Z" fill="#E8B84A" opacity="0.9"/></g>
+    <rect x="-9" y="11" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="37.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 37.9)"/>
+    <text x="1.5" y="67.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#0C3320" opacity="0.6">14</text>
+    <text x="0" y="66.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">14</text>
+  </g></g>
+  <g transform="translate(748.0 1015.6)" id="cal-day-10"><g>
+    <defs>
+      <radialGradient id="cal-o10-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#E486B8"/><stop offset="0.55" stop-color="#B0306F"/><stop offset="1" stop-color="#6A1640"/>
+      </radialGradient>
+      <clipPath id="cal-o10-clip"><circle cx="0" cy="55" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="8" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="59" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="55" r="38" fill="url(#cal-o10-g)" stroke="#6A1640" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o10-clip)"><path d="M-38 41 Q-22.8 49 -11.4 42 Q0 51 11.4 43 Q22.8 50 38 41 L38 17 L-38 17Z" fill="#FFFFFF" opacity="0.85"/></g>
+    <rect x="-9" y="11" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="37.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 37.9)"/>
+    <text x="1.5" y="67.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#3A0A22" opacity="0.6">10</text>
+    <text x="0" y="66.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">10</text>
+  </g></g>
+  <g transform="translate(1024.0 1005.3)" id="cal-day-2"><g>
+    <defs>
+      <radialGradient id="cal-o2-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#D9E3EE"/><stop offset="1" stop-color="#93A6BC"/>
+      </radialGradient>
+      <clipPath id="cal-o2-clip"><circle cx="0" cy="55" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="8" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="59" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="55" r="38" fill="url(#cal-o2-g)" stroke="#93A6BC" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o2-clip)"><circle cx="25.8" cy="55.0" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="20.9" cy="70.2" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="8.0" cy="79.6" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-8.0" cy="79.6" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-20.9" cy="70.2" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-25.8" cy="55.0" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-20.9" cy="39.8" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-8.0" cy="30.4" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="8.0" cy="30.4" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="20.9" cy="39.8" r="2.6" fill="#D63A3A" opacity="0.85"/></g>
+    <rect x="-9" y="11" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="37.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 37.9)"/>
+    <text x="1.5" y="68.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFFFFF" opacity="0.6">2</text>
+    <text x="0" y="66.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#284D85">2</text>
+  </g></g>
+  <g transform="translate(748.0 1141.5)" id="cal-day-13"><g>
+    <defs>
+      <radialGradient id="cal-o13-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FF7B7B"/><stop offset="0.55" stop-color="#D63A3A"/><stop offset="1" stop-color="#951B22"/>
+      </radialGradient>
+      <clipPath id="cal-o13-clip"><circle cx="0" cy="55" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="8" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="59" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="55" r="38" fill="url(#cal-o13-g)" stroke="#951B22" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o13-clip)"><path d="M-38 26 L-38 26 L-30 32 L-22 26 L-14 32 L-6 26 L2 32 L10 26 L18 32 L26 26 L34 32 L42 26 L38 33 L30 39 L22 33 L14 39 L6 33 L-2 39 L-10 33 L-18 39 L-26 33 L-34 39 L-42 33Z" fill="#E8B84A" opacity="0.9"/></g>
+    <rect x="-9" y="11" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="37.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 37.9)"/>
+    <text x="1.5" y="67.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#5A0E12" opacity="0.6">13</text>
+    <text x="0" y="66.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">13</text>
+  </g></g>
+  <g transform="translate(1024.0 1149.9)" id="cal-day-16"><g>
+    <defs>
+      <radialGradient id="cal-o16-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFE39A"/><stop offset="0.55" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+      </radialGradient>
+      <clipPath id="cal-o16-clip"><circle cx="0" cy="52" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="6" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="5" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="56" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="52" r="38" fill="url(#cal-o16-g)" stroke="#A8761F" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o16-clip)"><circle cx="25.8" cy="52.0" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="20.9" cy="67.2" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="8.0" cy="76.6" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-8.0" cy="76.6" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-20.9" cy="67.2" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-25.8" cy="52.0" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-20.9" cy="36.8" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-8.0" cy="27.4" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="8.0" cy="27.4" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="20.9" cy="36.8" r="2.6" fill="#D63A3A" opacity="0.85"/></g>
+    <rect x="-9" y="8" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="34.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 34.9)"/>
+    <text x="1.5" y="64.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF3C8" opacity="0.6">16</text>
+    <text x="0" y="63.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#7A1018">16</text>
+  </g></g>
+  <g transform="translate(1136.0 1153.3)" id="cal-day-17"><g>
+    <defs>
+      <radialGradient id="cal-o17-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#6FD49A"/><stop offset="0.55" stop-color="#2E8B57"/><stop offset="1" stop-color="#1B5E3A"/>
+      </radialGradient>
+      <clipPath id="cal-o17-clip"><circle cx="0" cy="55" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="8" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="59" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="55" r="38" fill="url(#cal-o17-g)" stroke="#1B5E3A" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o17-clip)"><circle cx="25.8" cy="55.0" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="20.9" cy="70.2" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="8.0" cy="79.6" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-8.0" cy="79.6" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-20.9" cy="70.2" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-25.8" cy="55.0" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-20.9" cy="39.8" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="-8.0" cy="30.4" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="8.0" cy="30.4" r="2.6" fill="#FFFFFF" opacity="0.85"/><circle cx="20.9" cy="39.8" r="2.6" fill="#FFFFFF" opacity="0.85"/></g>
+    <rect x="-9" y="11" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="37.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 37.9)"/>
+    <text x="1.5" y="67.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#0C3320" opacity="0.6">17</text>
+    <text x="0" y="66.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">17</text>
+  </g></g>
+  <g transform="translate(622.0 1289.4)" id="cal-day-9"><g>
+    <defs>
+      <radialGradient id="cal-o9-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#E486B8"/><stop offset="0.55" stop-color="#B0306F"/><stop offset="1" stop-color="#6A1640"/>
+      </radialGradient>
+      <clipPath id="cal-o9-clip"><circle cx="0" cy="58" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="12" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="11" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="62" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="58" r="38" fill="url(#cal-o9-g)" stroke="#6A1640" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o9-clip)"><rect x="-38" y="34" width="76" height="4" fill="#E8B84A"/><rect x="-38" y="79" width="76" height="4" fill="#E8B84A"/></g>
+    <rect x="-9" y="14" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="40.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 40.9)"/>
+    <text x="1.5" y="71.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#3A0A22" opacity="0.6">9</text>
+    <text x="0" y="69.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFF4DC">9</text>
+  </g></g>
+  <g transform="translate(762.0 1285.8)" id="cal-day-11"><g>
+    <defs>
+      <radialGradient id="cal-o11-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#D9E3EE"/><stop offset="1" stop-color="#93A6BC"/>
+      </radialGradient>
+      <clipPath id="cal-o11-clip"><circle cx="0" cy="52" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="6" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="5" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="56" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="52" r="38" fill="url(#cal-o11-g)" stroke="#93A6BC" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o11-clip)"><circle cx="25.8" cy="52.0" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="20.9" cy="67.2" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="8.0" cy="76.6" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-8.0" cy="76.6" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-20.9" cy="67.2" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-25.8" cy="52.0" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-20.9" cy="36.8" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-8.0" cy="27.4" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="8.0" cy="27.4" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="20.9" cy="36.8" r="2.6" fill="#D63A3A" opacity="0.85"/></g>
+    <rect x="-9" y="8" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="34.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 34.9)"/>
+    <text x="1.5" y="64.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFFFFF" opacity="0.6">11</text>
+    <text x="0" y="63.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#284D85">11</text>
+  </g></g>
+  <g transform="translate(1080.0 1277.7)" id="cal-day-23"><g>
+    <defs>
+      <radialGradient id="cal-o23-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FF7B7B"/><stop offset="0.55" stop-color="#D63A3A"/><stop offset="1" stop-color="#951B22"/>
+      </radialGradient>
+      <clipPath id="cal-o23-clip"><circle cx="0" cy="61" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="15" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="14" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="65" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="61" r="38" fill="url(#cal-o23-g)" stroke="#951B22" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o23-clip)"><rect x="-38" y="37" width="76" height="4" fill="#E8B84A"/><rect x="-38" y="82" width="76" height="4" fill="#E8B84A"/></g>
+    <rect x="-9" y="17" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="43.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 43.9)"/>
+    <text x="1.5" y="73.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#5A0E12" opacity="0.6">23</text>
+    <text x="0" y="72.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">23</text>
+  </g></g>
+  <g transform="translate(622.0 1412.2)" id="cal-day-12"><g>
+    <defs>
+      <radialGradient id="cal-o12-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFE39A"/><stop offset="0.55" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+      </radialGradient>
+      <clipPath id="cal-o12-clip"><circle cx="0" cy="61" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="15" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="14" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="65" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="61" r="38" fill="url(#cal-o12-g)" stroke="#A8761F" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o12-clip)"><rect x="-38" y="37" width="76" height="4" fill="#D63A3A"/><rect x="-38" y="82" width="76" height="4" fill="#D63A3A"/></g>
+    <rect x="-9" y="17" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="43.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 43.9)"/>
+    <text x="1.5" y="73.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF3C8" opacity="0.6">12</text>
+    <text x="0" y="72.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#7A1018">12</text>
+  </g></g>
+  <g transform="translate(762.0 1415.3)" id="cal-day-19"><g>
+    <defs>
+      <radialGradient id="cal-o19-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#6FD49A"/><stop offset="0.55" stop-color="#2E8B57"/><stop offset="1" stop-color="#1B5E3A"/>
+      </radialGradient>
+      <clipPath id="cal-o19-clip"><circle cx="0" cy="52" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="6" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="5" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="56" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="52" r="38" fill="url(#cal-o19-g)" stroke="#1B5E3A" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o19-clip)"><path d="M-38 38 Q-22.8 46 -11.4 39 Q0 48 11.4 40 Q22.8 47 38 38 L38 14 L-38 14Z" fill="#FFFFFF" opacity="0.85"/></g>
+    <rect x="-9" y="8" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="34.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 34.9)"/>
+    <text x="1.5" y="64.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#0C3320" opacity="0.6">19</text>
+    <text x="0" y="63.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">19</text>
+  </g></g>
+  <g transform="translate(1052.0 1421.7)" id="cal-day-18"><g>
+    <defs>
+      <radialGradient id="cal-o18-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#E486B8"/><stop offset="0.55" stop-color="#B0306F"/><stop offset="1" stop-color="#6A1640"/>
+      </radialGradient>
+      <clipPath id="cal-o18-clip"><circle cx="0" cy="52" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="6" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="5" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="56" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="52" r="38" fill="url(#cal-o18-g)" stroke="#6A1640" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o18-clip)"><rect x="-38" y="28" width="76" height="4" fill="#E8B84A"/><rect x="-38" y="73" width="76" height="4" fill="#E8B84A"/></g>
+    <rect x="-9" y="8" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="34.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 34.9)"/>
+    <text x="1.5" y="64.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#3A0A22" opacity="0.6">18</text>
+    <text x="0" y="63.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">18</text>
+  </g></g>
+  <g transform="translate(1220.0 1425.4)" id="cal-day-3"><g>
+    <defs>
+      <radialGradient id="cal-o3-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#D9E3EE"/><stop offset="1" stop-color="#93A6BC"/>
+      </radialGradient>
+      <clipPath id="cal-o3-clip"><circle cx="0" cy="55" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="8" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="59" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="55" r="38" fill="url(#cal-o3-g)" stroke="#93A6BC" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o3-clip)"><rect x="-38" y="31" width="76" height="4" fill="#E8B84A"/><rect x="-38" y="76" width="76" height="4" fill="#E8B84A"/></g>
+    <rect x="-9" y="11" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="37.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 37.9)"/>
+    <text x="1.5" y="68.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFFFFF" opacity="0.6">3</text>
+    <text x="0" y="66.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#284D85">3</text>
+  </g></g>
+  <g transform="translate(538.0 1561.5)" id="cal-day-4"><g>
+    <defs>
+      <radialGradient id="cal-o4-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FF7B7B"/><stop offset="0.55" stop-color="#D63A3A"/><stop offset="1" stop-color="#951B22"/>
+      </radialGradient>
+      <clipPath id="cal-o4-clip"><circle cx="0" cy="61" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="15" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="14" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="65" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="61" r="38" fill="url(#cal-o4-g)" stroke="#951B22" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o4-clip)"><rect x="-38" y="37" width="76" height="4" fill="#E8B84A"/><rect x="-38" y="82" width="76" height="4" fill="#E8B84A"/></g>
+    <rect x="-9" y="17" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="43.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 43.9)"/>
+    <text x="1.5" y="74.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#5A0E12" opacity="0.6">4</text>
+    <text x="0" y="72.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFF4DC">4</text>
+  </g></g>
+  <g transform="translate(734.0 1557.7)" id="cal-day-15"><g>
+    <defs>
+      <radialGradient id="cal-o15-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFE39A"/><stop offset="0.55" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+      </radialGradient>
+      <clipPath id="cal-o15-clip"><circle cx="0" cy="61" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="15" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="14" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="65" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="61" r="38" fill="url(#cal-o15-g)" stroke="#A8761F" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o15-clip)"><path d="M-38 47 Q-22.8 55 -11.4 48 Q0 57 11.4 49 Q22.8 56 38 47 L38 23 L-38 23Z" fill="#FFFFFF" opacity="0.85"/></g>
+    <rect x="-9" y="17" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="43.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 43.9)"/>
+    <text x="1.5" y="73.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF3C8" opacity="0.6">15</text>
+    <text x="0" y="72.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#7A1018">15</text>
+  </g></g>
+  <g transform="translate(1052.0 1551.5)" id="cal-day-1"><g>
+    <defs>
+      <radialGradient id="cal-o1-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#6FD49A"/><stop offset="0.55" stop-color="#2E8B57"/><stop offset="1" stop-color="#1B5E3A"/>
+      </radialGradient>
+      <clipPath id="cal-o1-clip"><circle cx="0" cy="58" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="12" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="11" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="62" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="58" r="38" fill="url(#cal-o1-g)" stroke="#1B5E3A" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o1-clip)"><path d="M-38 29 L-38 29 L-30 35 L-22 29 L-14 35 L-6 29 L2 35 L10 29 L18 35 L26 29 L34 35 L42 29 L38 36 L30 42 L22 36 L14 42 L6 36 L-2 42 L-10 36 L-18 42 L-26 36 L-34 42 L-42 36Z" fill="#E8B84A" opacity="0.9"/></g>
+    <rect x="-9" y="14" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="40.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 40.9)"/>
+    <text x="1.5" y="71.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#0C3320" opacity="0.6">1</text>
+    <text x="0" y="69.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFF4DC">1</text>
+  </g></g>
+  <g transform="translate(1220.0 1548.2)" id="cal-day-5"><g>
+    <defs>
+      <radialGradient id="cal-o5-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#E486B8"/><stop offset="0.55" stop-color="#B0306F"/><stop offset="1" stop-color="#6A1640"/>
+      </radialGradient>
+      <clipPath id="cal-o5-clip"><circle cx="0" cy="61" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="15" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="14" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="65" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="61" r="38" fill="url(#cal-o5-g)" stroke="#6A1640" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o5-clip)"><path d="M-38 47 Q-22.8 55 -11.4 48 Q0 57 11.4 49 Q22.8 56 38 47 L38 23 L-38 23Z" fill="#FFFFFF" opacity="0.85"/></g>
+    <rect x="-9" y="17" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="43.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 43.9)"/>
+    <text x="1.5" y="74.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#3A0A22" opacity="0.6">5</text>
+    <text x="0" y="72.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFF4DC">5</text>
+  </g></g>
+  <g transform="translate(538.0 1684.2)" id="cal-day-6"><g>
+    <defs>
+      <radialGradient id="cal-o6-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#D9E3EE"/><stop offset="1" stop-color="#93A6BC"/>
+      </radialGradient>
+      <clipPath id="cal-o6-clip"><circle cx="0" cy="52" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="6" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="5" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="56" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="52" r="38" fill="url(#cal-o6-g)" stroke="#93A6BC" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o6-clip)"><path d="M-38 38 Q-22.8 46 -11.4 39 Q0 48 11.4 40 Q22.8 47 38 38 L38 14 L-38 14Z" fill="#FFFFFF" opacity="0.85"/></g>
+    <rect x="-9" y="8" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="34.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 34.9)"/>
+    <text x="1.5" y="65.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFFFFF" opacity="0.6">6</text>
+    <text x="0" y="63.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#284D85">6</text>
+  </g></g>
+  <g transform="translate(734.0 1687.6)" id="cal-day-20"><g>
+    <defs>
+      <radialGradient id="cal-o20-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FF7B7B"/><stop offset="0.55" stop-color="#D63A3A"/><stop offset="1" stop-color="#951B22"/>
+      </radialGradient>
+      <clipPath id="cal-o20-clip"><circle cx="0" cy="58" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="12" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="11" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="62" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="58" r="38" fill="url(#cal-o20-g)" stroke="#951B22" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o20-clip)"><path d="M-38 29 L-38 29 L-30 35 L-22 29 L-14 35 L-6 29 L2 35 L10 29 L18 35 L26 29 L34 35 L42 29 L38 36 L30 42 L22 36 L14 42 L6 36 L-2 42 L-10 36 L-18 42 L-26 36 L-34 42 L-42 36Z" fill="#E8B84A" opacity="0.9"/></g>
+    <rect x="-9" y="14" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="40.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 40.9)"/>
+    <text x="1.5" y="70.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#5A0E12" opacity="0.6">20</text>
+    <text x="0" y="69.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">20</text>
+  </g></g>
+  <g transform="translate(1062.0 1693.3)" id="cal-day-7"><g>
+    <defs>
+      <radialGradient id="cal-o7-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#FFE39A"/><stop offset="0.55" stop-color="#E8B84A"/><stop offset="1" stop-color="#A8761F"/>
+      </radialGradient>
+      <clipPath id="cal-o7-clip"><circle cx="0" cy="55" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="8" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="59" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="55" r="38" fill="url(#cal-o7-g)" stroke="#A8761F" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o7-clip)"><circle cx="25.8" cy="55.0" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="20.9" cy="70.2" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="8.0" cy="79.6" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-8.0" cy="79.6" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-20.9" cy="70.2" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-25.8" cy="55.0" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-20.9" cy="39.8" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="-8.0" cy="30.4" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="8.0" cy="30.4" r="2.6" fill="#D63A3A" opacity="0.85"/><circle cx="20.9" cy="39.8" r="2.6" fill="#D63A3A" opacity="0.85"/></g>
+    <rect x="-9" y="11" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="37.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 37.9)"/>
+    <text x="1.5" y="68.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#FFF3C8" opacity="0.6">7</text>
+    <text x="0" y="66.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="33" fill="#7A1018">7</text>
+  </g></g>
+  <g transform="translate(1250.0 1696.6)" id="cal-day-21"><g>
+    <defs>
+      <radialGradient id="cal-o21-g" cx="0.35" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#6FD49A"/><stop offset="0.55" stop-color="#2E8B57"/><stop offset="1" stop-color="#1B5E3A"/>
+      </radialGradient>
+      <clipPath id="cal-o21-clip"><circle cx="0" cy="58" r="38"/></clipPath>
+    </defs>
+    <line x1="0" y1="0" x2="0" y2="12" stroke="#FFE39A" stroke-width="2"/>
+    <circle cx="0" cy="11" r="4" fill="none" stroke="#E8B84A" stroke-width="2"/>
+    <circle cx="2" cy="62" r="38" fill="#000" opacity="0.22"/>
+    <circle cx="0" cy="58" r="38" fill="url(#cal-o21-g)" stroke="#1B5E3A" stroke-width="1.5"/>
+    <g clip-path="url(#cal-o21-clip)"><path d="M-38 44 Q-22.8 52 -11.4 45 Q0 54 11.4 46 Q22.8 53 38 44 L38 20 L-38 20Z" fill="#FFFFFF" opacity="0.85"/></g>
+    <rect x="-9" y="14" width="18" height="11" rx="2" fill="#E8B84A" stroke="#A8761F" stroke-width="1.5"/>
+    <ellipse cx="-16.0" cy="40.9" rx="7" ry="12" fill="#FFFFFF" opacity="0.45"
+             transform="rotate(35 -16.0 40.9)"/>
+    <text x="1.5" y="70.7" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#0C3320" opacity="0.6">21</text>
+    <text x="0" y="69.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-weight="bold"
+          font-size="31" fill="#FFF4DC">21</text>
+  </g></g>
+
+  <text x="900" y="1874" text-anchor="middle" font-family="'Avenir Next', 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif" font-size="64" letter-spacing="3" fill="#FFFFFF">LeMSIC</text>
+  <text x="900" y="1924" text-anchor="middle" font-family="'Avenir Next', 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif" font-size="24" letter-spacing="8" fill="#FFFFFF" opacity="0.85">OPEN ONE ORNAMENT EACH DAY</text>
+
+  <rect x="40" y="40" width="1720" height="1960" rx="14" fill="url(#vig)"/>
+  <rect x="40" y="40" width="1720" height="1960" rx="14" fill="none" stroke="#E8B84A" stroke-width="4"/>
+</svg>
