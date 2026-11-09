@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LeMSIC Advent Calendar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+  /* Layout: one full-bleed scene (outside the cabin door, then inside by the tree) above a slim bar. Single dark look. */
+  :root {
+    --night: #0d0a08;
+    --hearth: #17110d;
+    --card: rgba(24, 17, 12, 0.94);
+    --snow: #f2ece4;
+    --ash: #b0a191;
+    --ember: #f2a24f;
+    --ember-deep: #c9772a;
+    --ember-dim: rgba(242, 162, 79, 0.3);
+    --lemsic: #3c6bad;
+    --error: #ff9b8a;
+    --display: "Alegreya SC", "Palatino Linotype", Palatino, Georgia, serif;
+    --body: "Alegreya Sans", "Gill Sans", "Trebuchet MS", system-ui, sans-serif;
+    --bar: 76px;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--snow);
+    font-family: var(--body);
+    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ---------- the scene */
+  .scene-wrap {
+    flex: 1 1 auto; min-height: 0;
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+    display: flex; align-items: center;
+  }
+  .scene-wrap::-webkit-scrollbar { display: none; }
+  .stage {
+    position: relative; flex: 0 0 auto;
+    height: min(calc(100dvh - var(--bar)), max(56.25vw, 52dvh));
+    aspect-ratio: 16 / 9; max-width: none;
+    margin-inline: auto; overflow: hidden;
+    background: #120d0a;
+  }
+  .view { position: absolute; inset: 0; }
+  .view img, .view canvas { position: absolute; display: block; user-select: none; -webkit-user-drag: none; }
+  .view img { inset: 0; width: 100%; height: 100%; max-width: none; }
+  #outside { transform-origin: 50% 60%; }
+  #outside.zoom { transition: transform 1.5s cubic-bezier(.55, 0, .25, 1); }
+  #snowFront { inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #inside .light { opacity: 0; will-change: opacity; }
+  canvas.fire { mix-blend-mode: screen; pointer-events: none; }
+  @supports (mix-blend-mode: plus-lighter) { canvas.fire { mix-blend-mode: plus-lighter; } }
+  canvas.snow { pointer-events: none; }
+  .veil {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(circle at 50% 55%, #ffd9a0 0%, #e59a4c 45%, #6b3415 100%);
+    transition: opacity .6s ease;
+  }
+
+  /* ornaments you can open */
+  .ornaments { position: absolute; inset: 0; }
+  .orn {
+    position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%);
+    border-radius: 50%; border: 0; padding: 0; background: transparent; cursor: pointer;
+  }
+  .orn:hover, .orn:focus-visible { box-shadow: 0 0 0 2px rgba(255, 236, 200, 0.7), 0 0 18px rgba(255, 210, 140, 0.55); outline: none; }
+  .orn.done::after {
+    content: "✓"; position: absolute; right: -14%; top: -14%;
+    width: 46%; height: 46%; min-width: 14px; min-height: 14px; border-radius: 50%;
+    display: grid; place-items: center; font-size: clamp(9px, 0.9vw, 13px); font-weight: 700;
+    background: var(--ember); color: #24150a;
+  }
+  .orn.today { animation: beckon 2.2s ease-in-out infinite; }
+  .orn.today::before {
+    content: attr(data-label); position: absolute; left: 50%; bottom: 118%; transform: translateX(-50%);
+    white-space: nowrap; padding: 3px 9px; border-radius: 999px;
+    background: var(--ember); color: #24150a; font: 700 clamp(11px, 1vw, 14px) var(--body);
+  }
+  @keyframes beckon {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(255, 220, 160, 0.9), 0 0 12px 4px rgba(255, 190, 110, 0.55); }
+    50% { box-shadow: 0 0 0 3px rgba(255, 236, 200, 1), 0 0 26px 10px rgba(255, 190, 110, 0.85); }
+  }
+
+  /* ---------- the bar */
+  .bar {
+    flex: 0 0 var(--bar); box-sizing: border-box; min-height: var(--bar);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 10px;
+    background: var(--hearth); border-top: 1px solid var(--ember-dim);
+  }
+  .title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .title h1 { margin: 0; font: 700 clamp(1.1rem, 2.2vw, 1.45rem)/1.1 var(--display); letter-spacing: .04em; text-wrap: balance; }
+  .title p { margin: 0; color: var(--ash); font-size: .9rem; }
+  .bar-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+  .progress { display: grid; grid-template-columns: repeat(12, 7px); gap: 3px; }
+  .progress i { width: 7px; height: 7px; border-radius: 50%; background: rgba(242, 236, 228, 0.16); }
+  .progress i.on { background: var(--ember); }
+  .progress i.now { box-shadow: 0 0 0 1.5px var(--snow); }
+  .pill {
+    display: inline-flex; align-items: center; gap: 9px; padding: 8px 15px; border-radius: 999px;
+    border: 1px solid var(--ember-dim); background: transparent; cursor: pointer; font-weight: 500; font-size: .92rem;
+  }
+  .pill:hover { border-color: var(--ember); }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ash); }
+  .pill[aria-pressed="true"] .dot { background: var(--ember); box-shadow: 0 0 9px var(--ember); }
+  .linkbtn { background: none; border: 0; padding: 4px 2px; color: var(--ash); text-decoration: underline; cursor: pointer; font-size: .9rem; }
+  :focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+
+  /* ---------- dialogs */
+  dialog.card {
+    width: min(440px, calc(100vw - 32px)); box-sizing: border-box;
+    padding: 28px 26px 22px; border-radius: 18px;
+    border: 1px solid var(--ember-dim); background: var(--card); color: var(--snow);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  }
+  dialog.card::backdrop { background: rgba(6, 4, 3, 0.45); backdrop-filter: blur(2px); }
+  dialog.card[open] { animation: rise .45s cubic-bezier(.2, .8, .2, 1); }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+  .card h2 { margin: 6px 0 8px; font: 700 1.55rem/1.15 var(--display); letter-spacing: .03em; text-wrap: balance; }
+  .card p { margin: 0 0 14px; line-height: 1.5; color: var(--ash); }
+  .emblem { display: block; width: 76px; height: 76px; object-fit: cover; border-radius: 50%; margin: 0 auto 10px;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08); }
+  #login { text-align: center; }
+  label.field { display: block; text-align: left; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ash); margin-bottom: 6px; }
+  .input {
+    width: 100%; box-sizing: border-box; padding: 13px 14px; border-radius: 11px;
+    border: 1px solid rgba(242, 236, 228, 0.22); background: rgba(0, 0, 0, 0.35); color: var(--snow);
+    font: 500 1.15rem var(--body); letter-spacing: .06em; text-align: center;
+  }
+  .input:focus { border-color: var(--ember); outline: none; box-shadow: 0 0 0 3px var(--ember-dim); }
+  .input[aria-invalid="true"] { border-color: var(--error); }
+  .error { min-height: 1.4em; margin: 8px 0 6px !important; color: var(--error) !important; font-size: .92rem; }
+  .primary {
+    width: 100%; padding: 13px 18px; border-radius: 11px; border: 0; cursor: pointer;
+    background: linear-gradient(180deg, var(--ember), var(--ember-deep)); color: #24150a;
+    font: 700 1.05rem var(--body); letter-spacing: .02em;
+  }
+  .primary:disabled { opacity: .6; cursor: progress; }
+  .fine { margin: 14px 0 0 !important; font-size: .82rem; }
+  .ghost { margin-top: 10px; width: 100%; padding: 10px; border-radius: 11px; border: 1px solid rgba(242, 236, 228, 0.18); background: transparent; cursor: pointer; }
+
+  dialog.day { width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
+  dialog.day h2 { font: 700 1.3rem/1.3 var(--body); letter-spacing: 0; }
+  .eyebrow { font-size: .8rem !important; letter-spacing: .14em; text-transform: uppercase; color: var(--ember) !important; margin: 0 !important; }
+  .choices { display: grid; gap: 8px; margin: 4px 0 16px; padding: 0; border: 0; }
+  .choice { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; border-radius: 11px;
+            border: 1px solid rgba(242, 236, 228, 0.16); cursor: pointer; line-height: 1.35; }
+  .choice:has(input:checked) { border-color: var(--ember); background: rgba(242, 162, 79, 0.1); }
+  .choice input { accent-color: var(--ember); margin-top: 3px; }
+  textarea.input { min-height: 96px; resize: vertical; text-align: left; font-size: 1.02rem; letter-spacing: 0; margin-bottom: 14px; }
+  .reveal { margin: 14px 0; border-radius: 14px; overflow: hidden; background: #000; animation: open-up .8s cubic-bezier(.2, .8, .2, 1); }
+  .reveal img { display: block; width: 100%; height: auto; }
+  @keyframes open-up { from { opacity: 0; transform: scale(.6) rotate(-4deg); } }
+  .yours { color: var(--snow) !important; }
+  .fact { border-left: 3px solid var(--ember); padding-left: 12px; }
+  .prize { border: 1px solid var(--ember); border-radius: 12px; padding: 12px 14px; color: var(--snow) !important; background: rgba(242, 162, 79, 0.08); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(var(--bar) + 18px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px);
+    max-width: min(440px, calc(100vw - 32px)); padding: 11px 16px; border-radius: 12px;
+    background: var(--card); border: 1px solid var(--ember-dim); color: var(--snow); text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; z-index: 5;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 560px) {
+    :root { --bar: 104px; }
+    .bar { align-items: flex-start; flex-direction: column; justify-content: center; gap: 8px; }
+    .title p { font-size: .82rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .orn.today { animation: none; box-shadow: 0 0 0 3px rgba(255, 236, 200, 1), 0 0 20px 8px rgba(255, 190, 110, 0.8); }
+    dialog.card[open], .reveal { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="scene-wrap" id="sceneWrap">
+    <div class="stage" id="stage">
+      <section class="view" id="outside" role="img"
+               aria-label="Outside a snowy log cabin at night. A carved LeMSIC sign hangs over the front door, a lantern glows beside it.">
+        <img src="assets/door/door.jpg" alt="">
+        <canvas id="doorAnim"></canvas>
+        <canvas id="snowFront"></canvas>
+      </section>
+      <section class="view" id="inside" hidden>
+        <img id="imgBase" src="assets/cabin/cabin-low.jpg" alt="">
+        <img id="imgLeft" class="light" src="assets/cabin/cabin-left.jpg" alt="">
+        <img id="imgRight" class="light" src="assets/cabin/cabin-right.jpg" alt="">
+        <canvas id="snow" class="snow"></canvas>
+        <canvas id="fire" class="fire"></canvas>
+        <div class="ornaments" id="ornaments" role="group" aria-label="Ornaments on the tree, one for each day"></div>
+      </section>
+      <div class="veil" id="veil"></div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div class="title">
+      <h1>LeMSIC Advent Calendar</h1>
+      <p id="status">1–24 December</p>
+    </div>
+    <div class="bar-actions">
+      <div class="progress" id="progress" hidden></div>
+      <button class="pill" id="soundBtn" type="button" aria-pressed="false">
+        <span class="dot" aria-hidden="true"></span><span id="soundLabel">Fire sound off</span>
+      </button>
+      <button class="linkbtn" id="switchBtn" type="button" hidden>Change ID</button>
+    </div>
+  </div>
+
+  <dialog id="login" class="card" aria-labelledby="loginTitle">
+    <form id="loginForm" novalidate>
+      <img class="emblem" src="assets/lemsic-emblem.png" alt="LeMSIC emblem">
+      <h2 id="loginTitle">Welcome to the cabin</h2>
+      <p>Enter your LeMSIC ID to open the door.</p>
+      <label class="field" for="lemsicId">LeMSIC ID</label>
+      <input class="input" id="lemsicId" name="lemsicId" autocomplete="off" autocapitalize="characters"
+             spellcheck="false" required aria-describedby="loginError">
+      <p class="error" id="loginError" role="alert"></p>
+      <button type="submit" class="primary" id="loginBtn">Open the door</button>
+      <p class="fine">Your ID is checked against the LeMSIC member list.</p>
+    </form>
+  </dialog>
+
+  <dialog id="dayPanel" class="card day" aria-labelledby="dayTitle">
+    <div id="dayContent"></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script src="assets/members.js"></script>
+<script src="assets/door/door.js"></script>
+<script src="assets/cabin/scene.js"></script>
+<script src="assets/cabin/fire.js"></script>
+<script>
+(() => {
+  const C = window.ADVENT_CONFIG, Q = window.ADVENT_QUESTIONS, M = window.LEMSIC_MEMBERS;
+  const DOOR = window.CABIN_DOOR, S = window.CABIN_SCENE, F = window.CABIN_FIRE;
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stage = $('stage'), wrap = $('sceneWrap');
+
+  // ---------------------------------------------------------------- small helpers
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private window: keep going */ } },
+  };
+  const normalise = (s) => s.normalize('NFKC').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  let toastTimer = 0;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+  function scrollTo(fx) {
+    const extra = stage.offsetWidth - wrap.clientWidth;
+    if (extra > 0) wrap.scrollLeft = Math.max(0, Math.min(extra, stage.offsetWidth * fx - wrap.clientWidth / 2));
+  }
+  function bilinear(q, u, v) {
+    const [a, b, c, d] = q;
+    const bot = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+    const top = [d[0] + (c[0] - d[0]) * u, d[1] + (c[1] - d[1]) * u];
+    return [bot[0] + (top[0] - bot[0]) * v, bot[1] + (top[1] - bot[1]) * v];
+  }
+
+  // ---------------------------------------------------------------- the calendar's day
+  function lebanonToday() {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: C.timeZone, year: 'numeric', month: 'numeric', day: 'numeric' })
+      .formatToParts(new Date()).filter((x) => x.type !== 'literal').map((x) => [x.type, +x.value]));
+    return p;
+  }
+  function calendarDay() {
+    const h = location.hash.match(/^#day-(\d{1,2})$/);
+    const preview = h ? +h[1] : C.previewDay;
+    if (preview >= 1 && preview <= 24) return { day: preview, preview: true };
+    const t = lebanonToday();
+    if (t.year === C.year && t.month === 12 && t.day <= 24) return { day: t.day, preview: false };
+    const ended = t.year > C.year || (t.year === C.year && t.month === 12);
+    return { day: ended ? 25 : 0, preview: false };
+  }
+  let today = calendarDay();
+  window.addEventListener('hashchange', () => { today = calendarDay(); if (member) renderTree(); });
+
+  // ---------------------------------------------------------------- members and answers
+  let member = null;            // { id, key }
+  const answersKey = () => `lemsic-advent-${C.year}-${member.key.slice(0, 16)}`;
+  const loadAnswers = () => (store.get(answersKey()) || {});
+  function saveAnswer(day, answer) {
+    const all = loadAnswers();
+    all[day] = { answer, at: new Date().toISOString(), preview: today.preview || undefined };
+    store.set(answersKey(), all);
+    if (C.answersEndpoint && !today.preview) {
+      fetch(C.answersEndpoint, {
+        method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ id: member.id, day, answer, at: all[day].at }),
+      }).catch(() => { /* kept locally; the sheet will miss this one */ });
+    }
+    return all;
+  }
+  async function checkId(raw) {
+    const id = normalise(raw);
+    if (!id) return { ok: false, msg: 'Type your LeMSIC ID to continue.' };
+    const key = await sha256(M.salt + id);
+    if (!M.hashes.includes(key)) return { ok: false, msg: "We couldn't find that LeMSIC ID. Check it and try again." };
+    return { ok: true, id, key };
+  }
+
+  // ---------------------------------------------------------------- outside: snow falling in front of the cabin
+  const snowFront = $('snowFront'), sfx = snowFront.getContext('2d');
+  const frontFlakes = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), z: Math.random(), p: Math.random() * 6.28 }));
+  function drawFrontSnow(dt) {
+    const w = snowFront.width, h = snowFront.height;
+    sfx.clearRect(0, 0, w, h);
+    for (const f of frontFlakes) {
+      f.y += (0.025 + f.z * 0.06) * dt;
+      f.p += dt * (0.4 + f.z);
+      f.x += Math.sin(f.p) * 0.0004 * (0.5 + f.z) - 0.004 * dt;
+      if (f.y > 1.03) { f.y = -0.03; f.x = Math.random() * 1.1; }
+      if (f.x < -0.03) f.x += 1.06;
+      const r = (0.8 + f.z * f.z * 3.2) * (w / 1600);
+      const g = sfx.createRadialGradient(f.x * w, f.y * h, 0, f.x * w, f.y * h, r * 2);
+      g.addColorStop(0, `rgba(235, 242, 252, ${0.25 + f.z * 0.5})`);
+      g.addColorStop(1, 'rgba(235, 242, 252, 0)');
+      sfx.fillStyle = g;
+      sfx.beginPath(); sfx.arc(f.x * w, f.y * h, r * 2, 0, 6.283); sfx.fill();
+    }
+  }
+
+  // ---------------------------------------------------------------- outside: the door opening
+  const doorAnim = $('doorAnim'), dctx = doorAnim.getContext('2d');
+  const crop = DOOR.crop;
+  Object.assign(doorAnim.style, {
+    left: crop.x0 * 100 + '%', top: crop.y0 * 100 + '%',
+    width: (crop.x1 - crop.x0) * 100 + '%', height: (crop.y1 - crop.y0) * 100 + '%',
+  });
+  const doorFrames = [];
+  function preloadDoor() {
+    for (let i = 0; i < DOOR.frames; i++) {
+      const im = new Image();
+      im.src = `assets/door/open-${String(i).padStart(2, '0')}.jpg`;
+      doorFrames.push(im);
+    }
+    return Promise.all(doorFrames.map((im) => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));
+  }
+  async function playDoor() {
+    const fps = 24;
+    const start = performance.now();
+    await new Promise((done) => {
+      function step(now) {
+        const i = Math.min(DOOR.frames - 1, Math.floor((now - start) / 1000 * fps));
+        const im = doorFrames[i];
+        if (im && im.complete && im.naturalWidth > 0) dctx.drawImage(im, 0, 0, doorAnim.width, doorAnim.height);
+        if (i < DOOR.frames - 1) requestAnimationFrame(step); else done();
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  // ---------------------------------------------------------------- inside: fire, firelight, snow at the window
+  const fireCanvas = $('fire'), fctx = fireCanvas.getContext('2d');
+  Object.assign(fireCanvas.style, {
+    left: F.crop.x0 * 100 + '%', top: F.crop.y0 * 100 + '%',
+    width: (F.crop.x1 - F.crop.x0) * 100 + '%', height: (F.crop.y1 - F.crop.y0) * 100 + '%',
+  });
+  const sprite = new Image();
+  let spriteReady = false;
+  sprite.onload = () => { spriteReady = true; };
+  function drawSpriteFrame(k, alpha) {
+    const c = k % F.cols, r = Math.floor(k / F.cols);
+    fctx.globalAlpha = alpha;
+    fctx.drawImage(sprite, c * F.frameWidth, r * F.frameHeight, F.frameWidth, F.frameHeight, 0, 0, fireCanvas.width, fireCanvas.height);
+  }
+  function drawFire(pos) {
+    if (!spriteReady) return;
+    const i = Math.floor(pos) % F.frames, j = (i + 1) % F.frames, f = pos - Math.floor(pos);
+    fctx.globalCompositeOperation = 'copy';
+    drawSpriteFrame(i, 1);
+    fctx.globalCompositeOperation = 'source-over';
+    drawSpriteFrame(j, f);
+    fctx.globalAlpha = 1;
+  }
+  function fireLight(pos) {
+    const i = Math.floor(pos) % F.frames, j = (i + 1) % F.frames, f = pos - Math.floor(pos);
+    const A = F.flicker[i], B = F.flicker[j];
+    return { a: A[0] + (B[0] - A[0]) * f, b: A[1] + (B[1] - A[1]) * f };
+  }
+  const snowCanvas = $('snow'), sctx = snowCanvas.getContext('2d');
+  const win = S.window;
+  const wx0 = Math.min(...win.map((p) => p[0])), wx1 = Math.max(...win.map((p) => p[0]));
+  const wy0 = Math.min(...win.map((p) => p[1])), wy1 = Math.max(...win.map((p) => p[1]));
+  Object.assign(snowCanvas.style, { left: wx0 * 100 + '%', top: wy0 * 100 + '%', width: (wx1 - wx0) * 100 + '%', height: (wy1 - wy0) * 100 + '%' });
+  const flakes = Array.from({ length: 110 }, () => ({ u: Math.random(), v: Math.random(), depth: Math.random(), phase: Math.random() * 6.28 }));
+  const bars = [[0.5, null, 0.022], [null, 1 / 3, 0.017], [null, 2 / 3, 0.017]];
+  function drawWindowSnow(dt) {
+    const cw = snowCanvas.width, ch = snowCanvas.height;
+    sctx.clearRect(0, 0, cw, ch);
+    const toCanvas = (u, v) => { const p = bilinear(win, u, v); return [(p[0] - wx0) / (wx1 - wx0) * cw, (p[1] - wy0) / (wy1 - wy0) * ch]; };
+    sctx.save();
+    sctx.beginPath();
+    win.forEach((p, i) => { const q = toCanvas(i === 1 || i === 2 ? 1 : 0, i >= 2 ? 1 : 0); i ? sctx.lineTo(...q) : sctx.moveTo(...q); });
+    sctx.closePath(); sctx.clip();
+    for (const f of flakes) {
+      f.v -= (0.04 + f.depth * 0.08) * dt;
+      f.phase += dt * (0.5 + f.depth);
+      f.u += Math.sin(f.phase) * 0.0007 * (0.5 + f.depth) - 0.003 * dt;
+      if (f.v < -0.02) { f.v = 1.02; f.u = Math.random() * 1.1; }
+      if (f.u < -0.05) f.u += 1.1;
+      const [x, y] = toCanvas(f.u, f.v);
+      const r = Math.max(1, (0.6 + f.depth * 1.4) * dpr * (W / 1400) * 1.8);
+      const g = sctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(222, 232, 245, ${0.22 + f.depth * 0.38})`);
+      g.addColorStop(1, 'rgba(222, 232, 245, 0)');
+      sctx.fillStyle = g;
+      sctx.beginPath(); sctx.arc(x, y, r, 0, 6.283); sctx.fill();
+    }
+    sctx.globalCompositeOperation = 'destination-out';
+    for (const [u, v, w] of bars) {
+      sctx.beginPath();
+      const pts = u !== null ? [toCanvas(u - w, 0), toCanvas(u + w, 0), toCanvas(u + w, 1), toCanvas(u - w, 1)]
+                             : [toCanvas(0, v - w), toCanvas(1, v - w), toCanvas(1, v + w), toCanvas(0, v + w)];
+      pts.forEach((q, i) => (i ? sctx.lineTo(...q) : sctx.moveTo(...q)));
+      sctx.closePath(); sctx.fill();
+    }
+    sctx.restore();
+  }
+
+  // ---------------------------------------------------------------- sizing and the frame loop
+  let W = 0, H = 0, dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = stage.getBoundingClientRect();
+    W = r.width; H = r.height;
+    const size = (el, x0, x1, y0, y1) => { el.width = Math.max(1, Math.round((x1 - x0) * W * dpr)); el.height = Math.max(1, Math.round((y1 - y0) * H * dpr)); };
+    size(snowFront, 0, 1, 0, 1);
+    size(doorAnim, crop.x0, crop.x1, crop.y0, crop.y1);
+    size(fireCanvas, F.crop.x0, F.crop.x1, F.crop.y0, F.crop.y1);
+    size(snowCanvas, wx0, wx1, wy0, wy1);
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+  requestAnimationFrame(() => scrollTo(0.5));
+
+  let scene = 'outside';
+  let last = performance.now();
+  let light = { a: 0.5, b: 0.5 };
+  function frame(now) {
+    const dt = reduceMotion ? 0 : Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (scene === 'outside') {
+      drawFrontSnow(dt);
+    } else {
+      const pos = reduceMotion ? 0 : (now / 1000) * F.fps;
+      drawFire(pos);
+      const target = reduceMotion ? { a: 0.5, b: 0.5 } : fireLight(pos);
+      const k = Math.min(1, dt * 10);
+      light = { a: light.a + (target.a - light.a) * k, b: light.b + (target.b - light.b) * k };
+      $('imgLeft').style.opacity = light.a.toFixed(3);
+      $('imgRight').style.opacity = (light.b * 0.85).toFixed(3);
+      drawWindowSnow(dt);
+      audio.update(light);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------------------------------------------------------------- arriving: ID, door, inside
+  const login = $('login');
+  login.addEventListener('cancel', (e) => e.preventDefault());     // the ID is required to go in
+  const remembered = store.get('lemsic-advent-last-id');
+  if (remembered) $('lemsicId').value = remembered;
+  preloadDoor();
+  login.showModal();
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = $('lemsicId'), btn = $('loginBtn'), err = $('loginError');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    const res = await checkId(input.value);
+    btn.disabled = false;
+    btn.textContent = 'Open the door';
+    if (!res.ok) {
+      err.textContent = res.msg;
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+      return;
+    }
+    input.removeAttribute('aria-invalid');
+    err.textContent = '';
+    member = { id: res.id, key: res.key };
+    store.set('lemsic-advent-last-id', input.value.trim());
+    login.close();
+    await goInside();
+  });
+
+  async function goInside() {
+    sprite.src = 'assets/cabin/fire-sprite.jpg';
+    const outside = $('outside'), inside = $('inside'), veil = $('veil');
+    if (!reduceMotion) {
+      await wait(250);
+      await playDoor();
+      await wait(150);
+      const d = DOOR.doorway;
+      const cx = (d[0][0] + d[1][0]) / 2, cy = (d[0][1] + d[2][1]) / 2 + 0.05;
+      outside.style.transformOrigin = `${cx * 100}% ${cy * 100}%`;
+      outside.classList.add('zoom');
+      outside.style.transform = 'scale(3.4)';
+      await wait(900);
+      veil.style.opacity = '1';
+      await wait(650);
+    }
+    outside.hidden = true;
+    inside.hidden = false;
+    scene = 'inside';
+    renderTree();
+    $('switchBtn').hidden = false;
+    $('progress').hidden = false;
+    scrollTo(0.5);
+    veil.style.transition = 'opacity 1.1s ease';
+    veil.style.opacity = '0';
+  }
+
+  $('switchBtn').addEventListener('click', () => {
+    const outside = $('outside');
+    $('inside').hidden = true;
+    outside.hidden = false;
+    outside.classList.remove('zoom');
+    outside.style.transform = '';
+    dctx.clearRect(0, 0, doorAnim.width, doorAnim.height);
+    scene = 'outside';
+    member = null;
+    $('switchBtn').hidden = true;
+    $('progress').hidden = true;
+    $('status').textContent = '1–24 December';
+    $('lemsicId').value = '';
+    login.showModal();
+  });
+
+  // ---------------------------------------------------------------- the tree: one ornament a day
+  function dateLabel(d) { return `${d} December`; }
+  function renderTree() {
+    const answers = loadAnswers();
+    const layer = $('ornaments');
+    layer.textContent = '';
+    for (const o of S.ornaments) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'orn';
+      b.style.left = o.x * 100 + '%';
+      b.style.top = o.y * 100 + '%';
+      b.style.width = Math.max(o.r * 2.3, 0.02) * 100 + '%';
+      const done = !!answers[o.day];
+      if (done) b.classList.add('done');
+      if (o.day === today.day) { b.classList.add('today'); b.dataset.label = `Day ${o.day}`; }
+      b.setAttribute('aria-label', `Day ${o.day}${o.day === today.day ? ', today' : ''}${done ? ', answered' : ''}`);
+      b.addEventListener('click', () => ornamentClicked(o.day));
+      layer.appendChild(b);
+    }
+    const n = Object.keys(answers).length;
+    const prog = $('progress');
+    prog.textContent = '';
+    for (let d = 1; d <= 24; d++) {
+      const i = document.createElement('i');
+      if (answers[d]) i.className = 'on';
+      if (d === today.day) i.classList.add('now');
+      prog.appendChild(i);
+    }
+    prog.setAttribute('aria-label', `${n} of 24 days answered`);
+    prog.title = `${n} of 24 days answered`;
+    let status;
+    if (today.day === 0) status = 'The calendar opens on 1 December. Come back then!';
+    else if (today.day === 25) status = `Merry Christmas! You answered ${n} of 24 days.`;
+    else status = `${today.preview ? 'Preview · ' : ''}Day ${today.day}: find today's ornament on the tree.`;
+    $('status').textContent = status;
+  }
+
+  function ornamentClicked(day) {
+    const answers = loadAnswers();
+    if (day === today.day) return openDay(day);
+    if (answers[day]) return openDay(day, true);
+    if (today.day === 0) return toast('The calendar opens on 1 December.');
+    if (day > today.day) return toast(`Day ${day} opens on ${dateLabel(day)}.`);
+    toast(`Day ${day} has passed. Each ornament opens only on its own day.`);
+  }
+
+  const panel = $('dayPanel');
+  function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function pictureFor(day) { return (Q[day] && Q[day].picture) || `assets/days/day-${String(day).padStart(2, '0')}.png`; }
+
+  function openDay(day, readOnly = false) {
+    const q = Q[day] || { q: 'Share anything about LeMSIC.' };
+    const answers = loadAnswers();
+    const box = $('dayContent');
+    if (answers[day]) {
+      showReveal(day, answers);
+    } else if (readOnly) {
+      return;
+    } else {
+      const choices = q.options
+        ? `<fieldset class="choices"><legend class="sr" hidden>Choose an answer</legend>${q.options.map((o, i) =>
+            `<label class="choice"><input type="radio" name="ans" value="${esc(o)}" ${i === 0 ? 'required' : ''}><span>${esc(o)}</span></label>`).join('')}</fieldset>`
+        : `<label class="field" for="freeAnswer">Your answer</label><textarea class="input" id="freeAnswer" name="ans" maxlength="400" required></textarea>`;
+      box.innerHTML = `
+        <p class="eyebrow">Day ${day} · ${dateLabel(day)}</p>
+        <h2 id="dayTitle">${esc(q.q)}</h2>
+        <form id="answerForm" novalidate>
+          ${choices}
+          <p class="error" id="answerError" role="alert"></p>
+          <button class="primary" type="submit">Log my answer</button>
+          <button class="ghost" type="button" id="notNow">Not now</button>
+        </form>`;
+      $('notNow').addEventListener('click', () => panel.close());
+      $('answerForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const val = q.options ? (form.querySelector('input[name="ans"]:checked') || {}).value : form.ans.value.trim();
+        if (!val) { $('answerError').textContent = q.options ? 'Pick an answer first. Any answer counts!' : 'Write a few words first. Any answer counts!'; return; }
+        const all = saveAnswer(day, val);
+        renderTree();
+        showReveal(day, all, true);
+      });
+    }
+    if (!panel.open) panel.showModal();
+  }
+
+  function showReveal(day, answers, fresh = false) {
+    const q = Q[day] || {};
+    const n = Object.keys(answers).length;
+    const done = n >= 24;
+    $('dayContent').innerHTML = `
+      <p class="eyebrow">Day ${day} · ${fresh ? 'answer logged' : 'opened'}</p>
+      <h2 id="dayTitle">${fresh ? 'Your ornament is open!' : esc(q.q || `Day ${day}`)}</h2>
+      <figure class="reveal"><img src="${esc(pictureFor(day))}" alt="The picture for day ${day}"></figure>
+      <p class="yours">Your answer: “${esc(answers[day].answer)}”</p>
+      ${q.fact ? `<p class="fact">${esc(q.fact)}</p>` : ''}
+      ${done ? `<p class="prize">${esc(C.prize)}</p>` : `<p>You've answered ${n} of 24 days. ${day === today.day ? 'See you tomorrow by the fire!' : ''}</p>`}
+      <button class="primary" type="button" id="backToTree">Back to the tree</button>`;
+    $('backToTree').addEventListener('click', () => panel.close());
+  }
+
+  // ---------------------------------------------------------------- crackling fire sound (generated, no files)
+  const audio = (() => {
+    let ctx = null, master = null, rumbleGain = null, timer = null, on = false, white = null;
+    function noiseBuffer(seconds, brown) {
+      const len = Math.floor(ctx.sampleRate * seconds), buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = buf.getChannelData(0); let lastv = 0;
+      for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; if (brown) { lastv = (lastv + 0.02 * w) / 1.02; d[i] = lastv * 3.5; } else d[i] = w; }
+      return buf;
+    }
+    function crackle() {
+      if (!on) return;
+      const now = ctx.currentTime, src = ctx.createBufferSource();
+      src.buffer = white;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 1200 + Math.random() * 3800; bp.Q.value = 0.8 + Math.random() * 2;
+      const g = ctx.createGain(), dur = 0.006 + Math.random() * 0.03;
+      g.gain.setValueAtTime(0.15 + Math.random() * 0.5, now);
+      g.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+      src.connect(bp).connect(g).connect(master);
+      src.start(now, Math.random() * 1.5, dur + 0.02);
+      timer = setTimeout(crackle, Math.random() < 0.3 ? 20 + Math.random() * 60 : 90 + Math.random() * 420);
+    }
+    function start() {
+      if (!ctx) {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        master = ctx.createGain(); master.gain.value = 0.6; master.connect(ctx.destination);
+        white = noiseBuffer(2, false);
+        const rumble = ctx.createBufferSource(); rumble.buffer = noiseBuffer(4, true); rumble.loop = true;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520;
+        rumbleGain = ctx.createGain(); rumbleGain.gain.value = 0;
+        rumble.connect(lp).connect(rumbleGain).connect(master); rumble.start();
+      }
+      ctx.resume(); on = true; crackle();
+    }
+    function stop() { on = false; clearTimeout(timer); if (ctx) ctx.suspend(); }
+    return {
+      toggle() { on ? stop() : start(); return on; },
+      update(f) { if (on && rumbleGain) rumbleGain.gain.setTargetAtTime(0.18 + 0.25 * (f.a + f.b) / 2, ctx.currentTime, 0.08); },
+    };
+  })();
+  $('soundBtn').addEventListener('click', () => {
+    const on = audio.toggle();
+    $('soundBtn').setAttribute('aria-pressed', String(on));
+    $('soundLabel').textContent = on ? 'Fire sound on' : 'Fire sound off';
+  });
+})();
+</script>
+</body>
+</html>

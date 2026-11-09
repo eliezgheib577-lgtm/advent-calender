@@ -1,18 +1,72 @@
 # LeMSIC Advent Calendar
 
-Artwork for the LeMSIC Christmas advent calendar (1–24 December).
+An advent calendar for LeMSIC members, 1–24 December.
 
-## The cabin (live scene)
+## The website
 
-`site/cabin.html` is the scene students will land in: the LeMSIC tree in the middle of a log
+Open `site/index.html`. This is what students see:
+
+1. **The cabin door.** A snowy log cabin at night with a carved LeMSIC sign over the door.
+   A popup asks for their **LeMSIC ID**, which is checked against the member list.
+2. **The door opens.** It swings open with warm light spilling onto the snow, and they're
+   carried inside.
+3. **The tree.** In the cabin, by the live fire, today's ornament glows on the cedar. It's
+   the only one they can open.
+4. **The question.** Tapping the ornament shows the day's LeMSIC question. Any answer
+   counts. Once they log it, the ornament opens and reveals the day's picture.
+5. **The prize.** Students who answer all 24 days see the prize message.
+
+### Member IDs (from the Excel sheet)
+
+```bash
+python3 tools/import_members.py path/to/members.xlsx
+```
+
+This reads the first sheet, takes the column whose header mentions "ID" (or the one named
+with `--column "LeMSIC ID"`), and writes `site/assets/members.js`. The website never gets
+the IDs themselves, only salted SHA-256 fingerprints of them. The browser fingerprints what a
+student types the same way and looks for a match. IDs are compared ignoring case, spaces and
+dashes. Re-run it whenever the member list changes.
+
+The list in the repository now is a **sample** (`tools/sample-members.csv`). For testing, use
+`DEMO-0001`, `DEMO-0002` or `TEST-1234`.
+
+### Questions, pictures and settings
+
+- `site/questions.js`: one question per day, multiple choice or free text, with an optional
+  fun fact shown after answering. Please check the facts before launch.
+- `site/assets/days/day-01.png` … `day-24.png`: the picture revealed each day. Replace them
+  with your own, or point a day at another file with `picture:` in `questions.js`.
+- `site/config.js`: the year, the time zone (Lebanon), the prize message, and optional
+  answer recording.
+
+**Trying it before December:** add `#day-7` (any day) to the page address, or set
+`previewDay` in `config.js`. Preview answers are kept apart and never sent to the sheet.
+
+### Recording answers (who wins the prize)
+
+Without a back end, answers are kept in each student's own browser. To collect them in one
+place, use the Google Sheet script in `backend/answers-sheet.gs`; setup steps are at the top
+of the file. It logs every answer, marks whether it was given on the right day, and keeps a
+**Progress** tab showing who has answered all 24. If the sheet has a **Members** tab, it also
+refuses IDs that aren't on it.
+
+## The cabin
+
+The cabin is the scene students land in: the LeMSIC tree in the middle of a log
 cabin at night, a stone fireplace burning on the left, and snow falling past the window on the
 right. Everything you see is rendered in Blender (Cycles).
 
-- **The tree draws the LeMSIC serpent.** A pearl serpent with its head at the top winds back
-  and forth down across the trunk (the staff), like the snake in the emblem. Days 1–23 hang
-  along it in order, from the head to the tail, and day 24 is the gold star on top.
+- **The tree is a cedar of Lebanon,** the tree in the LeMSIC emblem: broad flat layers of
+  tufted needles. It wears baubles in LeMSIC blue, silver, white and gold, numbered 1–23 and
+  scattered in a mixed order. The LeMSIC emblem medallion on top is day 24, and a blue velvet
+  tree skirt has the emblem embroidered on it. Other tree designs can be rendered with
+  `--style` (see `STYLES` in `tools/blender/lemsic_tree.py`; previews are in
+  `images/render/options/`).
 - **The LeMSIC emblem** hangs framed on the wall beside the tree, lit by a picture light, and
   one present is wrapped in paper printed with it.
+- **The front door** (`tools/blender/cabin_door.py`) is rendered separately: the closed door,
+  plus 24 frames of it opening.
 - **The room is built from real geometry:** fieldstones laid in courses with mortar joints and
   soot above the firebox, hewn logs with checking cracks and chinking, wide floor planks, a
   braided rag rug, knitted stockings, and frosted window panes. The camera has a real depth
@@ -31,8 +85,6 @@ right. Everything you see is rendered in Blender (Cycles).
 - **Data:** `site/assets/cabin/scene.json` (and `scene.js`) give the position of the window
   and every ornament in the image, so the ornaments can be made clickable. `fire.json` (and
   `fire.js`) describe the fire loop.
-
-Open `site/cabin.html` in a browser to see it.
 
 To re-render (about 45 minutes for the room and 25 for the fire, on a 4-core CPU):
 

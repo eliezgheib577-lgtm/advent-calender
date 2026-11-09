@@ -38,6 +38,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT_DIR = os.path.join(ROOT, "site", "assets", "cabin")
 BUILD_DIR = os.path.join(ROOT, "build")
 EMBLEM = os.path.join(HERE, "textures", "lemsic-emblem.png")
+TREE_STYLE = "cedar_lemsic"          # see lemsic_tree.STYLES
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
@@ -331,7 +332,7 @@ def build_room():
             bpy.context.active_object.data.materials.append(snow)
 
     # braided rug in front of the tree
-    P.braided_rug("Rug", center=(-0.15, -0.75))
+    P.braided_rug("Rug", center=(-0.1, -1.05))
 
     emblem_frame()
 
@@ -772,6 +773,8 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     os.makedirs(BUILD_DIR, exist_ok=True)
     scene = T.reset_scene()
+    T.apply_style(TREE_STYLE)
+    T.FLOOR_LIFT = 0.03                     # the skirt and presents rest on the braided rug
     T.CAMERA = CAMERA                       # baubles turn to face this camera
     spots = T.build_tree()
     build_room()

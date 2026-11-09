@@ -1,0 +1,1 @@
+window.CABIN_DOOR = {"width": 960, "height": 540, "frames": 1, "crop": {"x0": 0.27, "x1": 0.73, "y0": 0.14, "y1": 1.0}, "doorway": [[0.4439, 0.8315], [0.5561, 0.8315], [0.5554, 0.4395], [0.4446, 0.4395]], "note": "fractions of the image, y from the top; crop is where the opening frames go"};

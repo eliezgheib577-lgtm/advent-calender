@@ -52,6 +52,7 @@ TIER_Z = np.linspace(2.84, 0.64, N_TIERS)
 TIER_R = np.array([0.30, 0.42, 0.55, 0.67, 0.79, 0.91, 1.02, 1.13, 1.24])
 TRUNK_BOTTOM, TRUNK_TOP = 0.20, 3.00
 STAR_Z = 3.17
+FLOOR_LIFT = 0.0          # raise the skirt and presents when they stand on a rug
 BAUBLE_R = 0.072
 CAMERA = Vector((0.0, -9.4, 2.15))
 CAMERA_TARGET = Vector((0.0, 0.0, 1.66))
@@ -89,7 +90,7 @@ STYLES = {
                    serpent="none", topper="wood_star", lights="warm", ornament="wood", flock=0.0),
     "cedar_lemsic": dict(label="LeMSIC Cedar", shape="cedar", needles="cedar", palette="lemsic",
                          placement="tiers", serpent="none", topper="emblem", lights="warm", ornament="bauble",
-                         flock=0.0, bows="blue", skirt=True),
+                         flock=0.0, bows=None, skirt=True),
     "cedar_classic": dict(label="Traditional Cedar", shape="cedar", needles="cedar", palette="gold_white",
                           placement="tiers", serpent="none", topper="star", lights="warm", ornament="bauble",
                           flock=0.0, bows="red", skirt=True),
@@ -658,7 +659,7 @@ def tree_skirt():
     aa = np.linspace(0, 2 * np.pi, 160, endpoint=False)
     R, A = np.meshgrid(rr, aa, indexing="ij")
     fold = np.sin(A * 11 + 0.6 * np.sin(A * 3)) * (R / 0.86) ** 1.5
-    Z = 0.035 * (1 - R / 0.86) + 0.012 + 0.022 * fold * (R > 0.2)
+    Z = 0.035 * (1 - R / 0.86) + 0.012 + 0.022 * fold * (R > 0.2) + FLOOR_LIFT
     V = np.stack([R * np.cos(A), R * np.sin(A), Z], -1).reshape(-1, 3)
     nr, na = len(rr), len(aa)
     q = [(i * na + j, i * na + (j + 1) % na, (i + 1) * na + (j + 1) % na, (i + 1) * na + j)
@@ -720,11 +721,12 @@ def stand_and_presents():
               emblem_paper()]                                                     # LeMSIC paper
     gold = simple_material("RibbonGold", (0.9, 0.6, 0.2), rough=0.25, metal=1.0)
     red = simple_material("RibbonRed", (0.5, 0.01, 0.02), rough=0.35, coat=0.6)
-    present((-0.62, -0.30, 0), (0.34, 0.30, 0.26), 0.25, papers[0], gold)
-    present((-0.95, -0.05, 0), (0.24, 0.24, 0.20), -0.3, papers[2], red)
-    present((0.60, -0.32, 0), (0.30, 0.30, 0.30), -0.2, papers[3], gold)
-    present((0.95, -0.10, 0), (0.22, 0.26, 0.17), 0.4, papers[1], gold)
-    present((0.80, -0.66, 0) if STYLE.get("skirt") else (0.30, -0.62, 0), (0.18, 0.18, 0.14), 0.1, papers[0], gold)
+    z = FLOOR_LIFT + 0.02 if STYLE.get("skirt") else 0.0
+    present((-0.62, -0.30, z), (0.34, 0.30, 0.26), 0.25, papers[0], gold)
+    present((-0.95, -0.05, z), (0.24, 0.24, 0.20), -0.3, papers[2], red)
+    present((0.60, -0.32, z), (0.30, 0.30, 0.30), -0.2, papers[3], gold)
+    present((0.95, -0.10, z), (0.22, 0.26, 0.17), 0.4, papers[1], gold)
+    present((0.80, -0.66, FLOOR_LIFT) if STYLE.get("skirt") else (0.30, -0.62, 0), (0.18, 0.18, 0.14), 0.1, papers[0], gold)
 
 
 BAUBLE_STYLES = [
