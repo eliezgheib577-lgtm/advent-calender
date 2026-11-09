@@ -65,14 +65,14 @@ SHAPES = {
                   lop=0.11, nb=(12, 2.0), prof=(0.10, 0.15), tilt=(-0.18, 0.30), twig=1.0),
     "fir": dict(n=17, z=(2.95, 0.50), r=None, lop=0.0, nb=(7, 0.7), prof=(0.12, 0.24),
                 tilt=(-0.35, 0.45), twig=0.85),
-    "cedar": dict(n=7, z=(2.75, 0.72), r=[0.42, 0.62, 0.82, 1.0, 1.18, 1.34, 1.46], lop=0.2,
-                  nb=(14, 2.2), prof=(0.04, 0.08), tilt=(-0.05, 0.38), twig=1.15),
+    "cedar": dict(n=9, z=(2.86, 0.62), r=[0.34, 0.50, 0.65, 0.79, 0.92, 1.03, 1.13, 1.21, 1.28], lop=0.14,
+                  nb=(16, 2.6), prof=(0.05, 0.10), tilt=(-0.10, 0.22), twig=1.05, jitter=(0.74, 1.06)),
 }
 NEEDLE_SETS = {
     "fir": dict(dark=(0.012, 0.040, 0.016), mid=(0.030, 0.085, 0.030), tip=(0.085, 0.190, 0.045),
                 blue=(0.016, 0.055, 0.048), length=(0.020, 0.032)),
-    "cedar": dict(dark=(0.010, 0.035, 0.030), mid=(0.025, 0.075, 0.060), tip=(0.060, 0.150, 0.100),
-                  blue=(0.020, 0.060, 0.070), length=(0.012, 0.020)),
+    "cedar": dict(dark=(0.008, 0.030, 0.024), mid=(0.020, 0.062, 0.048), tip=(0.050, 0.120, 0.080),
+                  blue=(0.020, 0.055, 0.065), length=(0.013, 0.024), rosette=True),
 }
 STYLES = {
     "serpent": dict(label="Pearl Serpent", shape="tiers", needles="fir", palette="classic", placement="serpent",
@@ -87,6 +87,15 @@ STYLES = {
                   placement="serpent", serpent="gold", topper="star", lights="warm", ornament="bauble", flock=0.0),
     "rustic": dict(label="Rustic", shape="fir", needles="fir", palette="classic", placement="scatter",
                    serpent="none", topper="wood_star", lights="warm", ornament="wood", flock=0.0),
+    "cedar_lemsic": dict(label="LeMSIC Cedar", shape="cedar", needles="cedar", palette="lemsic",
+                         placement="tiers", serpent="none", topper="emblem", lights="warm", ornament="bauble",
+                         flock=0.0, bows="blue", skirt=True),
+    "cedar_classic": dict(label="Traditional Cedar", shape="cedar", needles="cedar", palette="gold_white",
+                          placement="tiers", serpent="none", topper="star", lights="warm", ornament="bauble",
+                          flock=0.0, bows="red", skirt=True),
+    "cedar_snow": dict(label="Snow-dusted Cedar", shape="cedar", needles="cedar", palette="lemsic",
+                       placement="tiers", serpent="none", topper="emblem", lights="warm", ornament="bauble",
+                       flock=0.45, bows="blue", skirt=True),
     "glow": dict(label="Glowing Serpent", shape="fir", needles="fir", palette="classic", placement="serpent",
                  serpent="lights", topper="star", lights="warm_few", ornament="bauble", flock=0.0),
 }
@@ -98,8 +107,9 @@ NEEDLES = NEEDLE_SETS["fir"]
 
 def apply_style(name):
     """Switch the tree to one of STYLES (call before build_tree)."""
-    global STYLE_NAME, STYLE, SHAPE, NEEDLES, N_TIERS, TIER_Z, TIER_R
+    global STYLE_NAME, STYLE, SHAPE, NEEDLES, N_TIERS, TIER_Z, TIER_R, TRUNK_BOTTOM
     STYLE_NAME, STYLE = name, STYLES[name]
+    TRUNK_BOTTOM = 0.0 if STYLE.get("skirt") else 0.20         # no crate: the trunk stands in the skirt
     SHAPE = SHAPES[STYLE["shape"]]
     NEEDLES = NEEDLE_SETS[STYLE["needles"]]
     N_TIERS = SHAPE["n"]
@@ -357,6 +367,8 @@ NEEDLE_BLUE = np.array([0.016, 0.055, 0.048])
 
 def needles(P, D, Lt, spacing=0.0042, per=3, length=None, width=0.0024, flock=0.0):
     length = length or NEEDLES["length"]
+    if NEEDLES.get("rosette") and length == NEEDLES["length"]:
+        return rosette_needles(P, D, Lt, length, width * 0.8, flock)
     spacing = spacing / DENSITY
     counts = np.maximum((Lt / spacing).astype(int), 2) * per
     idx = np.repeat(np.arange(len(P)), counts)
@@ -391,6 +403,52 @@ def needles(P, D, Lt, spacing=0.0042, per=3, length=None, width=0.0024, flock=0.
     return verts, quads, np.repeat(rgba, 4, axis=0)
 
 
+def rosette_needles(P, D, Lt, length, width, flock, spacing=0.017, per=14):
+    """Cedar foliage: short needles in tufts (rosettes) on spur shoots along each twig."""
+    spacing = spacing / DENSITY
+    counts = np.maximum((Lt / spacing).astype(int), 1)
+    tw = np.repeat(np.arange(len(P)), counts)
+    m = len(tw)
+    u = rng.random(m)
+    d = D[tw]
+    centers = P[tw] + d * (u * Lt[tw])[:, None]
+    up = np.array([0.0, 0, 1])
+    axis = d * 0.35 + up * 0.75 + rng.normal(0, 0.25, (m, 3))   # tufts stand up off the spray
+    axis /= np.linalg.norm(axis, axis=1, keepdims=True)
+    centers += axis * 0.004
+    idx = np.repeat(np.arange(m), per)
+    n = len(idx)
+    ax = axis[idx]
+    ref = np.where(np.abs(ax[:, 2:3]) < 0.9, [[0.0, 0, 1]], [[1.0, 0, 0]])
+    e1 = np.cross(ax, ref)
+    e1 /= np.linalg.norm(e1, axis=1, keepdims=True)
+    e2 = np.cross(ax, e1)
+    spread = np.radians(rng.uniform(10, 62, n))
+    rot = rng.uniform(0, 2 * np.pi, n)
+    nd = (np.cos(spread)[:, None] * ax + np.sin(spread)[:, None]
+          * (np.cos(rot)[:, None] * e1 + np.sin(rot)[:, None] * e2))
+    ln = rng.uniform(*length, n) * (0.75 + 0.25 * np.cos(spread))[:]
+    base = centers[idx]
+    tip = base + nd * ln[:, None]
+    wv = np.cross(nd, ax + 1e-3)
+    wv /= np.linalg.norm(wv, axis=1, keepdims=True) + 1e-9
+    w = width / 2
+    verts = np.stack([base - wv * w, base + wv * w, tip + wv * w * 0.2, tip - wv * w * 0.2], axis=1).reshape(-1, 3)
+    quads = np.arange(n * 4).reshape(-1, 4)
+    dark, mid, tipc, bluec = (np.array(NEEDLES[k]) for k in ("dark", "mid", "tip", "blue"))
+    tone = rng.random(m)[idx][:, None] * 0.7 + rng.random(n)[:, None] * 0.3
+    col = dark + (mid - dark) * tone
+    blue = rng.random(m)[idx] < 0.3
+    col[blue] = col[blue] * 0.5 + bluec * 0.5
+    fresh = u[idx] ** 4                                   # newer, lighter tufts at the twig ends
+    col += (tipc - col) * (fresh * 0.8)[:, None]
+    if flock:
+        snowy = (nd[:, 2] > 0.3) & (rng.random(n) < flock)
+        col[snowy] = np.array([0.80, 0.82, 0.86]) * rng.uniform(0.85, 1.0, (snowy.sum(), 1))
+    rgba = np.concatenate([col, np.ones((n, 1))], axis=1)
+    return verts, quads, np.repeat(rgba, 4, axis=0)
+
+
 def rotate_z(vecs, angles):
     c, s = np.cos(angles), np.sin(angles)
     x, y = vecs[:, 0] * c - vecs[:, 1] * s, vecs[:, 0] * s + vecs[:, 1] * c
@@ -406,7 +464,7 @@ def build_tier(i):
     tw_P, tw_D, tw_L = [], [], []
     r0 = trunk_radius(z0)
     for th in thetas:
-        L = R * rng.uniform(0.86, 1.02) * lopsided(th, i)
+        L = R * rng.uniform(*SHAPE.get("jitter", (0.86, 1.02))) * lopsided(th, i)
         t = np.linspace(0, 1, 13)
         ang = th + rng.uniform(-0.25, 0.25) * t ** 2
         rad = r0 + t * L
@@ -594,11 +652,68 @@ def emblem_paper():
     return m
 
 
+def tree_skirt():
+    """A LeMSIC-blue velvet tree skirt with soft folds, a white fur trim and the emblem embroidered at the front."""
+    rr = np.linspace(0.07, 0.86, 26)
+    aa = np.linspace(0, 2 * np.pi, 160, endpoint=False)
+    R, A = np.meshgrid(rr, aa, indexing="ij")
+    fold = np.sin(A * 11 + 0.6 * np.sin(A * 3)) * (R / 0.86) ** 1.5
+    Z = 0.035 * (1 - R / 0.86) + 0.012 + 0.022 * fold * (R > 0.2)
+    V = np.stack([R * np.cos(A), R * np.sin(A), Z], -1).reshape(-1, 3)
+    nr, na = len(rr), len(aa)
+    q = [(i * na + j, i * na + (j + 1) % na, (i + 1) * na + (j + 1) % na, (i + 1) * na + j)
+         for i in range(nr - 1) for j in range(na)]
+    m, nt, out = new_material("SkirtVelvet")
+    L = nt.links.new
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    w, h, cy = 0.40, 0.40 * 378 / 453, -0.56
+    u = nt.nodes.new("ShaderNodeMath"); u.operation = "MULTIPLY_ADD"
+    u.inputs[1].default_value = 1 / w; u.inputs[2].default_value = 0.5
+    v = nt.nodes.new("ShaderNodeMath"); v.operation = "MULTIPLY_ADD"
+    v.inputs[1].default_value = 1 / h; v.inputs[2].default_value = 0.5 - cy / h
+    comb = nt.nodes.new("ShaderNodeCombineXYZ")
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(EMBLEM, check_existing=True)
+    tex.extension = "CLIP"
+    bw = nt.nodes.new("ShaderNodeRGBToBW")
+    thread = nt.nodes.new("ShaderNodeMapRange")
+    thread.inputs["From Min"].default_value = 0.45
+    thread.inputs["From Max"].default_value = 0.7
+    mixc = nt.nodes.new("ShaderNodeMix"); mixc.data_type = "RGBA"
+    mixc.inputs["A"].default_value = (0.02, 0.06, 0.21, 1)
+    mixc.inputs["B"].default_value = (0.78, 0.78, 0.80, 1)
+    b = principled(nt, (0.02, 0.06, 0.21), rough=0.7)
+    b.inputs["Sheen Weight"].default_value = 0.45
+    b.inputs["Sheen Roughness"].default_value = 0.35
+    b.inputs["Sheen Tint"].default_value = (0.25, 0.4, 0.85, 1)
+    L(tc.outputs["Object"], sep.inputs[0])
+    L(sep.outputs["X"], u.inputs[0]); L(sep.outputs["Y"], v.inputs[0])
+    L(u.outputs[0], comb.inputs["X"]); L(v.outputs[0], comb.inputs["Y"])
+    L(comb.outputs[0], tex.inputs["Vector"])
+    L(tex.outputs["Color"], bw.inputs[0])
+    L(bw.outputs[0], thread.inputs["Value"])
+    L(thread.outputs[0], mixc.inputs["Factor"])
+    L(mixc.outputs["Result"], b.inputs["Base Color"])
+    L(b.outputs[0], out.inputs["Surface"])
+    ob = mesh_object("TreeSkirt", V, np.array(q), mat=m, smooth=True)
+    # white fur trim around the edge
+    fur = simple_material("Fur", (0.82, 0.82, 0.80), rough=1.0)
+    fur.node_tree.nodes["Principled BSDF"].inputs["Sheen Weight"].default_value = 1.0
+    edge = V.reshape(nr, na, 3)[-1]
+    v2, q2 = tubes(edge, np.roll(edge, -1, axis=0), np.full(na, 0.03), np.full(na, 0.03), sides=10)
+    mesh_object("SkirtTrim", v2, q2, mat=fur, smooth=True)
+    return ob
+
+
 def stand_and_presents():
-    crate = wood_material("Crate", (0.20, 0.10, 0.045), (0.36, 0.20, 0.09), scale=(3, 30, 3))
-    for k in range(3):     # stacked planks
-        z = 0.05 + k * 0.105
-        box("Plank", (0.62, 0.62, 0.095), (0, 0, z), crate)
+    if STYLE.get("skirt"):
+        tree_skirt()
+    else:
+        crate = wood_material("Crate", (0.20, 0.10, 0.045), (0.36, 0.20, 0.09), scale=(3, 30, 3))
+        for k in range(3):     # stacked planks
+            z = 0.05 + k * 0.105
+            box("Plank", (0.62, 0.62, 0.095), (0, 0, z), crate)
     papers = [simple_material("PaperRed", (0.20, 0.003, 0.007), rough=0.55),
               simple_material("PaperGreen", (0.01, 0.08, 0.03), rough=0.4, coat=0.3),
               simple_material("PaperCream", (0.55, 0.47, 0.34), rough=0.5),
@@ -609,7 +724,7 @@ def stand_and_presents():
     present((-0.95, -0.05, 0), (0.24, 0.24, 0.20), -0.3, papers[2], red)
     present((0.60, -0.32, 0), (0.30, 0.30, 0.30), -0.2, papers[3], gold)
     present((0.95, -0.10, 0), (0.22, 0.26, 0.17), 0.4, papers[1], gold)
-    present((0.30, -0.62, 0), (0.18, 0.18, 0.14), 0.1, papers[0], gold)
+    present((0.80, -0.66, 0) if STYLE.get("skirt") else (0.30, -0.62, 0), (0.18, 0.18, 0.14), 0.1, papers[0], gold)
 
 
 BAUBLE_STYLES = [
@@ -637,11 +752,19 @@ PALETTES = {
         (dict(color=(0.30, 0.45, 0.72), rough=0.35, metal=0.3, coat=0.5), WHITE_NUM),      # ice blue
         (dict(color=(0.008, 0.02, 0.07), rough=0.12, coat=1.0), WHITE_NUM),                # midnight
     ],
+    "lemsic": [
+        (dict(color=(0.025, 0.08, 0.30), rough=0.12, metal=0.5, coat=1.0), WHITE_NUM),     # LeMSIC blue
+        (dict(color=(0.85, 0.87, 0.90), rough=0.14, metal=1.0), BLUE_NUM),                 # mirror silver
+        (dict(color=(0.80, 0.80, 0.82), rough=0.45, coat=0.3), BLUE_NUM),                  # white satin
+        (dict(color=(0.95, 0.66, 0.25), rough=0.22, metal=0.85, coat=0.5), BLUE_NUM),      # warm gold
+        (dict(color=(0.30, 0.45, 0.72), rough=0.35, metal=0.3, coat=0.5), WHITE_NUM),      # ice blue
+    ],
     "gold_white": [
         (dict(color=(0.95, 0.62, 0.20), rough=0.22, metal=0.85, coat=0.6), dict(color=(0.25, 0.005, 0.01), rough=0.4)),
         (dict(color=(0.72, 0.68, 0.60), rough=0.2, coat=1.0), GOLD_NUM),                   # ivory pearl
         (dict(color=(0.40, 0.012, 0.02), rough=0.15, metal=0.5, coat=1.0), GOLD_NUM),      # deep red
         (dict(color=(0.75, 0.58, 0.40), rough=0.45, metal=0.5), WHITE_NUM),                # champagne satin
+        (dict(color=(0.02, 0.10, 0.04), rough=0.15, metal=0.4, coat=1.0), GOLD_NUM),       # forest green
     ],
 }
 
@@ -798,6 +921,23 @@ def ornament_slots():
             s_at = np.interp(u, usable, arc)
             slots.append(np.array([np.interp(s_at, arc, path[:, k]) for k in range(3)]))
         return list(zip(range(1, 24), slots))
+    days = list(range(1, 24))
+    random.Random(1964).shuffle(days)
+    if STYLE["placement"] == "tiers":
+        # hung from the edges of the layers, spread across the front; days in a mixed order
+        counts = {9: [0, 1, 2, 2, 3, 3, 4, 4, 4]}[N_TIERS]
+        slots = []
+        for i, count in enumerate(counts):
+            if not count:
+                continue
+            span = math.radians(60 if count > 1 else 0)
+            phis = np.linspace(-span, span, count) if count > 1 else np.array([math.radians(-10)])
+            for phi in phis:
+                th = -math.pi / 2 + phi + rng.uniform(-0.07, 0.07)
+                p = tier_surface(i, th, rng.uniform(0.86, 0.94))
+                p[2] -= 0.02
+                slots.append(p)
+        return list(zip(days, slots))
     # scattered in staggered rows over the front of the tree; days in a mixed order
     rows = [1, 2, 3, 3, 4, 5, 5]
     zs = np.linspace(2.55, 0.95, len(rows))
@@ -810,8 +950,6 @@ def ornament_slots():
             zz = z + rng.uniform(-0.05, 0.05)
             r = surface_radius(zz, th) * 0.97 + 0.03
             slots.append(np.array([r * math.cos(th), r * math.sin(th), zz + 0.06]))
-    days = list(range(1, 24))
-    random.Random(1964).shuffle(days)
     return list(zip(days, slots))
 
 
@@ -904,7 +1042,7 @@ def topper():
                              dict(color=(0.05, 0.022, 0.01), rough=0.85), num24, 0.10)
         star_mesh("Star", mat)
     else:                                        # the LeMSIC emblem as a medallion
-        R = 0.19
+        R = 0.165
         bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=R, depth=0.03)
         ob = bpy.context.active_object
         for vx in ob.data.vertices:
@@ -924,7 +1062,7 @@ def topper():
         tex.extension = "EXTEND"
         b = principled(nt, (0.1, 0.2, 0.5), rough=0.3, emit=(1, 1, 1), emit_strength=0.0)
         b.inputs["Coat Weight"].default_value = 1.0
-        em = nt.nodes.new("ShaderNodeMath"); em.operation = "MULTIPLY"; em.inputs[1].default_value = 0.6
+        em = nt.nodes.new("ShaderNodeMath"); em.operation = "MULTIPLY"; em.inputs[1].default_value = 0.3
         L = nt.links.new
         L(tc.outputs["Object"], sep.inputs[0])
         L(sep.outputs["X"], u.inputs[0]); L(sep.outputs["Z"], v.inputs[0])
@@ -968,7 +1106,71 @@ def ornaments():
             c, r = hang_bauble(day, n, attach, gold, thread)
         spots.append({"day": day, "center": c.tolist(), "radius": r})
     spots.append(topper())
+    if STYLE.get("bows"):
+        velvet_bows(spots)
     return spots
+
+
+def velvet_bow(loc, facing, mat, size=0.095):
+    """A velvet bow: two loops, a knot and two tails, tied onto a branch."""
+    parts = []
+    for side in (-1, 1):
+        bpy.ops.mesh.primitive_torus_add(major_radius=size * 0.55, minor_radius=size * 0.16,
+                                         major_segments=32, minor_segments=10)
+        lp = bpy.context.active_object
+        lp.scale = (1.0, 0.68, 0.5)
+        lp.location = (side * size * 0.55, 0, 0.0)
+        lp.rotation_euler = (math.radians(90), math.radians(side * 18), 0)
+        parts.append(lp)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=size * 0.2, segments=16, ring_count=8)
+    knot = bpy.context.active_object
+    knot.scale = (1, 0.7, 1.1)
+    parts.append(knot)
+    for side in (-1, 1):
+        bpy.ops.mesh.primitive_cube_add(size=1)
+        t = bpy.context.active_object
+        t.scale = (size * 0.32, size * 0.05, size * 1.5)
+        t.location = (side * size * 0.28, 0.005, -size * 0.75)
+        t.rotation_euler = (0, math.radians(side * -14), 0)
+        parts.append(t)
+    for ob in parts:
+        ob.data.materials.append(mat)
+        ob.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    with bpy.context.temp_override(active_object=parts[0], selected_editable_objects=parts, selected_objects=parts):
+        bpy.ops.object.join()
+    bow = parts[0]
+    with bpy.context.temp_override(active_object=bow, object=bow, selected_objects=[bow],
+                                   selected_editable_objects=[bow]):
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    bpy.ops.object.shade_smooth()
+    bow.location = loc
+    bow.rotation_euler = (0, 0, facing)
+    bow.name = "Bow"
+    return bow
+
+
+def velvet_bows(spots):
+    colour = (0.02, 0.06, 0.22) if STYLE["bows"] == "blue" else (0.28, 0.004, 0.01)
+    mat = simple_material("Velvet", colour, rough=0.6)
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Sheen Weight"].default_value = 0.6
+    bsdf.inputs["Sheen Roughness"].default_value = 0.35
+    bsdf.inputs["Sheen Tint"].default_value = (*[min(1, c * 4) for c in colour], 1)
+    taken = [np.array(s["center"]) for s in spots]
+    placed = 0
+    for i in range(2, N_TIERS):
+        for phi in (-0.95, -0.35, 0.3, 0.9):
+            if placed >= 11:
+                return
+            th = -math.pi / 2 + phi + rng.uniform(-0.12, 0.12)
+            p = tier_surface(i, th, 0.97)
+            p[2] += 0.025
+            if min(np.linalg.norm(p - t) for t in taken) < 0.3 or rng.random() < 0.55:
+                continue
+            velvet_bow(p, face_camera_angle(p), mat)
+            taken.append(p)
+            placed += 1
 
 
 def camera_and_lights(scene):
