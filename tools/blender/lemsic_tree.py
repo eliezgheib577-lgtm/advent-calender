@@ -494,7 +494,7 @@ def stand_and_presents():
     for k in range(3):     # stacked planks
         z = 0.05 + k * 0.105
         box("Plank", (0.62, 0.62, 0.095), (0, 0, z), crate)
-    papers = [simple_material("PaperRed", (0.28, 0.006, 0.012), rough=0.4, coat=0.3),
+    papers = [simple_material("PaperRed", (0.20, 0.003, 0.007), rough=0.55),
               simple_material("PaperGreen", (0.01, 0.08, 0.03), rough=0.4, coat=0.3),
               simple_material("PaperCream", (0.55, 0.47, 0.34), rough=0.5),
               simple_material("PaperBlue", (0.02, 0.06, 0.2), rough=0.4, coat=0.3)]   # LeMSIC blue
@@ -549,7 +549,7 @@ def ornaments():
             slots.append((i, -math.pi / 2 + phi))
     days = day_order(len(slots))
     for n, ((i, th), day) in enumerate(zip(slots, days)):
-        attach = tier_surface(i, th, rng.uniform(0.84, 0.90))
+        attach = tier_surface(i, th, rng.uniform(0.92, 0.97))
         attach[2] -= 0.03
         drop = rng.uniform(0.006, 0.016)
         center = attach - np.array([0, 0, drop + 0.02 + BAUBLE_R])
@@ -573,9 +573,9 @@ def ornaments():
         spots.append({"day": day, "center": center.tolist(), "radius": BAUBLE_R})
 
     # day 24: the star on top
-    star_mat = decal_material("Star", dict(color=(1.0, 0.68, 0.22), rough=0.28, metal=1.0,
-                                           emit=(1.0, 0.6, 0.2), emit_strength=0.7),
-                              dict(color=(0.22, 0.004, 0.01), rough=0.4),
+    star_mat = decal_material("Star", dict(color=(1.0, 0.50, 0.06), rough=0.22, metal=1.0, coat=0.5,
+                                           emit=(1.0, 0.45, 0.06), emit_strength=0.45),
+                              dict(color=(0.16, 0.002, 0.006), rough=0.4),
                               os.path.join(DECALS, "num-24.png"), 0.10)
     verts = [(0, -0.11, 0), (0, 0.11, 0)]
     for k in range(10):
@@ -679,6 +679,7 @@ def main():
     print(f"scene built in {time.time() - t0:.0f}s")
 
     # where every ornament lands in the image, for clickable hotspots on the website
+    bpy.context.view_layer.update()          # make sure object matrices are current
     cam = scene.camera
     W, H = RES
     right = (cam.matrix_world.to_3x3() @ Vector((1, 0, 0))).normalized()

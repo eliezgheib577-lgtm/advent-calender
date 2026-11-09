@@ -97,8 +97,9 @@ def main():
     <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#7A4A22"/><stop offset="0.5" stop-color="#5A3517"/><stop offset="1" stop-color="#3A210D"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.55" r="0.55">
-      <stop offset="0" stop-color="#6E9BDA" stop-opacity="0.55"/><stop offset="1" stop-color="#6E9BDA" stop-opacity="0"/>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#6E9BDA" stop-opacity="0.5"/><stop offset="0.6" stop-color="#6E9BDA" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#6E9BDA" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="vig" cx="0.5" cy="0.45" r="0.75">
       <stop offset="0.6" stop-color="#0A1A33" stop-opacity="0"/><stop offset="1" stop-color="#0A1A33" stop-opacity="0.5"/>
