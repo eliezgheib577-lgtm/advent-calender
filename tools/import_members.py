@@ -77,13 +77,14 @@ def existing_salt():
         return None
 
 
-def write_members(ids, salt=None):
+def write_members(ids, salt=None, sample=False):
     """Write members.js; returns True if its contents changed."""
     salt = salt or os.environ.get("MEMBERS_SALT") or existing_salt() or secrets.token_hex(16)
     hashes = sorted(hashlib.sha256((salt + i).encode()).hexdigest() for i in ids)
     content = ("// Generated from the LeMSIC member list by tools/import_members.py.\n"
                "// Fingerprints only: the IDs themselves are not in this file.\n"
-               "window.LEMSIC_MEMBERS = " + json.dumps({"salt": salt, "count": len(hashes), "hashes": hashes}) + ";\n")
+               "window.LEMSIC_MEMBERS = " + json.dumps({"salt": salt, "count": len(hashes), "hashes": hashes,
+                                                         **({"sample": True} if sample else {})}) + ";\n")
     try:
         with open(OUT) as f:
             if f.read() == content:
@@ -105,7 +106,7 @@ def main():
             ids, used = pick_ids(rows_from_bytes(f.read(), args.sheet), args.column)
     except ValueError as e:
         sys.exit(str(e))
-    changed = write_members(ids)
+    changed = write_members(ids, sample=os.path.basename(args.sheet) == "sample-members.csv")
     print(f'{len(ids)} member IDs from "{used}" -> {os.path.relpath(OUT, ROOT)}'
           f'{"" if changed else " (no change)"}')
 

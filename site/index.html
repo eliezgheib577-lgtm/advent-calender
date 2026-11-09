@@ -47,7 +47,7 @@
   .scene-wrap::-webkit-scrollbar { display: none; }
   .stage {
     position: relative; flex: 0 0 auto;
-    height: min(calc(100dvh - var(--bar)), max(56.25vw, 52dvh));
+    height: min(calc(100dvh - var(--bar)), max(56.25vw, 64dvh));
     aspect-ratio: 16 / 9; max-width: none;
     margin-inline: auto; overflow: hidden;
     background: #120d0a;
@@ -232,7 +232,7 @@
              spellcheck="false" required aria-describedby="loginError">
       <p class="error" id="loginError" role="alert"></p>
       <button type="submit" class="primary" id="loginBtn">Open the door</button>
-      <p class="fine">Your ID is checked against the LeMSIC member list.</p>
+      <p class="fine" id="loginFine">Your ID is checked against the LeMSIC member list.</p>
     </form>
   </dialog>
 
@@ -489,6 +489,7 @@
   // ---------------------------------------------------------------- arriving: ID, door, inside
   const login = $('login');
   login.addEventListener('cancel', (e) => e.preventDefault());     // the ID is required to go in
+  if (M.sample) $('loginFine').textContent = 'Preview: the real member list isn\'t connected yet. Use DEMO-0001 to look around.';
   const remembered = store.get('lemsic-advent-last-id');
   if (remembered) $('lemsicId').value = remembered;
   preloadDoor();
