@@ -224,26 +224,43 @@ def trim_and_sign():
     box("Jamb", (0.14, 0.2, DOOR_H + 0.1), (hw + 0.07, -0.02, SILL + DOOR_H / 2), trim)
     box("Lintel", (DOOR_W + 0.5, 0.24, 0.2), (0, -0.04, SILL + DOOR_H + 0.1), trim)
     box("Threshold", (DOOR_W + 0.2, 0.3, 0.05), (0, -0.05, SILL - 0.02), trim)
-    # carved sign over the door
+    # the LeMSIC sign over the door: dark wood, raised off-white letters, lit by a small lamp
     board = P.log_side_material("SignBoard", "X")
-    sb = box("Sign", (1.5, 0.05, 0.36), (0, -0.16, SILL + DOOR_H + 0.42), board)
-    sb.modifiers["bevel"].width = 0.025
+    sz = SILL + DOOR_H + 0.46
+    sb = box("Sign", (1.95, 0.06, 0.48), (0, -0.16, sz), board)
+    sb.modifiers["bevel"].width = 0.03
     sb.modifiers["bevel"].segments = 3
-    cream = simple_material("SignPaint", (0.75, 0.68, 0.52), rough=0.6)
+    paint = simple_material("SignPaint", (0.86, 0.84, 0.78), rough=0.45)
     curve = bpy.data.curves.new("SignText", "FONT")
     curve.body = "LeMSIC"
-    curve.size = 0.24
-    curve.extrude = 0.006
+    curve.size = 0.34
+    curve.extrude = 0.012
+    curve.bevel_depth = 0.002
     curve.align_x = "CENTER"
     curve.align_y = "CENTER"
     txt = link(bpy.data.objects.new("SignText", curve))
-    txt.location = (0, -0.19, SILL + DOOR_H + 0.42)
+    txt.location = (0, -0.205, sz)
     txt.rotation_euler = (math.radians(90), 0, 0)
-    txt.data.materials.append(cream)
+    txt.data.materials.append(paint)
     iron = bpy.data.materials["WroughtIron"]
-    for x in (-0.6, 0.6):
-        v, q = tubes([(x, -0.16, SILL + DOOR_H + 0.6)], [(x, -0.02, SILL + DOOR_H + 0.75)], [0.008], [0.008], sides=6)
+    for x in (-0.75, 0.75):
+        v, q = tubes([(x, -0.16, sz + 0.24)], [(x, -0.02, sz + 0.4)], [0.008], [0.008], sides=6)
         mesh_object("SignChain", v, q, mat=iron, smooth=True)
+    # gooseneck lamp lighting the sign
+    v, q = tubes([(0, -0.02, sz + 0.42), (0, -0.25, sz + 0.5)], [(0, -0.25, sz + 0.5), (0, -0.42, sz + 0.42)],
+                 [0.012, 0.012], [0.012, 0.012], sides=8)
+    mesh_object("SignLampArm", v, q, mat=iron, smooth=True)
+    shade = box("SignLampShade", (0.22, 0.12, 0.06), (0, -0.45, sz + 0.4), iron)
+    shade.modifiers["bevel"].width = 0.02
+    ld = bpy.data.lights.new("SignLamp", "SPOT")
+    ld.energy = 40
+    ld.color = (1.0, 0.86, 0.7)
+    ld.spot_size = math.radians(95)
+    ld.spot_blend = 0.6
+    ld.shadow_soft_size = 0.05
+    lo = link(bpy.data.objects.new("SignLamp", ld))
+    lo.location = (0, -0.46, sz + 0.36)
+    lo.rotation_euler = (Vector((0, -0.2, sz)) - Vector((0, -0.46, sz + 0.36))).to_track_quat("-Z", "Y").to_euler()
 
 
 def windows():

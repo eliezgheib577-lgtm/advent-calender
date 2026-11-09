@@ -55,18 +55,13 @@
   .view { position: absolute; inset: 0; }
   .view img, .view canvas { position: absolute; display: block; user-select: none; -webkit-user-drag: none; }
   .view img { inset: 0; width: 100%; height: 100%; max-width: none; }
-  #outside { transform-origin: 50% 60%; }
-  #outside.zoom { transition: transform 1.5s cubic-bezier(.55, 0, .25, 1); }
+  #outside, #inside { will-change: transform, opacity; }
+  #inside { transform-origin: 50% 62%; }
   #snowFront { inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #inside .light { opacity: 0; will-change: opacity; }
   canvas.fire { mix-blend-mode: screen; pointer-events: none; }
   @supports (mix-blend-mode: plus-lighter) { canvas.fire { mix-blend-mode: plus-lighter; } }
   canvas.snow { pointer-events: none; }
-  .veil {
-    position: absolute; inset: 0; pointer-events: none; opacity: 0;
-    background: radial-gradient(circle at 50% 55%, #ffd9a0 0%, #e59a4c 45%, #6b3415 100%);
-    transition: opacity .6s ease;
-  }
 
   /* ornaments you can open */
   .ornaments { position: absolute; inset: 0; }
@@ -204,7 +199,6 @@
         <canvas id="fire" class="fire"></canvas>
         <div class="ornaments" id="ornaments" role="group" aria-label="Ornaments on the tree, one for each day"></div>
       </section>
-      <div class="veil" id="veil"></div>
     </div>
   </div>
 
@@ -218,7 +212,7 @@
       <button class="pill" id="soundBtn" type="button" aria-pressed="false">
         <span class="dot" aria-hidden="true"></span><span id="soundLabel">Fire sound off</span>
       </button>
-      <button class="linkbtn" id="switchBtn" type="button" hidden>Change ID</button>
+      <button class="linkbtn" id="switchBtn" type="button" hidden>Exit the Cabin</button>
     </div>
   </div>
 
@@ -492,7 +486,7 @@
   if (M.sample) $('loginFine').textContent = 'Preview: the real member list isn\'t connected yet. Use DEMO-0001 to look around.';
   const remembered = store.get('lemsic-advent-last-id');
   if (remembered) $('lemsicId').value = remembered;
-  preloadDoor();
+  const doorReady = preloadDoor();
   login.showModal();
 
   $('loginForm').addEventListener('submit', async (e) => {
@@ -519,44 +513,66 @@
 
   async function goInside() {
     sprite.src = 'assets/cabin/fire-sprite.jpg';
-    const outside = $('outside'), inside = $('inside'), veil = $('veil');
-    if (!reduceMotion) {
-      await wait(250);
-      await playDoor();
-      await wait(150);
-      const d = DOOR.doorway;
-      const cx = (d[0][0] + d[1][0]) / 2, cy = (d[0][1] + d[2][1]) / 2 + 0.05;
-      outside.style.transformOrigin = `${cx * 100}% ${cy * 100}%`;
-      outside.classList.add('zoom');
-      outside.style.transform = 'scale(3.4)';
-      await wait(900);
-      veil.style.opacity = '1';
-      await wait(650);
+    const outside = $('outside'), inside = $('inside');
+    // have the room's images ready before we walk in, so nothing flashes or stutters
+    const roomReady = Promise.all(['imgBase', 'imgLeft', 'imgRight'].map((id) => $(id).decode().catch(() => {})));
+    renderTree();
+    if (reduceMotion) {
+      outside.hidden = true;
+      inside.hidden = false;
+      return arrived();
     }
-    outside.hidden = true;
+    await Promise.race([doorReady, wait(2500)]);
+    await wait(200);
+    await playDoor();
+    await Promise.race([roomReady, wait(2500)]);
+    // walk through the doorway: the outside pushes in while the room comes into view
+    const d = DOOR.doorway;
+    const cx = (d[0][0] + d[1][0]) / 2, cy = (d[0][1] + d[2][1]) / 2;
+    outside.style.transformOrigin = `${cx * 100}% ${cy * 100}%`;
+    const push = outside.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(2.8)' }],
+      { duration: 1900, easing: 'cubic-bezier(.42, 0, .3, 1)', fill: 'forwards' });
+    await wait(650);
+    inside.style.opacity = '0';
     inside.hidden = false;
     scene = 'inside';
-    renderTree();
+    const enter = inside.animate(
+      [{ opacity: 0, transform: 'scale(1.16)', filter: 'blur(5px)' },
+       { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }],
+      { duration: 1500, easing: 'cubic-bezier(.25, .6, .25, 1)', fill: 'forwards' });
+    await enter.finished;
+    inside.style.opacity = '';
+    enter.cancel();
+    push.cancel();
+    outside.hidden = true;
+    arrived();
+  }
+
+  function arrived() {
+    scene = 'inside';
     $('switchBtn').hidden = false;
     $('progress').hidden = false;
     scrollTo(0.5);
-    veil.style.transition = 'opacity 1.1s ease';
-    veil.style.opacity = '0';
   }
 
-  $('switchBtn').addEventListener('click', () => {
-    const outside = $('outside');
-    $('inside').hidden = true;
-    outside.hidden = false;
-    outside.classList.remove('zoom');
-    outside.style.transform = '';
+  $('switchBtn').addEventListener('click', async () => {
+    const outside = $('outside'), inside = $('inside');
+    if (panel.open) panel.close();
     dctx.clearRect(0, 0, doorAnim.width, doorAnim.height);
+    outside.hidden = false;
+    if (!reduceMotion) {
+      outside.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, easing: 'ease' });
+      await inside.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, easing: 'ease' }).finished;
+    }
+    inside.hidden = true;
     scene = 'outside';
     member = null;
     $('switchBtn').hidden = true;
     $('progress').hidden = true;
     $('status').textContent = '1–24 December';
     $('lemsicId').value = '';
+    scrollTo(0.5);
     login.showModal();
   });
 

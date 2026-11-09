@@ -31,6 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import lemsic_tree as T  # noqa: E402
 import cabin_props as P  # noqa: E402
+import fares as FARES  # noqa: E402
 from lemsic_tree import (box, link, mesh_object, needles, new_material, principled,  # noqa: E402
                          simple_material, tubes, icosphere_template, spheres, tri_mesh_object)
 
@@ -39,6 +40,7 @@ OUT_DIR = os.path.join(ROOT, "site", "assets", "cabin")
 BUILD_DIR = os.path.join(ROOT, "build")
 EMBLEM = os.path.join(HERE, "textures", "lemsic-emblem.png")
 TREE_STYLE = "cedar_lemsic"          # see lemsic_tree.STYLES
+FARES_AT = (1.80, -0.42, 0.0)
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
@@ -779,6 +781,10 @@ def main():
     spots = T.build_tree()
     build_room()
     build_fireplace()
+    mascot = FARES.build_fares()           # Fares, sitting by the tree with his LeMSIC tumbler
+    mascot.location = FARES_AT
+    mascot.rotation_euler = (0, 0, math.radians(-34))
+    mascot.scale = (1.2, 1.2, 1.2)
     setup(scene)
     scene_info(scene, spots)
     print(f"scene built in {time.time() - t0:.0f}s")

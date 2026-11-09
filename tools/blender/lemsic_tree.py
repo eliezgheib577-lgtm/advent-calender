@@ -1062,9 +1062,9 @@ def topper():
         tex = nt.nodes.new("ShaderNodeTexImage")
         tex.image = bpy.data.images.load(EMBLEM, check_existing=True)
         tex.extension = "EXTEND"
-        b = principled(nt, (0.1, 0.2, 0.5), rough=0.3, emit=(1, 1, 1), emit_strength=0.0)
-        b.inputs["Coat Weight"].default_value = 1.0
-        em = nt.nodes.new("ShaderNodeMath"); em.operation = "MULTIPLY"; em.inputs[1].default_value = 0.3
+        b = principled(nt, (0.1, 0.2, 0.5), rough=0.45, emit=(1, 1, 1), emit_strength=0.0)
+        b.inputs["Coat Weight"].default_value = 0.15             # satin, so lights don't wash it out
+        em = nt.nodes.new("ShaderNodeMath"); em.operation = "MULTIPLY"; em.inputs[1].default_value = 0.0
         L = nt.links.new
         L(tc.outputs["Object"], sep.inputs[0])
         L(sep.outputs["X"], u.inputs[0]); L(sep.outputs["Z"], v.inputs[0])
@@ -1086,13 +1086,13 @@ def topper():
         tor.rotation_euler = (math.radians(90), 0, face_camera_angle((0, 0, STAR_Z)))
         tor.data.materials.append(rim)
         bpy.ops.object.shade_smooth()
-        glow_col = (0.85, 0.9, 1.0)
+        glow_col = (1.0, 0.85, 0.65)
     glow = bpy.data.lights.new("StarGlow", "POINT")
-    glow.energy = 25
+    glow.energy = 6 if kind == "emblem" else 25
     glow.color = glow_col
     glow.shadow_soft_size = 0.05
     gl = link(bpy.data.objects.new("StarGlow", glow))
-    gl.location = (0, -0.25, STAR_Z - 0.05)
+    gl.location = (0, -0.25, STAR_Z - (0.3 if kind == "emblem" else 0.05))
     return {"day": 24, "center": [0, 0, STAR_Z], "radius": 0.23}
 
 
