@@ -81,7 +81,7 @@ def rounded_box_template(cuts=5):
     v = np.array([vx.co[:] for vx in ob.data.vertices])
     q = np.array([p.vertices[:] for p in ob.data.polygons])
     bpy.data.objects.remove(ob, do_unlink=True)
-    inner = 0.5
+    inner = 0.38
     c = np.clip(v, -inner, inner)
     d = v - c
     d /= np.linalg.norm(d, axis=1, keepdims=True) + 1e-9
@@ -146,7 +146,7 @@ def stone_mesh(name, stones, rnd, mat, soot_center=None, soot_radius=0.5):
         lump = np.zeros(len(p))
         for _ in range(5):
             f = rnd.normal(0, 2.4, 3)
-            lump += np.sin(p @ f + rnd.uniform(0, 6.3)) * rnd.uniform(0.015, 0.05)
+            lump += np.sin(p @ f + rnd.uniform(0, 6.3)) * rnd.uniform(0.02, 0.07)
         p *= (1 + lump)[:, None]
         p[:, 2] *= np.where(p[:, 2] > 0, 1.0, 0.6)          # flatter at the back
         p = (p * hs) @ rot_xyz(ang).T @ basis.T + center
@@ -290,19 +290,42 @@ def log_side_material(name, along="X"):
     stretch = (0.35, 9, 9) if along == "X" else (9, 0.35, 9)
     mp.inputs["Scale"].default_value = stretch
     grain = node(nt, "ShaderNodeTexNoise", Scale=3.0, Detail=12.0, Roughness=0.65, Distortion=1.2)
+    # checking: a few long, thin splits running along the grain
     mp2 = nt.nodes.new("ShaderNodeMapping")
-    mp2.inputs["Scale"].default_value = (0.6, 3.2, 3.2) if along == "X" else (3.2, 0.6, 3.2)
-    cracks = nt.nodes.new("ShaderNodeTexVoronoi")
-    cracks.feature = "DISTANCE_TO_EDGE"
-    cracks.inputs["Scale"].default_value = 2.2
-    crack_line = node(nt, "ShaderNodeMapRange")
-    crack_line.inputs["From Min"].default_value = 0.0
-    crack_line.inputs["From Max"].default_value = 0.025
+    mp2.inputs["Scale"].default_value = (0.22, 20, 20) if along == "X" else (20, 0.22, 20)
+    split = node(nt, "ShaderNodeTexNoise", Scale=1.0, Detail=2.0)
+    off = node(nt, "ShaderNodeMath")
+    off.operation = "SUBTRACT"
+    off.inputs[1].default_value = 0.5
+    dist = node(nt, "ShaderNodeMath")
+    dist.operation = "ABSOLUTE"
+    line = node(nt, "ShaderNodeMapRange")
+    line.inputs["From Min"].default_value = 0.0
+    line.inputs["From Max"].default_value = 0.01
+    line.inputs["To Min"].default_value = 1.0
+    line.inputs["To Max"].default_value = 0.0
+    sparse = node(nt, "ShaderNodeTexNoise", Scale=1.3, Detail=1.0)
+    sparse_m = node(nt, "ShaderNodeMapRange")
+    sparse_m.inputs["From Min"].default_value = 0.56
+    sparse_m.inputs["From Max"].default_value = 0.64
+    crack_line = node(nt, "ShaderNodeMath")
+    crack_line.operation = "MULTIPLY"
+    L(mp2.outputs[0], split.inputs["Vector"])
+    L(split.outputs["Fac"], off.inputs[0])
+    L(off.outputs[0], dist.inputs[0])
+    L(dist.outputs[0], line.inputs["Value"])
+    L(sparse.outputs["Fac"], sparse_m.inputs["Value"])
+    L(line.outputs[0], crack_line.inputs[0])
+    L(sparse_m.outputs[0], crack_line.inputs[1])
+    wood = node(nt, "ShaderNodeMath")                      # 1 on sound wood, 0 in a split
+    wood.operation = "SUBTRACT"
+    wood.inputs[0].default_value = 1.0
+    L(crack_line.outputs[0], wood.inputs[1])
     knots = nt.nodes.new("ShaderNodeTexVoronoi")
-    knots.inputs["Scale"].default_value = 1.6
+    knots.inputs["Scale"].default_value = 1.1
     knot_mask = node(nt, "ShaderNodeMapRange")
-    knot_mask.inputs["From Min"].default_value = 0.06
-    knot_mask.inputs["From Max"].default_value = 0.03
+    knot_mask.inputs["From Min"].default_value = 0.045
+    knot_mask.inputs["From Max"].default_value = 0.02
     tone = attr_node(nt, "ltone")
     tone_ramp = nt.nodes.new("ShaderNodeValToRGB")
     tone_ramp.color_ramp.elements[0].color = (0.20, 0.095, 0.035, 1)
@@ -323,21 +346,20 @@ def log_side_material(name, along="X"):
     b.inputs["Coat Weight"].default_value = 0.12
     L(tc.outputs["Object"], mp.inputs["Vector"])
     L(tc.outputs["Object"], mp2.inputs["Vector"])
+    L(tc.outputs["Object"], sparse.inputs["Vector"])
     L(tc.outputs["Object"], knots.inputs["Vector"])
     L(mp.outputs[0], grain.inputs["Vector"])
-    L(mp2.outputs[0], cracks.inputs["Vector"])
-    L(cracks.outputs["Distance"], crack_line.inputs["Value"])
     L(knots.outputs["Distance"], knot_mask.inputs["Value"])
     L(tone.outputs["Fac"], tone_ramp.inputs["Fac"])
     L(tone_ramp.outputs["Color"], grain_mix.inputs["A"])
     L(grain.outputs["Color"], grain_mix.inputs["B"])
     L(knot_mask.outputs[0], knot_mix.inputs["Factor"])
     L(grain_mix.outputs["Result"], knot_mix.inputs["A"])
-    L(crack_line.outputs[0], crack_mix.inputs["Factor"])
+    L(wood.outputs[0], crack_mix.inputs["Factor"])
     L(knot_mix.outputs["Result"], crack_mix.inputs["B"])
     L(crack_mix.outputs["Result"], b.inputs["Base Color"])
     L(grain.outputs["Fac"], height.inputs[0])
-    L(crack_line.outputs[0], height.inputs[2])
+    L(wood.outputs[0], height.inputs[2])
     L(height.outputs[0], bump.inputs["Height"])
     L(bump.outputs["Normal"], b.inputs["Normal"])
     L(grain.outputs["Fac"], rough.inputs["Value"])
@@ -604,7 +626,7 @@ def knit_material(name, color):
 
 
 # ---------------------------------------------------------------- burning logs
-def charred_log_material(name="CharredLog", glow=4.0):
+def charred_log_material(name="CharredLog", glow=2.2):
     """Charred wood broken into alligator cracks that glow orange, most on the underside."""
     m, nt, out = new_material(name)
     L = nt.links.new
