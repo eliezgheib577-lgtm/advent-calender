@@ -2,7 +2,9 @@
 
 The tree is a real-looking evergreen grown in the silhouette of the cedar in the
 LeMSIC emblem: nine flat tiers, alternately reaching further left and right.
-Days 1-23 are numbered baubles hanging from the tiers; day 24 is the star on top.
+The ornaments trace the serpent of the LeMSIC emblem: a pearl serpent winds
+down across the trunk (the staff) and days 1-23 hang along it from head to
+tail; day 24 is the star on top.
 
 Run with Blender:          blender -b -P tools/blender/lemsic_tree.py -- [--preview]
 or with the bpy module:    python tools/blender/lemsic_tree.py [--preview]
@@ -48,7 +50,6 @@ rng = np.random.default_rng(1964)
 N_TIERS = 9
 TIER_Z = np.linspace(2.84, 0.64, N_TIERS)
 TIER_R = np.array([0.30, 0.42, 0.55, 0.67, 0.79, 0.91, 1.02, 1.13, 1.24])
-PER_TIER = [0, 1, 2, 2, 3, 3, 4, 4, 4]           # ornaments per tier, 23 in all
 TRUNK_BOTTOM, TRUNK_TOP = 0.20, 3.00
 STAR_Z = 3.17
 BAUBLE_R = 0.072
@@ -501,6 +502,28 @@ def present(loc, size, rot, paper, ribbon):
         bpy.ops.object.shade_smooth()
 
 
+EMBLEM = os.path.join(HERE, "textures", "lemsic-emblem.png")
+
+
+def emblem_paper():
+    """Wrapping paper printed with the LeMSIC emblem (white on LeMSIC blue)."""
+    m, nt, out = new_material("PaperLeMSIC")
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (9, 9, 9)
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(EMBLEM, check_existing=True)
+    tex.projection = "BOX"
+    tex.projection_blend = 0.2
+    b = principled(nt, (0.05, 0.12, 0.35), rough=0.4)
+    b.inputs["Coat Weight"].default_value = 0.3
+    nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+    nt.links.new(mp.outputs[0], tex.inputs["Vector"])
+    nt.links.new(tex.outputs["Color"], b.inputs["Base Color"])
+    nt.links.new(b.outputs[0], out.inputs["Surface"])
+    return m
+
+
 def stand_and_presents():
     crate = wood_material("Crate", (0.20, 0.10, 0.045), (0.36, 0.20, 0.09), scale=(3, 30, 3))
     for k in range(3):     # stacked planks
@@ -509,7 +532,7 @@ def stand_and_presents():
     papers = [simple_material("PaperRed", (0.20, 0.003, 0.007), rough=0.55),
               simple_material("PaperGreen", (0.01, 0.08, 0.03), rough=0.4, coat=0.3),
               simple_material("PaperCream", (0.55, 0.47, 0.34), rough=0.5),
-              simple_material("PaperBlue", (0.02, 0.06, 0.2), rough=0.4, coat=0.3)]   # LeMSIC blue
+              emblem_paper()]                                                     # LeMSIC paper
     gold = simple_material("RibbonGold", (0.9, 0.6, 0.2), rough=0.25, metal=1.0)
     red = simple_material("RibbonRed", (0.5, 0.01, 0.02), rough=0.35, coat=0.6)
     present((-0.62, -0.30, 0), (0.34, 0.30, 0.26), 0.25, papers[0], gold)
@@ -534,37 +557,130 @@ BAUBLE_STYLES = [
 ]
 
 
-def day_order(n):
-    r = random.Random(1964)          # same mixed order as the flat design
-    days = list(range(1, n + 1))
-    r.shuffle(days)
-    return days
-
-
 def face_camera_angle(pos):
     v = Vector(CAMERA) - Vector(pos)
     return math.atan2(v.x, -v.y)
+
+
+# ---------------------------------------------------------------- the serpent
+SERPENT_SWEEPS = 7
+SERPENT_TOP, SERPENT_BOTTOM = 2.62, 0.86
+SERPENT_SPAN = math.radians(66)
+
+
+def surface_radius(z, theta):
+    """Outer radius of the foliage at height z (between tiers it follows the cone)."""
+    r = np.interp(z, TIER_Z[::-1], TIER_R[::-1])
+    i = int(np.argmin(np.abs(TIER_Z - z)))
+    return r * lopsided(theta, i)
+
+
+def serpent_path():
+    """The LeMSIC serpent winding down the front of the tree, head (top) to tail (bottom).
+
+    Like the emblem, it sweeps across the staff (the trunk) from side to side,
+    each sweep slanting down and turning in a rounded loop at the side.
+    """
+    front = -math.pi / 2
+    dz = (SERPENT_TOP - SERPENT_BOTTOM) / SERPENT_SWEEPS
+    pts = []
+    for k in range(SERPENT_SWEEPS):
+        d = 1 if k % 2 == 0 else -1                 # first sweep runs left to right
+        z0 = SERPENT_TOP - k * dz
+        for t in np.linspace(0, 1, 90, endpoint=False):
+            phi = d * SERPENT_SPAN * (2 * t - 1)
+            pts.append((front + phi, z0 - 0.62 * dz * t))
+        if k < SERPENT_SWEEPS - 1:                  # rounded turn at the side
+            for t in np.linspace(0, 1, 24, endpoint=False):
+                phi = d * (SERPENT_SPAN + math.radians(9) * math.sin(math.pi * t))
+                pts.append((front + phi, z0 - 0.62 * dz - 0.38 * dz * t))
+    out = []
+    for th, z in pts:
+        r = surface_radius(z, th) * 0.98 + 0.035
+        out.append((r * math.cos(th), r * math.sin(th), z))
+    side = np.array([abs(th - front) for th, z in pts])
+    return np.array(out), side
+
+
+def serpent_body(path):
+    """A pearl serpent: a string of pearls tapering to the tail, with a head at the top."""
+    seg = np.linalg.norm(np.diff(path, axis=0), axis=1)
+    arc = np.concatenate([[0], np.cumsum(seg)])
+    L = arc[-1]
+    centers, radii = [], []
+    s_at = 0.05
+    while s_at < L:
+        f = s_at / L
+        r = 0.016 - 0.011 * f ** 0.8
+        centers.append([np.interp(s_at, arc, path[:, k]) for k in range(3)])
+        radii.append(r)
+        s_at += r * 1.9
+    template = icosphere_template(2)
+    v, tris = template
+    centers, radii = np.array(centers), np.array(radii)
+    verts = (centers[:, None, :] + v[None] * radii[:, None, None]).reshape(-1, 3)
+    faces = (tris[None] + (np.arange(len(centers)) * len(v))[:, None, None]).reshape(-1, 3)
+    pearl = simple_material("SerpentPearl", (0.66, 0.63, 0.56), rough=0.2, coat=1.0)
+    pearl.node_tree.nodes["Principled BSDF"].inputs["Sheen Weight"].default_value = 0.4
+    tri_mesh_object("Serpent", verts, faces, mat=pearl)
+
+    # the head: a glazed white snake head with dark eyes and a red tongue, looking out to the left
+    head_pos = path[0]
+    out_dir = path[0] - path[6]
+    out_dir[2] = 0.0
+    out_dir = out_dir / np.linalg.norm(out_dir)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=40, ring_count=20, radius=1.0)
+    head = bpy.context.active_object
+    hv = np.array([vx.co[:] for vx in head.data.vertices])
+    taper = 1 - 0.42 * np.clip(hv[:, 0], 0, 1)
+    hv[:, 0] *= 0.085
+    hv[:, 1] *= 0.050 * taper
+    hv[:, 2] *= 0.036 * taper * (1 + 0.15 * (hv[:, 2] > 0))
+    for vx, co in zip(head.data.vertices, hv):
+        vx.co = co
+    head.data.update()
+    bpy.ops.object.shade_smooth()
+    head.data.materials.append(pearl)
+    head.rotation_euler = Vector((out_dir[0], out_dir[1], 0.25)).to_track_quat("X", "Z").to_euler()
+    head.location = Vector(head_pos) + Vector(out_dir.tolist()) * 0.06 + Vector((0, 0, 0.014))
+    head.name = "SerpentHead"
+    eye = simple_material("SerpentEye", (0.01, 0.01, 0.012), rough=0.05, coat=1.0)
+    tongue = simple_material("SerpentTongue", (0.35, 0.01, 0.02), rough=0.4)
+    for side in (-1, 1):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=0.0085,
+                                             location=(0.036, side * 0.033, 0.016))
+        e = bpy.context.active_object
+        e.data.materials.append(eye)
+        e.parent = head
+    for side in (-1, 1):
+        a = Vector((0.08, 0, -0.006))
+        b = Vector((0.118, side * 0.011, -0.008))
+        v2, q2 = tubes([a[:], (0.097, 0, -0.007)], [(0.097, 0, -0.007), b[:]], [0.0022, 0.0019], [0.0019, 0.0013], sides=6)
+        t = mesh_object("Tongue", v2, q2, mat=tongue, smooth=True)
+        t.parent = head
+    return head
 
 
 def ornaments():
     gold = simple_material("CapGold", (0.9, 0.62, 0.22), rough=0.2, metal=1.0)
     thread = simple_material("Thread", (0.9, 0.7, 0.3), rough=0.4, metal=0.6)
     spots = []
-    slots = []
-    for i, count in enumerate(PER_TIER):
-        if not count:
-            continue
-        span = math.radians(58 if count > 1 else 0)
-        phis = np.linspace(-span, span, count) if count > 1 else np.array([math.radians(-12)])
-        for phi in phis:
-            phi += rng.uniform(-0.06, 0.06)
-            slots.append((i, -math.pi / 2 + phi))
-    days = day_order(len(slots))
-    for n, ((i, th), day) in enumerate(zip(slots, days)):
-        attach = tier_surface(i, th, rng.uniform(0.92, 0.97))
-        attach[2] -= 0.03
-        drop = rng.uniform(0.006, 0.016)
-        center = attach - np.array([0, 0, drop + 0.02 + BAUBLE_R])
+    path, side = serpent_path()
+    serpent_body(path)
+    seg = np.linalg.norm(np.diff(path, axis=0), axis=1)
+    arc = np.concatenate([[0], np.cumsum(seg)])
+    # days 1-23 follow the serpent from its head (top) to its tail (bottom),
+    # on the parts of each sweep that face the room (not in the turns at the sides)
+    facing = (side < SERPENT_SPAN * 0.80) & (arc > 0.12) & (arc < arc[-1] - 0.12)
+    seg_facing = np.concatenate([[0], np.where(facing[1:] & facing[:-1], seg, 0)])
+    usable = np.cumsum(seg_facing)
+    targets = (np.arange(23) + 0.5) / 23 * usable[-1]
+    for n, u in enumerate(targets):
+        s_at = np.interp(u, usable, arc)
+        day = n + 1
+        attach = np.array([np.interp(s_at, arc, path[:, k]) for k in range(3)])
+        attach[2] -= 0.008
+        center = attach - np.array([0, 0, 0.018 + 0.02 + BAUBLE_R])
         base_kw, dec_kw = BAUBLE_STYLES[n % len(BAUBLE_STYLES)]
         mat = decal_material(f"Bauble{day}", base_kw, dec_kw,
                              os.path.join(DECALS, f"num-{day:02d}.png"), BAUBLE_R * 0.78)

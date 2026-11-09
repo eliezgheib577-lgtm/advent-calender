@@ -30,12 +30,14 @@ from mathutils import Matrix, Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import lemsic_tree as T  # noqa: E402
+import cabin_props as P  # noqa: E402
 from lemsic_tree import (box, link, mesh_object, needles, new_material, principled,  # noqa: E402
                          simple_material, tubes, icosphere_template, spheres, tri_mesh_object)
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT_DIR = os.path.join(ROOT, "site", "assets", "cabin")
 BUILD_DIR = os.path.join(ROOT, "build")
+EMBLEM = os.path.join(HERE, "textures", "lemsic-emblem.png")
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
@@ -65,7 +67,7 @@ OPEN_W, OPEN_H, OPEN_D = 0.96, 0.74, 0.55        # firebox opening
 HEARTH_H = 0.16
 SURROUND_W, MANTEL_Z = 1.80, 1.30
 
-WINDOW_X = (2.05, 3.25)
+WINDOW_X = (2.35, 3.55)
 WINDOW_Z = (0.95, 2.45)
 
 
@@ -122,119 +124,6 @@ def node(nt, kind, **inputs):
 
 
 # ---------------------------------------------------------------- materials
-def stone_material():
-    m, nt, out = new_material("Stone")
-    L = nt.links.new
-    tc = nt.nodes.new("ShaderNodeTexCoord")
-    mp = node(nt, "ShaderNodeMapping")
-    mp.inputs["Scale"].default_value = (1.0, 1.0, 1.35)
-    edge = nt.nodes.new("ShaderNodeTexVoronoi")
-    edge.feature = "DISTANCE_TO_EDGE"
-    edge.inputs["Scale"].default_value = 7.0
-    cell = nt.nodes.new("ShaderNodeTexVoronoi")
-    cell.inputs["Scale"].default_value = 7.0
-    mortar = node(nt, "ShaderNodeMapRange")
-    mortar.inputs["From Min"].default_value = 0.0
-    mortar.inputs["From Max"].default_value = 0.05
-    stone_ramp = nt.nodes.new("ShaderNodeValToRGB")
-    stone_ramp.color_ramp.elements[0].color = (0.13, 0.115, 0.10, 1)
-    stone_ramp.color_ramp.elements[1].color = (0.36, 0.32, 0.27, 1)
-    grain = node(nt, "ShaderNodeTexNoise", Scale=28.0, Detail=8.0)
-    mix_grain = nt.nodes.new("ShaderNodeMix")
-    mix_grain.data_type = "RGBA"
-    mix_grain.blend_type = "MULTIPLY"
-    mix_grain.inputs["Factor"].default_value = 0.35
-    mix_mortar = nt.nodes.new("ShaderNodeMix")
-    mix_mortar.data_type = "RGBA"
-    mix_mortar.inputs["A"].default_value = (0.20, 0.19, 0.17, 1)
-    height = node(nt, "ShaderNodeMath")
-    height.operation = "MULTIPLY_ADD"
-    height.inputs[1].default_value = 0.15
-    bump = node(nt, "ShaderNodeBump", Strength=0.75, Distance=0.04)
-    b = principled(nt, (0.3, 0.28, 0.25), rough=0.88)
-    L(tc.outputs["Object"], mp.inputs["Vector"])
-    L(mp.outputs[0], edge.inputs["Vector"])
-    L(mp.outputs[0], cell.inputs["Vector"])
-    L(mp.outputs[0], grain.inputs["Vector"])
-    L(edge.outputs["Distance"], mortar.inputs["Value"])
-    L(cell.outputs["Color"], stone_ramp.inputs["Fac"])
-    L(stone_ramp.outputs["Color"], mix_grain.inputs["A"])
-    L(grain.outputs["Color"], mix_grain.inputs["B"])
-    L(mortar.outputs[0], mix_mortar.inputs["Factor"])
-    L(mix_grain.outputs["Result"], mix_mortar.inputs["B"])
-    L(mix_mortar.outputs["Result"], b.inputs["Base Color"])
-    L(grain.outputs["Fac"], height.inputs[0])
-    L(mortar.outputs[0], height.inputs[2])
-    L(height.outputs[0], bump.inputs["Height"])
-    L(bump.outputs["Normal"], b.inputs["Normal"])
-    L(b.outputs[0], out.inputs["Surface"])
-    return m
-
-
-def log_material(name, light, dark, stretch_axis="X"):
-    m, nt, out = new_material(name)
-    L = nt.links.new
-    tc = nt.nodes.new("ShaderNodeTexCoord")
-    mp = nt.nodes.new("ShaderNodeMapping")
-    mp.inputs["Scale"].default_value = (0.5, 14, 14) if stretch_axis == "X" else (14, 0.5, 14)
-    noise = node(nt, "ShaderNodeTexNoise", Scale=2.5, Detail=12.0, Roughness=0.62, Distortion=0.6)
-    ramp = nt.nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].color = (*dark, 1)
-    ramp.color_ramp.elements[1].color = (*light, 1)
-    bump = node(nt, "ShaderNodeBump", Strength=0.35)
-    b = principled(nt, light, rough=0.55)
-    b.inputs["Coat Weight"].default_value = 0.15
-    L(tc.outputs["Object"], mp.inputs["Vector"])
-    L(mp.outputs[0], noise.inputs["Vector"])
-    L(noise.outputs["Fac"], ramp.inputs["Fac"])
-    L(noise.outputs["Fac"], bump.inputs["Height"])
-    L(ramp.outputs["Color"], b.inputs["Base Color"])
-    L(bump.outputs["Normal"], b.inputs["Normal"])
-    L(b.outputs[0], out.inputs["Surface"])
-    return m
-
-
-def floor_material():
-    m, nt, out = new_material("Floor")
-    L = nt.links.new
-    tc = nt.nodes.new("ShaderNodeTexCoord")
-    brick = nt.nodes.new("ShaderNodeTexBrick")
-    brick.offset = 0.37
-    brick.inputs["Color1"].default_value = (0.20, 0.095, 0.04, 1)
-    brick.inputs["Color2"].default_value = (0.13, 0.06, 0.025, 1)
-    brick.inputs["Mortar"].default_value = (0.02, 0.01, 0.005, 1)
-    brick.inputs["Scale"].default_value = 1.0
-    brick.inputs["Mortar Size"].default_value = 0.004
-    brick.inputs["Brick Width"].default_value = 2.1
-    brick.inputs["Row Height"].default_value = 0.19
-    brick.inputs["Bias"].default_value = 0.2
-    mp = nt.nodes.new("ShaderNodeMapping")
-    mp.inputs["Scale"].default_value = (0.4, 12, 1)
-    grain = node(nt, "ShaderNodeTexNoise", Scale=3.0, Detail=10.0, Distortion=0.4)
-    mix = nt.nodes.new("ShaderNodeMix")
-    mix.data_type = "RGBA"
-    mix.blend_type = "MULTIPLY"
-    mix.inputs["Factor"].default_value = 0.55
-    b = principled(nt, (0.2, 0.1, 0.05), rough=0.42)
-    b.inputs["Coat Weight"].default_value = 0.35
-    b.inputs["Coat Roughness"].default_value = 0.25
-    bump = node(nt, "ShaderNodeBump", Strength=0.3)
-    inv = node(nt, "ShaderNodeMath")
-    inv.operation = "SUBTRACT"
-    inv.inputs[0].default_value = 1.0
-    L(tc.outputs["Object"], brick.inputs["Vector"])
-    L(tc.outputs["Object"], mp.inputs["Vector"])
-    L(mp.outputs[0], grain.inputs["Vector"])
-    L(brick.outputs["Color"], mix.inputs["A"])
-    L(grain.outputs["Color"], mix.inputs["B"])
-    L(mix.outputs["Result"], b.inputs["Base Color"])
-    L(brick.outputs["Fac"], inv.inputs[1])
-    L(inv.outputs[0], bump.inputs["Height"])
-    L(bump.outputs["Normal"], b.inputs["Normal"])
-    L(b.outputs[0], out.inputs["Surface"])
-    return m
-
-
 def ember_material(name, base, glow_scale, strength, threshold=0.52):
     """Charred wood / coals with glowing cracks."""
     m, nt, out = new_material(name)
@@ -256,205 +145,241 @@ def ember_material(name, base, glow_scale, strength, threshold=0.52):
     return m
 
 
-def plaid_material():
-    m, nt, out = new_material("Rug")
+def chinking_material():
+    m, nt, out = new_material("Chinking")
     L = nt.links.new
     tc = nt.nodes.new("ShaderNodeTexCoord")
-    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
-
-    def stripes(axis_out, period, width):
-        mod = node(nt, "ShaderNodeMath")
-        mod.operation = "PINGPONG"
-        mod.inputs[1].default_value = period
-        thr = node(nt, "ShaderNodeMath")
-        thr.operation = "LESS_THAN"
-        thr.inputs[1].default_value = width
-        L(axis_out, mod.inputs[0])
-        L(mod.outputs[0], thr.inputs[0])
-        return thr
-
-    sx, sy = stripes(sep.outputs["X"], 0.16, 0.05), stripes(sep.outputs["Y"], 0.16, 0.05)
-    fx, fy = stripes(sep.outputs["X"], 0.16, 0.008), stripes(sep.outputs["Y"], 0.16, 0.008)
-    both = node(nt, "ShaderNodeMath")
-    both.operation = "ADD"
-    fine = node(nt, "ShaderNodeMath")
-    fine.operation = "MAXIMUM"
-    c1 = nt.nodes.new("ShaderNodeMix")
-    c1.data_type = "RGBA"
-    c1.inputs["A"].default_value = (0.22, 0.008, 0.012, 1)        # red
-    c1.inputs["B"].default_value = (0.02, 0.055, 0.025, 1)        # green
-    mixf = node(nt, "ShaderNodeMath")
-    mixf.operation = "MULTIPLY"
-    mixf.inputs[1].default_value = 0.5
-    c2 = nt.nodes.new("ShaderNodeMix")
-    c2.data_type = "RGBA"
-    c2.inputs["B"].default_value = (0.5, 0.42, 0.25, 1)           # cream lines
-    b = principled(nt, (0.2, 0.02, 0.02), rough=0.97)
-    b.inputs["Sheen Weight"].default_value = 0.6
-    L(tc.outputs["Object"], sep.inputs[0])
-    L(sx.outputs[0], both.inputs[0])
-    L(sy.outputs[0], both.inputs[1])
-    L(both.outputs[0], mixf.inputs[0])
-    L(mixf.outputs[0], c1.inputs["Factor"])
-    L(fx.outputs[0], fine.inputs[0])
-    L(fy.outputs[0], fine.inputs[1])
-    L(fine.outputs[0], c2.inputs["Factor"])
-    L(c1.outputs["Result"], c2.inputs["A"])
-    L(c2.outputs["Result"], b.inputs["Base Color"])
-    L(b.outputs[0], out.inputs["Surface"])
-    return m
-
-
-def knit_material(name, color):
-    m, nt, out = new_material(name)
-    L = nt.links.new
-    tc = nt.nodes.new("ShaderNodeTexCoord")
-    wave = nt.nodes.new("ShaderNodeTexWave")
-    wave.inputs["Scale"].default_value = 60
-    wave.bands_direction = "Z"
-    bump = node(nt, "ShaderNodeBump", Strength=0.5)
-    b = principled(nt, color, rough=0.95)
-    b.inputs["Sheen Weight"].default_value = 0.8
-    L(tc.outputs["Object"], wave.inputs["Vector"])
-    L(wave.outputs["Fac"], bump.inputs["Height"])
+    n = node(nt, "ShaderNodeTexNoise", Scale=60.0, Detail=10.0)
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = (0.13, 0.12, 0.10, 1)
+    ramp.color_ramp.elements[1].color = (0.24, 0.22, 0.19, 1)
+    bump = node(nt, "ShaderNodeBump", Strength=0.7, Distance=0.006)
+    b = principled(nt, (0.45, 0.42, 0.37), rough=0.97)
+    L(tc.outputs["Object"], n.inputs["Vector"])
+    L(n.outputs["Fac"], ramp.inputs["Fac"])
+    L(n.outputs["Fac"], bump.inputs["Height"])
+    L(ramp.outputs["Color"], b.inputs["Base Color"])
     L(bump.outputs["Normal"], b.inputs["Normal"])
     L(b.outputs[0], out.inputs["Surface"])
     return m
 
 
-# ---------------------------------------------------------------- room
-def log_wall_x(y, x0, x1, z0, z1, mat, gaps=()):
-    """A wall of horizontal logs running along X at depth y (logs centred just behind y)."""
-    A, B, ra, rb = [], [], [], []
-    r = 0.125
-    z = z0 + r
-    while z < z1 + r:
-        spans = [(x0, x1)]
-        for gx0, gx1, gz0, gz1 in gaps:
-            if gz0 - r * 0.6 < z < gz1 + r * 0.6:
-                spans = [(a, b) for a0, b0 in spans for a, b in ((a0, min(b0, gx0)), (max(a0, gx1), b0)) if b - a > 0.05]
-        for a, b in spans:
-            rr = r * rng.uniform(0.92, 1.05)
-            yy = y + rr * 0.85
-            A.append((a, yy, z)); B.append((b, yy, z)); ra.append(rr); rb.append(rr * rng.uniform(0.93, 1.0))
-        z += 2 * r * 0.93
-    v, q = tubes(np.array(A), np.array(B), np.array(ra), np.array(rb), sides=24)
-    return mesh_object("LogWall", v, q, mat=mat, smooth=True)
-
-
-def log_wall_y(x, y0, y1, z0, z1, mat):
-    A, B, ra, rb = [], [], [], []
-    r = 0.125
-    z = z0 + r
-    while z < z1 + r:
-        rr = r * rng.uniform(0.92, 1.05)
-        xx = x - rr * 0.85
-        A.append((xx, y0, z)); B.append((xx, y1, z)); ra.append(rr); rb.append(rr)
-        z += 2 * r * 0.93
-    v, q = tubes(np.array(A), np.array(B), np.array(ra), np.array(rb), sides=24)
-    return mesh_object("LogWallLeft", v, q, mat=mat, smooth=True)
+def window_glass_material():
+    """Clear glass with a little reflection, frosted along the edges of each pane."""
+    m, nt, out = new_material("WindowGlass")
+    L = nt.links.new
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    def math_node(op, a=None, b=None):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = op
+        if a is not None:
+            n.inputs[0].default_value = a
+        if b is not None:
+            n.inputs[1].default_value = b
+        return n
+    ux = math_node("MULTIPLY", b=2.0)
+    vy = math_node("MULTIPLY", b=3.0)
+    fu, fv = math_node("FRACT"), math_node("FRACT")
+    iu, iv = math_node("SUBTRACT", a=1.0), math_node("SUBTRACT", a=1.0)
+    mu, mv = math_node("MINIMUM"), math_node("MINIMUM")
+    edge = math_node("MINIMUM")
+    noise = node(nt, "ShaderNodeTexNoise", Scale=14.0, Detail=8.0)
+    jitter = math_node("MULTIPLY_ADD")
+    jitter.inputs[1].default_value = 0.14
+    jitter.inputs[2].default_value = -0.07
+    add = math_node("ADD")
+    frost = node(nt, "ShaderNodeMapRange")
+    frost.inputs["From Min"].default_value = 0.13
+    frost.inputs["From Max"].default_value = 0.02
+    L(tc.outputs["UV"], sep.inputs[0])
+    L(sep.outputs["X"], ux.inputs[0]); L(sep.outputs["Y"], vy.inputs[0])
+    L(ux.outputs[0], fu.inputs[0]); L(vy.outputs[0], fv.inputs[0])
+    L(fu.outputs[0], iu.inputs[1]); L(fv.outputs[0], iv.inputs[1])
+    L(fu.outputs[0], mu.inputs[0]); L(iu.outputs[0], mu.inputs[1])
+    L(fv.outputs[0], mv.inputs[0]); L(iv.outputs[0], mv.inputs[1])
+    L(mu.outputs[0], edge.inputs[0]); L(mv.outputs[0], edge.inputs[1])
+    L(tc.outputs["Object"], noise.inputs["Vector"])
+    L(noise.outputs["Fac"], jitter.inputs[0])
+    L(edge.outputs[0], add.inputs[0]); L(jitter.outputs[0], add.inputs[1])
+    L(add.outputs[0], frost.inputs["Value"])
+    clear = nt.nodes.new("ShaderNodeBsdfTransparent")
+    gloss = nt.nodes.new("ShaderNodeBsdfGlossy")
+    gloss.inputs["Roughness"].default_value = 0.03
+    fres = node(nt, "ShaderNodeFresnel", IOR=1.5)
+    glass = nt.nodes.new("ShaderNodeMixShader")
+    L(fres.outputs[0], glass.inputs[0]); L(clear.outputs[0], glass.inputs[1]); L(gloss.outputs[0], glass.inputs[2])
+    ice = nt.nodes.new("ShaderNodeBsdfTranslucent")
+    ice.inputs["Color"].default_value = (0.75, 0.82, 0.92, 1)
+    ice_d = nt.nodes.new("ShaderNodeBsdfDiffuse")
+    ice_d.inputs["Color"].default_value = (0.7, 0.75, 0.82, 1)
+    ice_mix = nt.nodes.new("ShaderNodeMixShader")
+    ice_mix.inputs[0].default_value = 0.4
+    L(ice.outputs[0], ice_mix.inputs[1]); L(ice_d.outputs[0], ice_mix.inputs[2])
+    final = nt.nodes.new("ShaderNodeMixShader")
+    L(frost.outputs[0], final.inputs[0]); L(glass.outputs[0], final.inputs[1]); L(ice_mix.outputs[0], final.inputs[2])
+    L(final.outputs[0], out.inputs["Surface"])
+    return m
 
 
 def build_room():
-    logs = log_material("Logs", (0.42, 0.21, 0.08), (0.17, 0.075, 0.025))
-    logs_y = log_material("LogsY", (0.42, 0.21, 0.08), (0.17, 0.075, 0.025), stretch_axis="Y")
-    chink = simple_material("Chinking", (0.42, 0.38, 0.31), rough=0.95)
-    gaps = [(WINDOW_X[0], WINDOW_X[1], WINDOW_Z[0], WINDOW_Z[1])]
-    log_wall_x(BACK_Y, LEFT_X, RIGHT_X, 0, CEILING + 0.3, logs, gaps)
-    log_wall_y(LEFT_X, -8, BACK_Y + 0.3, 0, CEILING + 0.3, logs_y)
-    # chinking behind the logs
-    bpy.ops.mesh.primitive_plane_add(size=1, location=((LEFT_X + RIGHT_X) / 2, BACK_Y + 0.2, CEILING / 2),
+    rnd = np.random.default_rng(31)
+    side_x = P.log_side_material("LogsX", "X")
+    side_y = P.log_side_material("LogsY", "Y")
+    endg = P.end_grain_material()
+    chink = chinking_material()
+    r = 0.13
+    pitch = 2 * r + 0.028                  # leaves a band of chinking between the logs
+    wx0, wx1 = WINDOW_X
+    wz0, wz1 = WINDOW_Z
+    logs = []
+    z = r
+    while z < CEILING + 0.4:
+        spans = [(LEFT_X - 0.3, RIGHT_X)]
+        if wz0 - r * 0.8 < z < wz1 + r * 0.8:
+            spans = [(LEFT_X - 0.3, wx0 - 0.05), (wx1 + 0.05, RIGHT_X)]
+        for a, b in spans:
+            rr = r * rnd.uniform(0.9, 1.07)
+            logs.append(((a, BACK_Y + rr * 0.75, z), (b, BACK_Y + rr * 0.75, z), rr))
+        z += pitch
+    P.logs_mesh("LogWall", logs, rnd, [side_x, endg])
+    logs = []
+    z = r + pitch / 2                      # offset by half a log, as notched corners are
+    while z < CEILING + 0.4:
+        rr = r * rnd.uniform(0.9, 1.07)
+        logs.append(((LEFT_X - rr * 0.75, -8.5, z), (LEFT_X - rr * 0.75, BACK_Y + 0.35, z), rr))
+        z += pitch
+    P.logs_mesh("LogWallLeft", logs, rnd, [side_y, endg])
+
+    # chinking between the logs (recessed), with a hole for the window
+    bpy.ops.mesh.primitive_plane_add(size=1, location=((LEFT_X + RIGHT_X) / 2, BACK_Y + 0.07, CEILING / 2),
                                      rotation=(math.radians(90), 0, 0))
     pl = bpy.context.active_object
-    pl.scale = (RIGHT_X - LEFT_X, CEILING, 1)
+    pl.scale = (RIGHT_X - LEFT_X, CEILING + 0.6, 1)
     pl.data.materials.append(chink)
-    # the chinking needs a hole for the window: cut it with a boolean
-    hole = place_box("WindowHole", (WINDOW_X[1] - WINDOW_X[0], 0.6, WINDOW_Z[1] - WINDOW_Z[0]),
-                     ((WINDOW_X[0] + WINDOW_X[1]) / 2, BACK_Y + 0.2, (WINDOW_Z[0] + WINDOW_Z[1]) / 2),
+    hole = place_box("WindowHole", (wx1 - wx0, 0.6, wz1 - wz0), ((wx0 + wx1) / 2, BACK_Y + 0.07, (wz0 + wz1) / 2),
                      chink, in_fireplace=False)
     boo = pl.modifiers.new("hole", "BOOLEAN")
     boo.object = hole
     boo.operation = "DIFFERENCE"
     hole.hide_render = True
     hole.hide_viewport = True
-    bpy.ops.mesh.primitive_plane_add(size=1, location=(LEFT_X - 0.2, -3, CEILING / 2), rotation=(0, math.radians(90), 0))
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(LEFT_X - 0.07, -3, CEILING / 2), rotation=(0, math.radians(90), 0))
     pl = bpy.context.active_object
-    pl.scale = (CEILING, 12, 1)
+    pl.scale = (CEILING + 0.6, 12, 1)
     pl.data.materials.append(chink)
 
-    # floor
-    bpy.ops.mesh.primitive_plane_add(size=1, location=(0.6, -3.2, 0))
-    fl = bpy.context.active_object
-    fl.scale = (RIGHT_X - LEFT_X + 1, 10, 1)
-    fl.data.materials.append(floor_material())
+    # wide-plank floor
+    P.plank_floor("Floor", rnd, LEFT_X - 0.3, RIGHT_X, -8.5, BACK_Y + 0.25)
 
-    # ceiling planks + beams
-    beam_mat = log_material("Beams", (0.30, 0.15, 0.06), (0.10, 0.045, 0.015), stretch_axis="Y")
-    bpy.ops.mesh.primitive_plane_add(size=1, location=(0.6, -3.2, CEILING + 0.25), rotation=(math.radians(180), 0, 0))
+    # ceiling boards and hewn beams
+    beam_mat = P.log_side_material("Beams", "Y")
+    board_mat = P.log_side_material("CeilingBoards", "X")
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(0.6, -3.2, CEILING + 0.3), rotation=(math.radians(180), 0, 0))
     ce = bpy.context.active_object
-    ce.scale = (RIGHT_X - LEFT_X + 1, 10, 1)
-    ce.data.materials.append(log_material("CeilingBoards", (0.26, 0.13, 0.05), (0.09, 0.04, 0.015)))
+    ce.scale = (RIGHT_X - LEFT_X + 1, 11, 1)
+    ce.data.materials.append(board_mat)
     for x in np.arange(-3.2, RIGHT_X, 1.6):
-        b = box("Beam", (0.24, 10, 0.28), (x, -3.2, CEILING + 0.1), beam_mat)
-        b.modifiers["bevel"].width = 0.02
+        b = box("Beam", (0.26, 11, 0.30), (x, -3.2, CEILING + 0.14), beam_mat)
+        b.modifiers["bevel"].width = 0.03
+        b.modifiers["bevel"].segments = 3
 
-    # window: frame, mullions, sill
-    frame = log_material("WindowFrame", (0.30, 0.15, 0.06), (0.12, 0.055, 0.02))
-    wx0, wx1 = WINDOW_X
-    wz0, wz1 = WINDOW_Z
+    # window: casing over the log ends, sash bars, frosted glass, sill
+    trim = P.log_side_material("WindowTrim", "Z")
     cx, cz = (wx0 + wx1) / 2, (wz0 + wz1) / 2
-    y = BACK_Y + 0.12
-    box("Frame", (wx1 - wx0 + 0.16, 0.18, 0.08), (cx, y, wz1 + 0.04), frame)
-    box("Frame", (wx1 - wx0 + 0.16, 0.18, 0.08), (cx, y, wz0 - 0.04), frame)
-    box("Frame", (0.08, 0.18, wz1 - wz0), (wx0 - 0.04, y, cz), frame)
-    box("Frame", (0.08, 0.18, wz1 - wz0), (wx1 + 0.04, y, cz), frame)
-    box("Mullion", (0.045, 0.06, wz1 - wz0), (cx, y + 0.05, cz), frame)
+    yt = BACK_Y - 0.065
+    box("Casing", (0.13, 0.04, wz1 - wz0 + 0.16), (wx0 - 0.055, yt, cz + 0.02), trim)
+    box("Casing", (0.13, 0.04, wz1 - wz0 + 0.16), (wx1 + 0.055, yt, cz + 0.02), trim)
+    box("Casing", (wx1 - wx0 + 0.36, 0.045, 0.17), (cx, yt, wz1 + 0.1), trim)
+    box("Sill", (wx1 - wx0 + 0.40, 0.26, 0.05), (cx, BACK_Y - 0.06, wz0 - 0.03), trim)
+    box("Apron", (wx1 - wx0 + 0.24, 0.035, 0.12), (cx, yt + 0.005, wz0 - 0.11), trim)
+    for xx in (wx0 + 0.02, wx1 - 0.02):
+        box("Jamb", (0.04, 0.24, wz1 - wz0), (xx, BACK_Y + 0.07, cz), trim)
+    box("Head", (wx1 - wx0, 0.24, 0.04), (cx, BACK_Y + 0.07, wz1 - 0.02), trim)
+    yb = BACK_Y + 0.12
+    box("Bar", (0.04, 0.05, wz1 - wz0), (cx, yb, cz), trim)
     for zz in (wz0 + (wz1 - wz0) / 3, wz0 + 2 * (wz1 - wz0) / 3):
-        box("Mullion", (wx1 - wx0, 0.06, 0.045), (cx, y + 0.05, zz), frame)
-    box("Sill", (wx1 - wx0 + 0.36, 0.30, 0.06), (cx, BACK_Y - 0.02, wz0 - 0.08), frame)
+        box("Bar", (wx1 - wx0, 0.05, 0.04), (cx, yb, zz), trim)
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(cx, yb + 0.03, cz), rotation=(math.radians(90), 0, 0))
+    gl = bpy.context.active_object
+    gl.scale = (wx1 - wx0, wz1 - wz0, 1)
+    gl.data.materials.append(window_glass_material())
+    gl.visible_shadow = False
+
     snow = simple_material("Snow", (0.85, 0.9, 0.97), rough=0.7)
     snow.node_tree.nodes["Principled BSDF"].inputs["Subsurface Weight"].default_value = 0.3
+    box("SillSnow", (wx1 - wx0 + 0.1, 0.25, 0.06), (cx, BACK_Y + 0.42, wz0 - 0.02), snow).modifiers["bevel"].width = 0.025
 
-    # outside: snowy ground, pines, night sky (world)
+    # outside: snowy ground, snow-laden spruces, night sky (world)
     bpy.ops.mesh.primitive_plane_add(size=1, location=(2.6, 25, 0.25))
     g = bpy.context.active_object
     g.scale = (80, 46, 1)
     g.data.materials.append(snow)
-    moon = simple_material("MoonDisc", (0, 0, 0), emit=(0.85, 0.9, 1.0), emit_strength=6.0)
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=1.5, location=(26.5, 60, 6.9))
-    bpy.context.active_object.data.materials.append(moon)
-    bpy.context.active_object.visible_shadow = False
-    pine = simple_material("OutsidePine", (0.01, 0.03, 0.02), rough=0.9)
-    for k in range(26):
-        px, py = rng.uniform(-8, 14), rng.uniform(11, 40)
-        h = rng.uniform(3, 8)
-        for tier in range(4):
-            r = h * 0.28 * (1 - tier * 0.2)
-            bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=r, depth=h * 0.45,
-                                            location=(px, py, h * (0.2 + tier * 0.2)))
-            c = bpy.context.active_object
-            c.data.materials.append(pine)
-            bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=r * 0.7, depth=h * 0.12,
-                                            location=(px, py, h * (0.2 + tier * 0.2) + h * 0.17))
+    pine = simple_material("OutsidePine", (0.008, 0.022, 0.014), rough=0.9)
+    for k in range(34):
+        px, py = rng.uniform(-8, 16), rng.uniform(9, 42)
+        h = rng.uniform(4, 10)
+        tiers = 7
+        for tier in range(tiers):
+            f = tier / tiers
+            r_t = h * 0.30 * (1 - f) + 0.15
+            zc = h * (0.08 + 0.13 * tier)
+            bpy.ops.mesh.primitive_cone_add(vertices=14, radius1=r_t, depth=h * 0.22, location=(px, py, zc))
+            bpy.context.active_object.data.materials.append(pine)
+            bpy.ops.mesh.primitive_cone_add(vertices=14, radius1=r_t * 0.92, depth=h * 0.12,
+                                            location=(px, py, zc + h * 0.06))
             bpy.context.active_object.data.materials.append(snow)
 
-    # rug in front of the tree
-    bpy.ops.mesh.primitive_plane_add(size=1, location=(-0.1, -1.55, 0.006))
-    rug = bpy.context.active_object
-    rug.scale = (3.4, 2.4, 1)
-    rug.data.materials.append(plaid_material())
-    sol = rug.modifiers.new("thick", "SOLIDIFY")
-    sol.thickness = 0.012
-    bev = rug.modifiers.new("bevel", "BEVEL")
-    bev.width = 0.006
+    # braided rug in front of the tree
+    P.braided_rug("Rug", center=(-0.15, -0.75))
+
+    emblem_frame()
+
+
+def emblem_frame():
+    """The LeMSIC emblem, framed, on the log wall beside the tree, lit by a small picture light."""
+    w_img, h_img = 0.46, 0.46 * 378 / 453
+    cx, cz = 1.62, 2.30
+    y = BACK_Y - 0.06
+    walnut = P.log_side_material("FrameWood", "Z")
+    mould = 0.05
+    W, H = w_img + 2 * 0.045 + 2 * mould, h_img + 2 * 0.045 + 2 * mould
+    for (sx, sz, x, z) in ((W, mould, cx, cz + H / 2 - mould / 2), (W, mould, cx, cz - H / 2 + mould / 2),
+                           (mould, H, cx - W / 2 + mould / 2, cz), (mould, H, cx + W / 2 - mould / 2, cz)):
+        b = box("FrameMoulding", (sx, 0.035, sz), (x, y - 0.0175, z), walnut)
+        b.modifiers["bevel"].width = 0.012
+        b.modifiers["bevel"].segments = 3
+    mat_board = simple_material("FrameMat", (0.72, 0.68, 0.6), rough=0.9)
+    box("FrameMatBoard", (W - 2 * mould, 0.01, H - 2 * mould), (cx, y - 0.008, cz), mat_board)
+    img = bpy.data.images.load(EMBLEM, check_existing=True)
+    m, nt, out = new_material("EmblemPrint")
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    b = principled(nt, (0.2, 0.3, 0.5), rough=0.45)
+    b.inputs["Coat Weight"].default_value = 0.5           # behind glass
+    b.inputs["Coat Roughness"].default_value = 0.02
+    nt.links.new(tex.outputs["Color"], b.inputs["Base Color"])
+    nt.links.new(b.outputs[0], out.inputs["Surface"])
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(cx, y - 0.0145, cz), rotation=(math.radians(90), 0, 0))
+    pic = bpy.context.active_object
+    pic.scale = (w_img, h_img, 1)
+    pic.data.materials.append(m)
+    # brass picture light above the frame
+    brass = simple_material("Brass", (0.75, 0.52, 0.22), rough=0.3, metal=1.0)
+    lamp = box("PictureLamp", (0.34, 0.05, 0.035), (cx, y - 0.11, cz + H / 2 + 0.07), brass)
+    lamp.modifiers["bevel"].width = 0.012
+    v, q = tubes([(cx, y - 0.01, cz + H / 2 + 0.07)], [(cx, y - 0.1, cz + H / 2 + 0.07)], [0.007], [0.007], sides=8)
+    mesh_object("PictureLampArm", v, q, mat=brass, smooth=True)
+    area_light("PictureLight", (cx, y - 0.12, cz + H / 2 + 0.045), (cx, y + 0.1, cz - 0.05), 9, 0.3,
+               (1.0, 0.8, 0.55), "room", shape="RECTANGLE", size_y=0.03)
 
 
 # ---------------------------------------------------------------- fireplace
 def build_fireplace():
-    stone = stone_material()
+    stone = P.mortar_material()                        # the backing shows only in the joints
     soot = simple_material("Soot", (0.006, 0.0045, 0.0035), rough=1.0)
     iron = simple_material("Iron", (0.03, 0.03, 0.03), rough=0.45, metal=1.0)
-    mantel_mat = log_material("Mantel", (0.24, 0.11, 0.04), (0.07, 0.03, 0.01))
+    mantel_mat = P.log_side_material("Mantel", "X")
     depth = 1.35                                       # reaches back into the corner
 
     W, H = SURROUND_W, MANTEL_Z
@@ -492,22 +417,24 @@ def build_fireplace():
         mesh_object("GrateLeg", v, q, mat=iron, smooth=True)
 
     # logs and glowing coals
-    log_mat = ember_material("BurningLog", (0.02, 0.012, 0.008), 9.0, 1.4, 0.58)
     coal_mat = ember_material("Coals", (0.015, 0.012, 0.01), 6.0, 2.0, 0.47)
-    logs = [((-0.30, 0.18, 0.30), (0.26, 0.30, 0.31), 0.065),
-            ((-0.22, 0.34, 0.31), (0.30, 0.22, 0.30), 0.06),
-            ((-0.05, 0.10, 0.38), (0.12, 0.42, 0.42), 0.055)]
-    for a, b, r in logs:
-        A = fp((a[0], a[1], HEARTH_H + a[2] - 0.12))
-        B = fp((b[0], b[1], HEARTH_H + b[2] - 0.12))
-        v, q = tubes([A], [B], [r], [r * 0.9], sides=16)
-        ob = mesh_object("Log", v, q, mat=log_mat, smooth=True)
-        set_lightgroup(ob, "embers")
-    centers = []
-    for _ in range(70):
-        centers.append(fp((rng.uniform(-0.36, 0.36), rng.uniform(0.06, 0.46), HEARTH_H + rng.uniform(0.02, 0.07))))
-    v, q = spheres(np.array(centers), 0.028, icosphere_template(2))
-    ob = tri_mesh_object("Coals", v * np.array([1, 1, 0.75]) + np.array([0, 0, 0.01]), q[:, :3], mat=coal_mat)
+    char = P.charred_log_material()
+    logs = [((-0.31, 0.17, 0.30), (0.27, 0.31, 0.31), 0.066),
+            ((-0.23, 0.35, 0.31), (0.30, 0.21, 0.30), 0.06),
+            ((-0.06, 0.09, 0.385), (0.13, 0.43, 0.425), 0.052),
+            ((0.05, 0.12, 0.27), (0.33, 0.40, 0.26), 0.035)]          # a split piece of kindling
+    logs = [(fp((a[0], a[1], HEARTH_H + a[2] - 0.12)), fp((b[0], b[1], HEARTH_H + b[2] - 0.12)), r)
+            for a, b, r in logs]
+    ob = P.logs_mesh("BurningLogs", logs, np.random.default_rng(3), [char, char], sides=20, rings_per_m=30)
+    set_lightgroup(ob, "embers")
+    centers, sizes = [], []
+    for _ in range(110):
+        centers.append(fp((rng.uniform(-0.38, 0.38), rng.uniform(0.04, 0.48), HEARTH_H + rng.uniform(0.015, 0.06))))
+        sizes.append(rng.uniform(0.012, 0.032))
+    tv, tt = icosphere_template(2)
+    v = (np.array(centers)[:, None, :] + tv[None] * np.array(sizes)[:, None, None]).reshape(-1, 3)
+    q = (tt[None] + (np.arange(len(centers)) * len(tv))[:, None, None]).reshape(-1, 3)
+    ob = tri_mesh_object("Coals", v * np.array([1, 1, 0.7]) + np.array([0, 0, 0.012]), q, mat=coal_mat)
     set_lightgroup(ob, "embers")
 
     # fire light: two flickering sources, plus the steady glow of the coals
@@ -527,59 +454,68 @@ def build_fireplace():
         ob.rotation_euler = (Vector((0.2, -0.4, 1.45)) - ob.location).to_track_quat("-Z", "Y").to_euler()
         set_lightgroup(ob, group)
 
+    lay_fieldstone(W, H, depth)
     decorate_mantel(H)
     log_pile()
 
 
-def stocking_profile():
-    pts = [(-0.07, 0.0), (0.07, 0.0), (0.07, -0.26), (0.09, -0.30), (0.16, -0.33), (0.21, -0.37),
-           (0.21, -0.42), (0.16, -0.45), (0.04, -0.45), (-0.04, -0.42), (-0.07, -0.36)]
-    return pts
+def lay_fieldstone(W, H, depth):
+    """Face the fireplace with real stones: courses on the surround and chimney, a long
+    lintel stone over the opening, flagstones on the hearth, soot above the fire."""
+    rnd = np.random.default_rng(1964)
+    c, s = math.cos(FP_ANGLE), math.sin(FP_ANGLE)
+    X, Y, Z = np.array([c, s, 0.0]), np.array([-s, c, 0.0]), np.array([0.0, 0, 1])
+    o = lambda x, y, z: np.array(fp((x, y, z)))
+    stones = []
+    u0 = W / 2 - OPEN_W / 2
+    lintel_h = 0.17
+    holes = [(u0, 0, u0 + OPEN_W, OPEN_H), (u0 - 0.15, OPEN_H, u0 + OPEN_W + 0.15, OPEN_H + lintel_h)]
+    stones += P.lay_stones(rnd, o(-W / 2, 0, HEARTH_H), X, Z, -Y, W, H - HEARTH_H, holes)
+    stones.append((o(0, 0.03, HEARTH_H + OPEN_H + lintel_h / 2), np.array([OPEN_W / 2 + 0.14, lintel_h / 2 - 0.006, 0.06]),
+                   np.stack([X, Z, -Y], 1), np.array([0, 0, 0.004]), 2))
+    stones += P.lay_stones(rnd, o(-W / 2, 0.75, HEARTH_H), -Y, Z, -X, 0.75, H - HEARTH_H)
+    cw = W - 0.3
+    stones += P.lay_stones(rnd, o(-cw / 2, 0.145, H + 0.16), X, Z, -Y, cw, CEILING + 0.3 - H - 0.16)
+    stones += P.lay_stones(rnd, o(-cw / 2, 0.9, H + 0.16), -Y, Z, -X, 0.755, CEILING + 0.3 - H - 0.16)
+    hw = W + 0.4
+    stones += P.lay_stones(rnd, o(-hw / 2, -0.62, 0), X, Z, -Y, hw, HEARTH_H, course=(0.075, 0.085),
+                           length=(0.18, 0.4))
+    stones += P.lay_stones(rnd, o(-hw / 2, -0.62, HEARTH_H), X, Y, Z, hw, 0.62, course=(0.2, 0.31),
+                           length=(0.24, 0.5), depth=(0.05, 0.06), proud=0.012, gap=0.012)
+    P.stone_mesh("Fieldstone", stones, rnd, P.fieldstone_material(),
+                 soot_center=o(0, -0.03, HEARTH_H + OPEN_H + 0.04), soot_radius=0.5)
 
 
 def decorate_mantel(H):
     # stockings hanging from the mantel
-    colours = [(0.30, 0.004, 0.01), (0.03, 0.10, 0.36), (0.02, 0.10, 0.035)]    # red, LeMSIC blue, green
-    cuff = knit_material("Cuff", (0.80, 0.78, 0.72))
+    colours = [(0.26, 0.006, 0.012), (0.025, 0.075, 0.27), (0.018, 0.075, 0.03)]    # red, LeMSIC blue, green
+    cuff = P.knit_material("Cuff", (0.78, 0.76, 0.70))
+    brass = simple_material("HookBrass", (0.7, 0.5, 0.22), rough=0.3, metal=1.0)
+    c, s = math.cos(FP_ANGLE), math.sin(FP_ANGLE)
     for k, xloc in enumerate((-0.55, 0.0, 0.55)):
-        mat = knit_material(f"Stocking{k}", colours[k])
-        prof = stocking_profile()
-        verts = [(x, -0.03, z) for x, z in prof] + [(x, 0.03, z) for x, z in prof]
-        n = len(prof)
-        faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))]
-        faces += [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
-        me = bpy.data.meshes.new("Stocking")
-        me.from_pydata(verts, [], faces)
-        me.update()
-        ob = link(bpy.data.objects.new("Stocking", me))
-        ob.data.materials.append(mat)
-        sub = ob.modifiers.new("sub", "SUBSURF")
-        sub.levels = sub.render_levels = 2
-        top = fp((xloc, -0.2, H - 0.06))
-        ob.location = top
-        ob.rotation_euler = (0, 0, FP_ANGLE)
-        c = box("Cuff", (0.18, 0.075, 0.09), fp((xloc, -0.2, H - 0.05)), cuff, FP_ANGLE)
-        c.modifiers["bevel"].width = 0.025
-        c.modifiers["bevel"].segments = 4
+        top = np.array(fp((xloc, -0.25, H - 0.05)))
+        P.stocking(f"Stocking{k}", top, (c, s, 0.0), P.knit_material(f"Stocking{k}", colours[k]), cuff, rng)
+        v, q = tubes([top + np.array([0, 0, 0.0])], [np.array(fp((xloc, -0.25, H + 0.005)))], [0.004], [0.004], sides=6)
+        mesh_object("Hook", v, q, mat=brass, smooth=True)
 
     # pine garland with berries along the mantel, draping at the ends
     xs = np.linspace(-1.15, 1.15, 70)
     path = [fp((x, -0.14, H + 0.18 - (0.0 if abs(x) < 0.95 else (abs(x) - 0.95) * 1.6))) for x in xs]
-    P, D, Lt = [], [], []
+    TP, TD, TL = [], [], []
     for p in path:
         for _ in range(6):
             d = np.array([rng.normal(), rng.normal(), rng.normal() * 0.5])
             d /= np.linalg.norm(d)
-            P.append(np.array(p)); D.append(d); Lt.append(rng.uniform(0.06, 0.12))
-    v, q, c = needles(np.array(P), np.array(D), np.array(Lt), spacing=0.006)
+            TP.append(np.array(p)); TD.append(d); TL.append(rng.uniform(0.06, 0.12))
+    v, q, c = needles(np.array(TP), np.array(TD), np.array(TL), spacing=0.006)
     mesh_object("MantelGarland", v, q, colors=c, mat=bpy.data.materials["Needles"])
     berries = [np.array(path[int(i)]) + rng.normal(0, 0.03, 3) for i in rng.integers(0, len(path), 40)]
     v, q = spheres(np.array(berries), 0.011, icosphere_template(2))
     tri_mesh_object("Berries", v, q[:, :3], mat=simple_material("Berry", (0.4, 0.01, 0.015), rough=0.2, coat=1))
 
     # wreath on the chimney breast
-    centre = fp((0, -0.02, H + 0.75))
-    P, D, Lt = [], [], []
+    centre = fp((0, 0.08, H + 0.75))
+    TP, TD, TL = [], [], []
     c, s = math.cos(FP_ANGLE), math.sin(FP_ANGLE)
     right = np.array([c, s, 0])
     for k in range(220):
@@ -590,8 +526,8 @@ def decorate_mantel(H):
         tang = -right * math.sin(a) + np.array([0, 0, 1]) * math.cos(a)
         d = tang + rng.normal(0, 0.5, 3)
         d /= np.linalg.norm(d)
-        P.append(p); D.append(d); Lt.append(rng.uniform(0.08, 0.13))
-    v, q, col = needles(np.array(P), np.array(D), np.array(Lt), spacing=0.006)
+        TP.append(p); TD.append(d); TL.append(rng.uniform(0.08, 0.13))
+    v, q, col = needles(np.array(TP), np.array(TD), np.array(TL), spacing=0.006)
     mesh_object("Wreath", v, q, colors=col, mat=bpy.data.materials["Needles"])
     bow = simple_material("Bow", (0.30, 0.004, 0.01), rough=0.35, coat=0.6)
     for sgn in (-1, 1):
@@ -625,6 +561,9 @@ def log_pile():
 def setup(scene):
     cam_data = bpy.data.cameras.new("Camera")
     cam_data.lens = LENS
+    cam_data.dof.use_dof = True
+    cam_data.dof.focus_distance = (Vector((0, -0.55, 1.5)) - CAMERA).length    # focus on the front of the tree
+    cam_data.dof.aperture_fstop = 2.0
     cam = link(bpy.data.objects.new("Camera", cam_data))
     cam.location = CAMERA
     cam.rotation_euler = (TARGET - CAMERA).to_track_quat("-Z", "Y").to_euler()
@@ -737,13 +676,38 @@ def save_tonemapped(scene, rgb, path):
     h, w, _ = rgb.shape
     img = bpy.data.images.new("tmp", w, h, float_buffer=True, alpha=False)
     rgba = np.concatenate([rgb, np.ones((h, w, 1), np.float32)], -1)[::-1]      # Blender images are bottom-up
-    img.pixels.foreach_set(np.ascontiguousarray(rgba).ravel())
+    img.pixels.foreach_set(np.ascontiguousarray(rgba, dtype=np.float32).ravel())
     scene.render.image_settings.media_type = "IMAGE"
     scene.render.image_settings.file_format = "JPEG"
     scene.render.image_settings.quality = 90
     scene.render.image_settings.color_mode = "RGB"
     img.save_render(path, scene=scene)
     bpy.data.images.remove(img)
+
+
+def downsample(img, f):
+    h, w, c = img.shape
+    h2, w2 = h // f, w // f
+    return img[:h2 * f, :w2 * f].reshape(h2, f, w2, f, c).mean(axis=(1, 3))
+
+
+def upsample(img, f, shape):
+    out = np.repeat(np.repeat(img, f, axis=0), f, axis=1)
+    pad_h, pad_w = shape[0] - out.shape[0], shape[1] - out.shape[1]
+    return np.pad(out, ((0, pad_h), (0, pad_w), (0, 0)), mode="edge")
+
+
+def photo_finish(img):
+    """What a camera adds: a soft bloom around bright lights and a gentle vignette."""
+    h, w, _ = img.shape
+    k = w / 1920
+    bright = np.clip(img - 1.2, 0, None)
+    small = downsample(bright, 4)
+    glow = 0.6 * blur(small, 2.5 * k) + 0.4 * blur(small, 9 * k)
+    img = img + 0.22 * blur(upsample(glow, 4, img.shape), 2 * k)
+    yy, xx = np.mgrid[0:h, 0:w]
+    r = np.sqrt(((xx - w / 2) / (w / 2)) ** 2 * 0.8 + ((yy - h / 2) / (h / 2)) ** 2 * 0.6)
+    return img * (1 - 0.32 * np.clip(r, 0, 1.2) ** 2.4)[..., None]
 
 
 def make_variants(scene, exr_path):
@@ -761,7 +725,7 @@ def make_variants(scene, exr_path):
         "cabin-right.jpg": C - 0.05 * FL + 0.40 * FR + 0.08 * EM,
     }
     for name, img in variants.items():
-        save_tonemapped(scene, np.clip(img, 0, None), os.path.join(OUT_DIR, name))
+        save_tonemapped(scene, photo_finish(np.clip(img, 0, None)), os.path.join(OUT_DIR, name))
         print("  wrote", name)
 
 
