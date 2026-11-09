@@ -2,7 +2,42 @@
 
 Artwork for the LeMSIC Christmas advent calendar (1–24 December).
 
-## The 3D tree calendar (main design)
+## The cabin (live scene)
+
+`site/cabin.html` is the scene students will land in: the LeMSIC tree in the middle of a log
+cabin at night, a stone fireplace burning on the left, and snow falling past the window on the
+right.
+
+- **The room** is rendered in Blender by `tools/blender/cabin_scene.py`.
+- **The fire is live.** Animated flames and sparks are drawn in the fireplace opening with
+  WebGL, and the light they throw on the stones, the floor and the tree flickers in time with
+  them.
+- **The flickering light is real rendered firelight.** The room is rendered once with the
+  fire split into its own light groups. Three images are made from that render (fire dim,
+  leaning left, leaning right), and the page fades between them.
+- **Snow** falls outside the window, behind the window bars.
+- **Fire sound:** a crackling sound can be switched on. It is generated in the browser, so
+  there are no audio files.
+- **On phones** the scene scrolls sideways.
+- **Data:** `site/assets/cabin/scene.json` (and `scene.js`) give the position of the fire
+  opening, the window and every ornament in the image, so the ornaments can be made clickable.
+
+Open `site/cabin.html` in a browser to see it.
+
+To re-render the room (about 40 minutes on a 4-core CPU):
+
+```bash
+pip install bpy==5.2.3 OpenEXR
+```
+
+```bash
+python tools/blender/cabin_scene.py
+```
+
+Add `--preview` for a quick low-resolution test. The intermediate EXR goes to `build/`, which
+is not committed.
+
+## The 3D tree calendar
 
 `images/png/lemsic-tree-calendar-3d.png` (source: `images/lemsic-tree-calendar-3d.svg`)
 

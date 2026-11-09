@@ -406,11 +406,25 @@ def tier_surface(i, theta, frac=0.92):
 
 
 # ---------------------------------------------------------------- scene
-def build_scene():
+def reset_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     addon_utils.enable("cycles", default_set=True)
-    scene = bpy.context.scene
+    return bpy.context.scene
 
+
+def build_scene():
+    scene = reset_scene()
+    hotspots = build_tree()
+    camera_and_lights(scene)
+    return scene, hotspots
+
+
+def build_tree():
+    """Add the decorated tree (with crate and presents) to the current scene.
+
+    Ornaments turn to face CAMERA, so set lemsic_tree.CAMERA first when using
+    another camera. Returns the ornament positions in world space.
+    """
     mat_needles = needle_material()
     mat_bark = bark_material()
 
@@ -441,9 +455,7 @@ def build_scene():
 
     fairy_lights()
     stand_and_presents()
-    hotspots = ornaments()
-    camera_and_lights(scene)
-    return scene, hotspots
+    return ornaments()
 
 
 def fairy_lights():
@@ -530,7 +542,7 @@ def day_order(n):
 
 
 def face_camera_angle(pos):
-    v = CAMERA - Vector(pos)
+    v = Vector(CAMERA) - Vector(pos)
     return math.atan2(v.x, -v.y)
 
 

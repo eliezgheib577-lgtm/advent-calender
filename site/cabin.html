@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LeMSIC Cabin</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500&display=swap">
+<style>
+  /* Layout: one full-bleed scene (the cabin at night) with a slim caption bar beneath. Single dark look. */
+  :root {
+    --night: #0d0a08;          /* the room beyond the frame */
+    --hearth: #17110d;         /* bar background, warm soot */
+    --snow: #f2ece4;           /* main text */
+    --ash: #a99b8d;            /* secondary text */
+    --ember: #f2a24f;          /* accent: firelight */
+    --ember-dim: rgba(242, 162, 79, 0.28);
+    --display: "Alegreya SC", "Palatino Linotype", Palatino, Georgia, serif;
+    --body: "Alegreya Sans", "Gill Sans", "Trebuchet MS", system-ui, sans-serif;
+    --bar: 76px;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--snow);
+    font-family: var(--body);
+    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .scene-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    display: flex;
+    align-items: center;
+  }
+  .scene-wrap::-webkit-scrollbar { display: none; }
+  .stage {
+    position: relative;
+    flex: 0 0 auto;
+    height: min(calc(100dvh - var(--bar)), max(56.25vw, 50dvh));
+    aspect-ratio: 16 / 9;
+    margin-inline: auto;
+    overflow: hidden;
+    background: #1a120c;
+  }
+  .stage img, .stage canvas {
+    position: absolute;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .stage img { inset: 0; width: 100%; height: 100%; max-width: none; }
+  .stage .light { opacity: 0; will-change: opacity; }
+  .stage canvas.fire { mix-blend-mode: screen; pointer-events: none; }
+  .stage canvas.snow { pointer-events: none; }
+
+  .bar {
+    flex: 0 0 var(--bar);
+    box-sizing: border-box;
+    min-height: var(--bar);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 10px;
+    background: var(--hearth);
+    border-top: 1px solid var(--ember-dim);
+  }
+  .title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .title h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+  .title p {
+    margin: 0;
+    color: var(--ash);
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+  }
+  .sound {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--ember-dim);
+    background: transparent;
+    color: var(--snow);
+    font: 500 0.95rem var(--body);
+    cursor: pointer;
+  }
+  .sound:hover { border-color: var(--ember); }
+  .sound:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+  .sound .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--ash);
+    box-shadow: none;
+  }
+  .sound[aria-pressed="true"] .dot { background: var(--ember); box-shadow: 0 0 10px var(--ember); }
+
+  @media (max-width: 520px) {
+    :root { --bar: 92px; }
+    .title p { font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="scene-wrap" id="sceneWrap">
+    <div class="stage" id="stage" role="img"
+         aria-label="A log cabin at night: the decorated LeMSIC Christmas tree in the middle, a stone fireplace burning on the left, snow falling outside the window on the right.">
+      <img id="imgBase" src="assets/cabin/cabin-low.jpg" alt="">
+      <img id="imgLeft" class="light" src="assets/cabin/cabin-left.jpg" alt="">
+      <img id="imgRight" class="light" src="assets/cabin/cabin-right.jpg" alt="">
+      <canvas id="snow" class="snow"></canvas>
+      <canvas id="fire" class="fire"></canvas>
+    </div>
+  </div>
+  <div class="bar">
+    <div class="title">
+      <h1>LeMSIC Advent Calendar</h1>
+      <p>The cabin · 1–24 December</p>
+    </div>
+    <button class="sound" id="soundBtn" type="button" aria-pressed="false">
+      <span class="dot" aria-hidden="true"></span><span id="soundLabel">Fire sound off</span>
+    </button>
+  </div>
+
+<script src="assets/cabin/scene.js"></script>
+<script>
+(() => {
+  const S = window.CABIN_SCENE;
+  const stage = document.getElementById('stage');
+  const wrap = document.getElementById('sceneWrap');
+  const imgLeft = document.getElementById('imgLeft');
+  const imgRight = document.getElementById('imgRight');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------------------------------------------------------------- flicker: smooth noise
+  function makeNoise(seed) {
+    const n = 256, table = new Float32Array(n);
+    let s = seed;
+    for (let i = 0; i < n; i++) { s = (s * 16807) % 2147483647; table[i] = (s / 2147483647) * 2 - 1; }
+    return (t) => {
+      const i = Math.floor(t), f = t - i, a = table[i & 255], b = table[(i + 1) & 255];
+      const u = f * f * (3 - 2 * f);
+      return a + (b - a) * u;
+    };
+  }
+  const nL = [makeNoise(11), makeNoise(23), makeNoise(37)];
+  const nR = [makeNoise(51), makeNoise(67), makeNoise(89)];
+  const nFlare = makeNoise(101);
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  function flicker(t) {
+    const flare = Math.max(0, nFlare(t * 0.35)) * 0.25;
+    const a = clamp01(0.52 + 0.30 * nL[0](t * 1.9) + 0.16 * nL[1](t * 5.3) + 0.08 * nL[2](t * 11.7) + flare);
+    const b = clamp01(0.48 + 0.30 * nR[0](t * 2.1) + 0.16 * nR[1](t * 6.1) + 0.08 * nR[2](t * 12.9) + flare);
+    return { a, b };
+  }
+
+  // ---------------------------------------------------------------- geometry helpers
+  const cross = (a, b) => a[0] * b[1] - a[1] * b[0];
+  // point -> (u, v) inside quad a(bottom-left) b(bottom-right) c(top-right) d(top-left)
+  function invBilinear(p, a, b, c, d) {
+    const e = [b[0] - a[0], b[1] - a[1]], f = [d[0] - a[0], d[1] - a[1]];
+    const g = [a[0] - b[0] + c[0] - d[0], a[1] - b[1] + c[1] - d[1]], h = [p[0] - a[0], p[1] - a[1]];
+    const k2 = cross(g, f), k1 = cross(e, f) + cross(h, g), k0 = cross(h, e);
+    let u, v;
+    if (Math.abs(k2) < 1e-6) { v = -k0 / k1; }
+    else {
+      const w = Math.sqrt(Math.max(0, k1 * k1 - 4 * k0 * k2));
+      v = (-k1 - w) / (2 * k2);
+      if (v < 0 || v > 1) v = (-k1 + w) / (2 * k2);
+    }
+    u = (h[0] - f[0] * v) / (e[0] + g[0] * v);
+    return [u, v];
+  }
+  function bilinear(q, u, v) {
+    const [a, b, c, d] = q;
+    const bot = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+    const top = [d[0] + (c[0] - d[0]) * u, d[1] + (c[1] - d[1]) * u];
+    return [bot[0] + (top[0] - bot[0]) * v, bot[1] + (top[1] - bot[1]) * v];
+  }
+
+  // ---------------------------------------------------------------- fire (WebGL)
+  const fireCanvas = document.getElementById('fire');
+  const open = S.fire.opening;
+  const pad = 0.004;
+  const fx0 = Math.min(...open.map(p => p[0])) - pad, fx1 = Math.max(...open.map(p => p[0])) + pad;
+  const fy0 = Math.min(...open.map(p => p[1])) - pad, fy1 = Math.max(...open.map(p => p[1])) + pad;
+  Object.assign(fireCanvas.style, {
+    left: fx0 * 100 + '%', top: fy0 * 100 + '%',
+    width: (fx1 - fx0) * 100 + '%', height: (fy1 - fy0) * 100 + '%',
+  });
+  // the log bed, in the opening's own (u, v) coordinates
+  const bedA = invBilinear(S.fire.bed[0], ...open), bedB = invBilinear(S.fire.bed[1], ...open);
+  const bed = { u0: Math.min(bedA[0], bedB[0]), u1: Math.max(bedA[0], bedB[0]), v: (bedA[1] + bedB[1]) / 2 };
+
+  const gl = fireCanvas.getContext('webgl', { premultipliedAlpha: false, antialias: false });
+  let fireProgram = null, uni = {};
+  const VERT = `attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
+  const FRAG = `
+    precision highp float;
+    uniform vec2 res;           // canvas size in pixels
+    uniform vec2 qa, qb, qc, qd; // opening corners in canvas pixels (GL, y up)
+    uniform float t, flick, lean, bedU0, bedU1, bedV;
+
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p){
+      vec2 i = floor(p), f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
+    }
+    float fbm(vec2 p){
+      float v = 0.0, a = 0.5;
+      for (int i = 0; i < 5; i++) { v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
+      return v;
+    }
+    float cr(vec2 a, vec2 b){ return a.x * b.y - a.y * b.x; }
+    vec2 invBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d){
+      vec2 e = b - a, f = d - a, g = a - b + c - d, h = p - a;
+      float k2 = cr(g, f), k1 = cr(e, f) + cr(h, g), k0 = cr(h, e);
+      float v;
+      if (abs(k2) < 1e-4) { v = -k0 / k1; }
+      else {
+        float w = sqrt(max(0.0, k1 * k1 - 4.0 * k0 * k2));
+        v = (-k1 - w) / (2.0 * k2);
+        if (v < 0.0 || v > 1.0) v = (-k1 + w) / (2.0 * k2);
+      }
+      float u = (h.x - f.x * v) / (e.x + g.x * v);
+      return vec2(u, v);
+    }
+    vec3 ramp(float f){
+      vec3 c = mix(vec3(0.0), vec3(0.45, 0.05, 0.0), smoothstep(0.02, 0.22, f));
+      c = mix(c, vec3(0.98, 0.33, 0.04), smoothstep(0.18, 0.48, f));
+      c = mix(c, vec3(1.0, 0.68, 0.20), smoothstep(0.45, 0.72, f));
+      c = mix(c, vec3(1.0, 0.93, 0.74), smoothstep(0.74, 1.0, f));
+      return c;
+    }
+    void main(){
+      vec2 uv = invBilinear(gl_FragCoord.xy, qa, qb, qc, qd);
+      if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+
+      float mid = 0.5 * (bedU0 + bedU1);
+      float hw = 0.5 * (bedU1 - bedU0);
+      float y = uv.y - bedV;                         // height above the logs
+      float x = (uv.x - mid) / hw;                 // -1..1 across the logs
+
+      // rising, swirling turbulence
+      vec2 p = vec2(uv.x * 6.0, uv.y * 3.0 - t * 2.6);
+      float warp = fbm(p * 0.6 + vec2(0.0, t * 0.4));
+      float n = fbm(p + vec2(warp * 1.8 - 0.9, 0.0));
+      // vertical licks: narrow streaks that race upward and split the flame into tongues
+      float licks = fbm(vec2(uv.x * 15.0 + warp * 3.0, uv.y * 2.0 - t * 3.3));
+
+      float height = 0.50 + 0.26 * flick;
+      float yy = clamp(y / height, 0.0, 1.0);
+      float hx = x - lean * 0.3 * yy;
+      float width = 0.95 - 0.5 * yy;
+      float body = 1.0 - smoothstep(width * 0.35, width, abs(hx));
+      float lick = smoothstep(0.32 + 0.22 * yy, 0.60 + 0.10 * yy, licks);
+      float rise = 1.0 - smoothstep(0.12, 1.0, y / height + (0.5 - n) * 0.6);
+      // ragged base: the flames start among the logs, not along a straight line
+      float rag = fbm(vec2(uv.x * 9.0, t * 0.8));
+      float base = smoothstep(-0.10 + 0.08 * rag, 0.04 + 0.05 * rag, y);
+      float f = body * base * rise * mix(0.75 + 0.25 * lick, lick, smoothstep(0.02, 0.25, yy)) * (0.4 + 0.85 * n);
+      f *= 0.85 + 0.2 * (1.0 - yy);
+      f = clamp(f * (0.85 + 0.35 * flick), 0.0, 1.0);
+
+      vec3 col = ramp(f) * smoothstep(0.04, 0.22, f);
+
+      // soft glow just above the coals
+      float glow = exp(-(x * x) * 1.4 - (y + 0.02) * (y + 0.02) * 90.0) * (0.22 + 0.18 * flick);
+      col += vec3(1.0, 0.38, 0.06) * glow;
+
+      // sparks drifting up
+      for (int i = 0; i < 14; i++) {
+        float fi = float(i);
+        float life = 1.4 + hash(vec2(fi, 3.1)) * 1.6;
+        float ph = fract(t / life + hash(vec2(fi, 7.7)));
+        float sx = mid + (hash(vec2(fi, 1.3)) - 0.5) * 2.0 * hw * 0.8 + sin(ph * 9.0 + fi) * 0.03;
+        float sy = bedV + 0.05 + ph * 0.75;
+        vec2 d = (uv - vec2(sx, sy)) * vec2(1.3, 1.0);
+        float s = exp(-dot(d, d) * 26000.0) * (1.0 - ph) * (1.0 - ph);
+        col += vec3(1.0, 0.62, 0.22) * s * 1.6;
+      }
+      gl_FragColor = vec4(col, 1.0);
+    }`;
+
+  function initGL() {
+    if (!gl) return false;
+    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn(gl.getShaderInfoLog(s)); return null; } return s; };
+    const vs = sh(gl.VERTEX_SHADER, VERT), fs = sh(gl.FRAGMENT_SHADER, FRAG);
+    if (!vs || !fs) return false;
+    fireProgram = gl.createProgram();
+    gl.attachShader(fireProgram, vs); gl.attachShader(fireProgram, fs); gl.linkProgram(fireProgram);
+    if (!gl.getProgramParameter(fireProgram, gl.LINK_STATUS)) return false;
+    gl.useProgram(fireProgram);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(fireProgram, 'p');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    for (const k of ['res', 'qa', 'qb', 'qc', 'qd', 't', 'flick', 'lean', 'bedU0', 'bedU1', 'bedV'])
+      uni[k] = gl.getUniformLocation(fireProgram, k);
+    return true;
+  }
+  const glOK = initGL();
+
+  // ---------------------------------------------------------------- snow outside the window
+  const snowCanvas = document.getElementById('snow');
+  const win = S.window;
+  const wx0 = Math.min(...win.map(p => p[0])), wx1 = Math.max(...win.map(p => p[0]));
+  const wy0 = Math.min(...win.map(p => p[1])), wy1 = Math.max(...win.map(p => p[1]));
+  Object.assign(snowCanvas.style, {
+    left: wx0 * 100 + '%', top: wy0 * 100 + '%', width: (wx1 - wx0) * 100 + '%', height: (wy1 - wy0) * 100 + '%',
+  });
+  const sctx = snowCanvas.getContext('2d');
+  const flakes = Array.from({ length: 140 }, (_, i) => ({
+    u: Math.random(), v: Math.random(),
+    depth: Math.random(),
+    phase: Math.random() * Math.PI * 2,
+  }));
+  // window bars (in window u, v) that hide the snow behind them
+  const bars = [[0.5, null, 0.022], [null, 1 / 3, 0.017], [null, 2 / 3, 0.017]];
+
+  // ---------------------------------------------------------------- sizing
+  let W = 0, H = 0, dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = stage.getBoundingClientRect();
+    W = r.width; H = r.height;
+    fireCanvas.width = Math.max(1, Math.round((fx1 - fx0) * W * dpr));
+    fireCanvas.height = Math.max(1, Math.round((fy1 - fy0) * H * dpr));
+    snowCanvas.width = Math.max(1, Math.round((wx1 - wx0) * W * dpr));
+    snowCanvas.height = Math.max(1, Math.round((wy1 - wy0) * H * dpr));
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+  // on narrow screens, start with the fireplace and the tree in view
+  requestAnimationFrame(() => {
+    const extra = stage.offsetWidth - wrap.clientWidth;
+    if (extra > 0) wrap.scrollLeft = Math.max(0, Math.min(extra, stage.offsetWidth * 0.33 - wrap.clientWidth / 2));
+  });
+
+  // ---------------------------------------------------------------- frame
+  function toFireCanvas(p) {          // stage fraction -> fire canvas pixels, GL (y up)
+    const x = (p[0] - fx0) / (fx1 - fx0) * fireCanvas.width;
+    const y = (1 - (p[1] - fy0) / (fy1 - fy0)) * fireCanvas.height;
+    return [x, y];
+  }
+  function drawFire(t, a, b) {
+    if (!glOK) return;
+    gl.viewport(0, 0, fireCanvas.width, fireCanvas.height);
+    gl.uniform2f(uni.res, fireCanvas.width, fireCanvas.height);
+    ['qa', 'qb', 'qc', 'qd'].forEach((k, i) => gl.uniform2f(uni[k], ...toFireCanvas(open[i])));
+    gl.uniform1f(uni.t, t);
+    gl.uniform1f(uni.flick, (a + b) / 2);
+    gl.uniform1f(uni.lean, (b - a));
+    gl.uniform1f(uni.bedU0, bed.u0);
+    gl.uniform1f(uni.bedU1, bed.u1);
+    gl.uniform1f(uni.bedV, bed.v);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  function drawSnow(dt) {
+    const cw = snowCanvas.width, ch = snowCanvas.height;
+    sctx.clearRect(0, 0, cw, ch);
+    const toCanvas = (u, v) => {
+      const p = bilinear(win, u, v);
+      return [(p[0] - wx0) / (wx1 - wx0) * cw, (p[1] - wy0) / (wy1 - wy0) * ch];
+    };
+    sctx.save();
+    sctx.beginPath();
+    win.forEach((p, i) => { const q = toCanvas(i === 1 || i === 2 ? 1 : 0, i >= 2 ? 1 : 0); i ? sctx.lineTo(...q) : sctx.moveTo(...q); });
+    sctx.closePath();
+    sctx.clip();
+    for (const f of flakes) {
+      const speed = 0.05 + f.depth * 0.11;
+      f.v -= speed * dt;
+      f.phase += dt * (0.6 + f.depth);
+      f.u += Math.sin(f.phase) * 0.0009 * (0.5 + f.depth) - 0.004 * dt;
+      if (f.v < -0.02) { f.v = 1.02; f.u = Math.random() * 1.1; }
+      if (f.u < -0.05) f.u += 1.1;
+      const [x, y] = toCanvas(f.u, f.v);
+      const r = (0.5 + f.depth * 1.3) * dpr * (W / 1400);
+      sctx.globalAlpha = 0.35 + f.depth * 0.45;
+      sctx.fillStyle = '#dfe8f5';
+      sctx.beginPath();
+      sctx.arc(x, y, Math.max(0.6, r), 0, Math.PI * 2);
+      sctx.fill();
+    }
+    // erase snow where the window bars are (they sit in front of it)
+    sctx.globalAlpha = 1;
+    sctx.globalCompositeOperation = 'destination-out';
+    for (const [u, v, w] of bars) {
+      sctx.beginPath();
+      const pts = u !== null
+        ? [toCanvas(u - w, 0), toCanvas(u + w, 0), toCanvas(u + w, 1), toCanvas(u - w, 1)]
+        : [toCanvas(0, v - w), toCanvas(1, v - w), toCanvas(1, v + w), toCanvas(0, v + w)];
+      pts.forEach((q, i) => i ? sctx.lineTo(...q) : sctx.moveTo(...q));
+      sctx.closePath();
+      sctx.fill();
+    }
+    sctx.globalCompositeOperation = 'source-over';
+    sctx.restore();
+  }
+
+  let last = performance.now();
+  let current = { a: 0.5, b: 0.5 };
+  function frame(now) {
+    const t = now / 1000;
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    current = reduceMotion ? { a: 0.5, b: 0.5 } : flicker(t);
+    imgLeft.style.opacity = current.a.toFixed(3);
+    imgRight.style.opacity = (current.b * 0.85).toFixed(3);
+    drawFire(reduceMotion ? 12.0 : t, current.a, current.b);
+    drawSnow(reduceMotion ? 0 : dt);
+    audio.update(current);
+    if (!reduceMotion) requestAnimationFrame(frame);
+  }
+
+  // ---------------------------------------------------------------- crackling fire sound (generated, no files)
+  const audio = (() => {
+    let ctx = null, master = null, rumbleGain = null, timer = null, on = false;
+    function noiseBuffer(seconds, brown) {
+      const len = Math.floor(ctx.sampleRate * seconds), buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = buf.getChannelData(0); let last = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w;
+      }
+      return buf;
+    }
+    let white = null;
+    function crackle() {
+      if (!on) return;
+      const now = ctx.currentTime;
+      const src = ctx.createBufferSource();
+      src.buffer = white;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 1200 + Math.random() * 3800;
+      bp.Q.value = 0.8 + Math.random() * 2;
+      const g = ctx.createGain();
+      const peak = 0.15 + Math.random() * 0.5;
+      const dur = 0.006 + Math.random() * 0.03;
+      g.gain.setValueAtTime(peak, now);
+      g.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+      src.connect(bp).connect(g).connect(master);
+      src.start(now, Math.random() * 1.5, dur + 0.02);
+      // pops come in little clusters, like real wood
+      const nextIn = Math.random() < 0.3 ? 20 + Math.random() * 60 : 90 + Math.random() * 420;
+      timer = setTimeout(crackle, nextIn);
+    }
+    function start() {
+      if (!ctx) {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        master = ctx.createGain();
+        master.gain.value = 0.6;
+        master.connect(ctx.destination);
+        white = noiseBuffer(2, false);
+        const rumble = ctx.createBufferSource();
+        rumble.buffer = noiseBuffer(4, true);
+        rumble.loop = true;
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 520;
+        rumbleGain = ctx.createGain();
+        rumbleGain.gain.value = 0.0;
+        rumble.connect(lp).connect(rumbleGain).connect(master);
+        rumble.start();
+      }
+      ctx.resume();
+      on = true;
+      crackle();
+    }
+    function stop() { on = false; clearTimeout(timer); if (ctx) ctx.suspend(); }
+    return {
+      toggle() { on ? stop() : start(); return on; },
+      update(f) { if (on && rumbleGain) rumbleGain.gain.setTargetAtTime(0.18 + 0.25 * (f.a + f.b) / 2, ctx.currentTime, 0.08); },
+    };
+  })();
+
+  const btn = document.getElementById('soundBtn');
+  const label = document.getElementById('soundLabel');
+  btn.addEventListener('click', () => {
+    const on = audio.toggle();
+    btn.setAttribute('aria-pressed', String(on));
+    label.textContent = on ? 'Fire sound on' : 'Fire sound off';
+  });
+
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
