@@ -39,7 +39,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT_DIR = os.path.join(ROOT, "site", "assets", "cabin")
 BUILD_DIR = os.path.join(ROOT, "build")
 EMBLEM = os.path.join(HERE, "textures", "lemsic-emblem.png")
-TREE_STYLE = "cedar_lemsic"          # see lemsic_tree.STYLES
+TREE_STYLE = "cedar_lemsic_full"     # see lemsic_tree.STYLES
 FARES_AT = (1.95, 0.55, 0.0)
 FARES_TURN = math.radians(-34)
 FARES_SCALE = 1.2
@@ -48,7 +48,7 @@ ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
 RES = (640, 360) if PREVIEW else (1920, 1080)
 SAMPLES = 64 if PREVIEW else 640
-WALL = "slope"                       # the picture wall: "slope" (6, 6, 5, 4, 3) or "grid" (4 rows of 6)
+WALL = "grid"                        # the picture wall: "grid" (4 rows of 6) or "slope" (6, 6, 5, 4, 3)
 for _a in ARGS:
     if _a.startswith("--res="):
         RES = tuple(int(x) for x in _a[6:].split("x"))

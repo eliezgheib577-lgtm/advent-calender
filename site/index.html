@@ -59,6 +59,9 @@
   #inside { transform-origin: 50% 62%; }
   #snowFront { inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #inside .light { opacity: 0; will-change: opacity; }
+  /* the tree's fairy lights: two sets of bulbs that brighten and dim in turn, softly */
+  #inside .glow { opacity: 0; will-change: opacity; pointer-events: none; mix-blend-mode: screen; }
+  @supports (mix-blend-mode: plus-lighter) { #inside .glow { mix-blend-mode: plus-lighter; } }
   canvas.fire { mix-blend-mode: screen; pointer-events: none; }
   @supports (mix-blend-mode: plus-lighter) { canvas.fire { mix-blend-mode: plus-lighter; } }
   canvas.snow { pointer-events: none; }
@@ -82,23 +85,26 @@
     position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%);
     border-radius: 50%; border: 0; padding: 0; background: transparent; cursor: pointer;
   }
-  .orn:hover, .orn:focus-visible { box-shadow: 0 0 0 2px rgba(255, 236, 200, 0.7), 0 0 18px rgba(255, 210, 140, 0.55); outline: none; }
-  .orn.done::after {
-    content: "✓"; position: absolute; right: -14%; top: -14%;
-    width: 46%; height: 46%; min-width: 14px; min-height: 14px; border-radius: 50%;
-    display: grid; place-items: center; font-size: clamp(9px, 0.9vw, 13px); font-weight: 700;
-    background: var(--ember); color: #24150a;
+  .orn:hover, .orn:focus-visible { box-shadow: 0 0 0 1.5px rgba(239, 228, 204, 0.75), 0 0 14px rgba(255, 220, 170, 0.35); outline: none; }
+  /* a paper gift tag tied beside the ornament: "Today" on today's, a green tick once its picture is on the wall */
+  .gtag {
+    position: absolute; left: 78%; top: 2%; display: flex; align-items: center; pointer-events: none;
+    transform-origin: 0 50%; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
   }
-  .orn.today { animation: beckon 2.2s ease-in-out infinite; }
-  .orn.today::before {
-    content: attr(data-label); position: absolute; left: 50%; bottom: 118%; transform: translateX(-50%);
-    white-space: nowrap; padding: 3px 9px; border-radius: 999px;
-    background: var(--ember); color: #24150a; font: 700 clamp(11px, 1vw, 14px) var(--body);
+  .gtag.today { animation: tag-sway 3.4s ease-in-out infinite; }
+  .gtag.done { transform: rotate(16deg); }
+  @keyframes tag-sway { 0%, 100% { transform: rotate(14deg); } 50% { transform: rotate(4deg); } }
+  .gstring { flex: none; width: 11px; height: 1px; background: rgba(239, 228, 204, 0.85); }
+  .gcard {
+    position: relative; white-space: nowrap; background: #efe4cc; color: #2a1a0c;
+    font: 700 clamp(10px, 0.95vw, 14px)/1 var(--display); padding: 4px 8px 4px 12px;
+    clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 50%);
   }
-  @keyframes beckon {
-    0%, 100% { box-shadow: 0 0 0 2px rgba(255, 220, 160, 0.9), 0 0 12px 4px rgba(255, 190, 110, 0.55); }
-    50% { box-shadow: 0 0 0 3px rgba(255, 236, 200, 1), 0 0 26px 10px rgba(255, 190, 110, 0.85); }
+  .gcard::before {
+    content: ""; position: absolute; left: 5px; top: 50%; width: 3px; height: 3px; margin-top: -1.5px;
+    border-radius: 50%; background: rgba(0, 0, 0, 0.45);
   }
+  .gtag.done .gcard { color: #2d6a3a; padding: 3px 6px 3px 11px; }
 
   /* ---------- the bar */
   .bar {
@@ -282,7 +288,7 @@
     .title p { font-size: .82rem; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .orn.today { animation: none; box-shadow: 0 0 0 3px rgba(255, 236, 200, 1), 0 0 20px 8px rgba(255, 190, 110, 0.8); }
+    .gtag.today { animation: none; transform: rotate(10deg); }
     dialog.card[open], .reveal { animation: none; }
   }
 </style>
@@ -300,6 +306,8 @@
         <img id="imgBase" src="assets/cabin/cabin-low.jpg" alt="">
         <img id="imgLeft" class="light" src="assets/cabin/cabin-left.jpg" alt="">
         <img id="imgRight" class="light" src="assets/cabin/cabin-right.jpg" alt="">
+        <img id="glowA" class="glow" src="assets/cabin/cabin-glow-a.jpg" alt="">
+        <img id="glowB" class="glow" src="assets/cabin/cabin-glow-b.jpg" alt="">
         <canvas id="snow" class="snow"></canvas>
         <canvas id="fire" class="fire"></canvas>
         <canvas id="rock" class="rock"></canvas>
@@ -720,6 +728,16 @@
   let scene = 'outside';
   let last = performance.now();
   let light = { a: 0.5, b: 0.5 };
+  // the tree lights come up softly when you walk in, then glow gently, one set of bulbs and then the other
+  let glowUp = 0;
+  const GLOW_IN = 3.5, GLOW_PERIOD = 6;
+  function treeGlow(now, dt) {
+    glowUp = reduceMotion ? 1 : Math.min(1, glowUp + dt / GLOW_IN);
+    const up = glowUp * glowUp * (3 - 2 * glowUp);
+    const ph = reduceMotion ? 0 : (now / 1000) * 2 * Math.PI / GLOW_PERIOD;
+    $('glowA').style.opacity = (up * (0.72 + 0.28 * Math.sin(ph))).toFixed(3);
+    $('glowB').style.opacity = (up * (0.72 - 0.28 * Math.sin(ph))).toFixed(3);
+  }
   function frame(now) {
     const step = Math.min(0.05, (now - last) / 1000);
     const dt = reduceMotion ? 0 : step;
@@ -736,6 +754,7 @@
       $('imgLeft').style.opacity = light.a.toFixed(3);
       $('imgRight').style.opacity = (light.b * 0.85).toFixed(3);
       shadeWall(light);
+      treeGlow(now, step);
       drawWindowSnow(dt);
       audio.update(light);
     }
@@ -818,7 +837,8 @@
     if (rocker) rocker.load();
     const outside = $('outside'), inside = $('inside');
     // have the room's images ready before we walk in, so nothing flashes or stutters
-    const roomReady = Promise.all(['imgBase', 'imgLeft', 'imgRight'].map((id) => $(id).decode().catch(() => {})));
+    const roomReady = Promise.all(['imgBase', 'imgLeft', 'imgRight', 'glowA', 'glowB'].map((id) => $(id).decode().catch(() => {})));
+    glowUp = 0;
     renderTree();
     if (reduceMotion) {
       outside.hidden = true;
@@ -903,7 +923,11 @@
       if (done) b.classList.add('done');
       if (testMode) b.classList.add('testable');
       ornButtons[o.day] = b;
-      if (o.day === today.day) { b.classList.add('today'); b.dataset.label = `Day ${o.day}`; }
+      if (o.day === today.day) b.classList.add('today');
+      if (done || o.day === today.day) {
+        b.insertAdjacentHTML('beforeend', `<span class="gtag ${done ? 'done' : 'today'}" aria-hidden="true">`
+          + `<span class="gstring"></span><span class="gcard">${done ? '✓' : 'Today'}</span></span>`);
+      }
       b.setAttribute('aria-label', `Day ${o.day}${o.day === today.day ? ', today' : ''}${done ? ', on your wall' : ''}`);
       b.addEventListener('click', () => ornamentClicked(o.day));
       layer.appendChild(b);
@@ -971,6 +995,14 @@
     popFrom(origin || ornButtons[day]);
   }
   // hanging it: the print flies from your hands into its numbered frame on the wall
+  function tagIn(day) {
+    const tag = ornButtons[day] && ornButtons[day].querySelector('.gtag');
+    if (tag && !reduceMotion) {
+      tag.animate([{ opacity: 0, transform: 'rotate(-35deg) scale(0.6)' }, { opacity: 1, transform: 'rotate(16deg) scale(1)' }],
+                  { duration: 650, easing: 'cubic-bezier(.3, 1.5, .5, 1)' });
+    }
+  }
+
   async function hang(day) {
     const print = $('popImg'), from = print.getBoundingClientRect();
     const wall = hangOnWall(day);
@@ -998,6 +1030,7 @@
         { transform: `translate(${dx}px, ${dy}px) scale(${k}) rotate(0deg)`, opacity: 0 },
       ], { duration: 1300, easing: 'cubic-bezier(.45, .05, .3, 1)' }).finished;
       renderTree();
+      tagIn(day);
       flyer.remove();
       const hung = wallEl.querySelector(`.wpic[data-day="${day}"]`);
       if (hung) hung.animate([{ filter: 'brightness(1.8)' }, { filter: 'brightness(1)' }], { duration: 700, easing: 'ease-out' });

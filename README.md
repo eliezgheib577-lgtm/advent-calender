@@ -12,13 +12,14 @@ Open `site/index.html`. This is what students see:
    to come in as guests (said in small print under the button).
 2. **The door opens.** It swings open with warm light spilling onto the snow, and they're
    carried inside.
-3. **The tree.** In the cabin, by the live fire, today's ornament glows on the cedar. It's
-   the only one they can open.
+3. **The tree.** In the cabin, by the live fire, the tree's lights come up softly. Today's
+   ornament has a little paper gift tag saying "Today"; it's the only one they can open.
 4. **The picture.** Tapping the ornament opens it: a picture pops out and lands in front of
    them like a photo print, with a caption written underneath. You choose both.
 5. **Hang it on the wall.** The print flies into its numbered frame on the picture wall,
-   24 frames like the LeMSIC emblem's on the log wall left of the tree. Their pictures stay
-   there from day to day, and tapping one shows it big again.
+   24 frames like the LeMSIC emblem's (4 rows of 6) on the log wall left of the tree, and a
+   gift tag with a green tick is tied to the ornament. Their pictures stay there from day to
+   day, and tapping one shows it big again.
 6. **The prize.** Students who hang all 24 pictures, one each day, see the prize message.
 
 ### Member IDs (the shared Excel sheet)
@@ -109,12 +110,19 @@ The cabin is the scene students land in: the LeMSIC tree in the middle of a log
 cabin at night, a stone fireplace burning on the left, and snow falling past the window on the
 right. Everything you see is rendered in Blender (Cycles).
 
-- **The tree is a cedar of Lebanon,** the tree in the LeMSIC emblem: broad flat layers of
-  tufted needles. It wears baubles in LeMSIC blue, silver, white and gold, numbered 1–23 and
-  scattered in a mixed order. The LeMSIC emblem medallion on top is day 24, and a blue velvet
+- **The tree is a cedar of Lebanon,** the tree in the LeMSIC emblem: nine broad, full layers
+  of tufted needles (style `cedar_lemsic_full`). It wears baubles in LeMSIC blue, silver, white
+  and gold, numbered 1–23 in a mixed order. Each hangs from a real branch near its tip, placed
+  where the camera sees it whole, and its number has a thin edge in a contrasting colour so it
+  reads on every colour. The LeMSIC emblem medallion on top is day 24, and a blue velvet
   tree skirt has the emblem embroidered on it. Other tree designs can be rendered with
   `--style` (see `STYLES` in `tools/blender/lemsic_tree.py`; previews are in
-  `images/render/options/`).
+  `images/render/options/`), and `tools/blender/tree_options.py` renders any of them in the
+  cabin for comparison.
+- **The tree lights** are about 580 bulbs spread evenly over the branches, in two sets. The
+  room images have them at half strength, and two light layers (`cabin-glow-a.jpg`,
+  `cabin-glow-b.jpg`, one per set) are added on the page: they fade up when you walk in, then
+  brighten and dim in turn, slowly.
 - **The LeMSIC emblem** hangs framed on the wall beside the tree, lit by a picture light, and
   one present is wrapped in paper printed with it.
 - **The front door** (`tools/blender/cabin_door.py`) is rendered separately: the closed door,
@@ -137,7 +145,7 @@ right. Everything you see is rendered in Blender (Cycles).
   are curly yarn. **Click him and he rocks:** the chair is rendered rolling on its rockers at a
   range of angles (`tools/blender/cabin_rock.py`), and the page plays them with a damped swing.
 - **The picture wall:** 24 frames built like the LeMSIC emblem's (walnut moulding, cream mat,
-  the print behind glass), stepping down the log wall between the chimney and the tree, each
+  the print behind glass), in 4 rows of 6 on the log wall between the chimney and the tree, each
   holding a blue card with its number until that day's picture is hung. The website lays the
   hung picture over its card, shaded by how the frame is lit in the room images and following
   the firelight (`gallery` in `scene.json`).
