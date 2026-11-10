@@ -28,8 +28,10 @@ S5 = 0.9
 XS5 = [-2.286, -1.963, -1.640, -1.317, -0.994]
 ZS5 = [3.659, 3.371, 3.083, 2.795, 2.507]
 LAYOUTS = {
-    "grid5_emblem": ("5 x 5, the 25th frame holds the LeMSIC emblem", S5, [(z, XS5) for z in ZS5], "emblem"),
-    "grid5_star": ("5 x 5, the 25th frame is a gold star for Christmas Day", S5, [(z, XS5) for z in ZS5], "star"),
+    "grid5_emblem": ("5 x 5, the 25th frame holds the LeMSIC emblem", S5, [(z, XS5) for z in ZS5[:4]] + [(ZS5[4], XS5[:4])],
+                     "emblem"),
+    "grid5_star": ("5 x 5, the 25th frame is a gold star for Christmas Day", S5, [(z, XS5) for z in ZS5[:4]] + [(ZS5[4], XS5[:4])],
+                   "star"),
     "rows5_24": ("5 across, 24 frames: the last row of 4 centred", S5,
                  [(z, XS5) for z in ZS5[:4]] + [(ZS5[4], [round((a + b) / 2, 3) for a, b in zip(XS5, XS5[1:])])], None),
 }
