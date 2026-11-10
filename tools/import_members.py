@@ -72,7 +72,8 @@ def pick_members(rows, column=None, name_column=None):
     if column:
         col = find_column(header, column)
     else:
-        candidates = [i for i, h in enumerate(header) if re.search(r"\bid\b", h, re.I)]
+        # a header with "ID" as a word of its own, e.g. "LeMSIC ID", "Member-ID", "id_to_email"
+        candidates = [i for i, h in enumerate(header) if re.search(r"(?<![a-z])id(?![a-z])", h, re.I)]
         col = candidates[0] if candidates else 0
     has_header = not normalise(rows[0][col]) or bool(re.search(r"id|member|name", header[col], re.I))
     # the name: a named column, "full name", "name", or first + last
