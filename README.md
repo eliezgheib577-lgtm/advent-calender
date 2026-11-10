@@ -12,10 +12,10 @@ Open `site/index.html`. This is what students see:
    carried inside.
 3. **The tree.** In the cabin, by the live fire, today's ornament glows on the cedar. It's
    the only one they can open.
-4. **The question.** Tapping the ornament shows the day's LeMSIC question. Any answer
-   counts. Once they log it, the ornament opens: a picture pops out of it and lands in
-   front of them like a photo print, with a caption written underneath. You choose both.
-5. **The prize.** Students who answer all 24 days see the prize message.
+4. **The picture.** Tapping the ornament opens it: a picture pops out and lands in front of
+   them like a photo print, with a caption written underneath. You choose both.
+5. **Hang it on the wall.** They hang the day's picture on their wall.
+6. **The prize.** Students who hang all 24 pictures, one each day, see the prize message.
 
 ### Member IDs (the shared Excel sheet)
 
@@ -47,30 +47,27 @@ Run workflow**. To update the list by hand instead, run
 Until the link is set up, the site uses a **sample** list (`tools/sample-members.csv`). For
 testing, use `DEMO-0001`, `DEMO-0002` or `TEST-1234`.
 
-### Questions, pictures and settings
+### Pictures and settings
 
-- `site/questions.js`: one question per day, multiple choice or free text, with an optional
-  fun fact shown after answering. Please check the facts before launch.
 - `site/pictures.js`: what pops out of each ornament, a **picture** and a **caption** of your
   choice. Put your pictures in `site/assets/days/` (any name, `.jpg`, `.png` or `.webp`, any
   shape) and write each day's file and caption there. The pictures there now are placeholders.
 - `site/config.js`: the year, the time zone (Lebanon), the prize message, the test code, and
-  optional answer recording.
+  optional recording of who hung which picture.
 
 **Test mode:** type `LEMSIC-TEST` (the `testCode` in `config.js`) instead of a LeMSIC ID at
-the door. Every ornament on the tree opens, with a *Skip to the picture* button, and nothing
-is saved or sent. *Exit the Cabin* leaves test mode. Anyone who reads `config.js` can see the
+the door. Every ornament on the tree opens, and nothing is saved or sent. *Exit the Cabin* leaves test mode. Anyone who reads `config.js` can see the
 code, so it only guards the surprise; set it to `""` to switch test mode off.
 
 **Trying a single day:** add `#day-7` (any day) to the page address, or set `previewDay` in
-`config.js`. Preview answers are kept apart and never sent to the sheet.
+`config.js`. Preview days are kept apart and never sent to the sheet.
 
-### Recording answers (who wins the prize)
+### Recording who hung which picture (who wins the prize)
 
-Without a back end, answers are kept in each student's own browser. To collect them in one
+Without a back end, each student's wall is kept in their own browser. To collect them in one
 place, use the Google Sheet script in `backend/answers-sheet.gs`; setup steps are at the top
-of the file. It logs every answer, marks whether it was given on the right day, and keeps a
-**Progress** tab showing who has answered all 24. If the sheet has a **Members** tab, it also
+of the file. It logs every picture hung, marks whether it was on the right day, and keeps a
+**Progress** tab showing who has all 24. If the sheet has a **Members** tab, it also
 refuses IDs that aren't on it.
 
 ## The cabin

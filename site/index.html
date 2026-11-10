@@ -160,20 +160,6 @@
   .fine { margin: 14px 0 0 !important; font-size: .82rem; }
   .ghost { margin-top: 10px; width: 100%; padding: 10px; border-radius: 11px; border: 1px solid rgba(242, 236, 228, 0.18); background: transparent; cursor: pointer; }
 
-  dialog.day { width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
-  dialog.day h2 { font: 700 1.3rem/1.3 var(--body); letter-spacing: 0; }
-  .eyebrow { font-size: .8rem !important; letter-spacing: .14em; text-transform: uppercase; color: var(--ember) !important; margin: 0 !important; }
-  .choices { display: grid; gap: 8px; margin: 4px 0 16px; padding: 0; border: 0; }
-  .choice { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; border-radius: 11px;
-            border: 1px solid rgba(242, 236, 228, 0.16); cursor: pointer; line-height: 1.35; }
-  .choice:has(input:checked) { border-color: var(--ember); background: rgba(242, 162, 79, 0.1); }
-  .choice input { accent-color: var(--ember); margin-top: 3px; }
-  textarea.input { min-height: 96px; resize: vertical; text-align: left; font-size: 1.02rem; letter-spacing: 0; margin-bottom: 14px; }
-  .reveal { margin: 14px 0; border-radius: 14px; overflow: hidden; background: #000; animation: open-up .8s cubic-bezier(.2, .8, .2, 1); }
-  .reveal img { display: block; width: 100%; height: auto; }
-  @keyframes open-up { from { opacity: 0; transform: scale(.6) rotate(-4deg); } }
-  .yours { color: var(--snow) !important; }
-  .fact { border-left: 3px solid var(--ember); padding-left: 12px; }
   .prize { border: 1px solid var(--ember); border-radius: 12px; padding: 12px 14px; color: var(--snow) !important; background: rgba(242, 162, 79, 0.08); }
 
   /* ---------- what pops out of an ornament: a picture and its caption, like a photo print */
@@ -278,10 +264,6 @@
     </form>
   </dialog>
 
-  <dialog id="dayPanel" class="card day" aria-labelledby="dayTitle">
-    <div id="dayContent"></div>
-  </dialog>
-
   <dialog id="popout" class="popout" aria-label="What came out of the ornament">
     <figure class="polaroid" id="polaroid">
       <img id="popImg" alt="">
@@ -293,7 +275,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="config.js"></script>
-<script src="questions.js"></script>
 <script src="pictures.js"></script>
 <script src="assets/members.js"></script>
 <script src="assets/door/door.js"></script>
@@ -302,7 +283,7 @@
 <script src="assets/cabin/rock.js"></script>
 <script>
 (() => {
-  const C = window.ADVENT_CONFIG, Q = window.ADVENT_QUESTIONS, M = window.LEMSIC_MEMBERS, P = window.ADVENT_PICTURES || {};
+  const C = window.ADVENT_CONFIG, M = window.LEMSIC_MEMBERS, P = window.ADVENT_PICTURES || {};
   const DOOR = window.CABIN_DOOR, S = window.CABIN_SCENE, F = window.CABIN_FIRE, R = window.CABIN_ROCK;
   const $ = (id) => document.getElementById(id);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -356,24 +337,25 @@
   let today = calendarDay();
   window.addEventListener('hashchange', () => { today = calendarDay(); if (member) renderTree(); });
 
-  // ---------------------------------------------------------------- members and answers
+  // ---------------------------------------------------------------- members and the pictures on their wall
   let member = null;            // { id, key }
   let testMode = false;         // organisers: every ornament opens, nothing is saved
-  let testAnswers = {};
-  const answersKey = () => `lemsic-advent-${C.year}-${member.key.slice(0, 16)}`;
-  const loadAnswers = () => (testMode ? testAnswers : (store.get(answersKey()) || {}));
-  function saveAnswer(day, answer) {
+  let testWall = {};
+  const wallKey = () => `lemsic-advent-${C.year}-${member.key.slice(0, 16)}`;
+  const loadWall = () => (testMode ? testWall : (store.get(wallKey()) || {}));
+  function hangOnWall(day) {
+    const at = new Date().toISOString();
     if (testMode) {
-      testAnswers[day] = { answer, at: new Date().toISOString(), test: true };
-      return testAnswers;
+      testWall[day] = { at, test: true };
+      return testWall;
     }
-    const all = loadAnswers();
-    all[day] = { answer, at: new Date().toISOString(), preview: today.preview || undefined };
-    store.set(answersKey(), all);
+    const all = loadWall();
+    all[day] = { at, preview: today.preview || undefined };
+    store.set(wallKey(), all);
     if (C.answersEndpoint && !today.preview) {
       fetch(C.answersEndpoint, {
         method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ id: member.id, day, answer, at: all[day].at }),
+        body: JSON.stringify({ id: member.id, day, answer: 'hung on the wall', at }),
       }).catch(() => { /* kept locally; the sheet will miss this one */ });
     }
     return all;
@@ -635,7 +617,7 @@
     const input = $('lemsicId'), btn = $('loginBtn'), err = $('loginError');
     if (C.testCode && normalise(input.value) && normalise(input.value) === normalise(C.testCode)) {
       testMode = true;
-      testAnswers = {};
+      testWall = {};
       member = { id: 'TEST', key: 'test-mode' };
       input.removeAttribute('aria-invalid');
       err.textContent = '';
@@ -711,7 +693,6 @@
 
   $('switchBtn').addEventListener('click', async () => {
     const outside = $('outside'), inside = $('inside');
-    if (panel.open) panel.close();
     if (pop.open) pop.close();
     dctx.clearRect(0, 0, doorAnim.width, doorAnim.height);
     outside.hidden = false;
@@ -723,7 +704,7 @@
     scene = 'outside';
     member = null;
     testMode = false;
-    testAnswers = {};
+    testWall = {};
     $('testBadge').hidden = true;
     $('switchBtn').hidden = true;
     if (rocker) rocker.stop();
@@ -738,7 +719,7 @@
   function dateLabel(d) { return `${d} December`; }
   const ornButtons = {};
   function renderTree() {
-    const answers = loadAnswers();
+    const wall = loadWall();
     const layer = $('ornaments');
     layer.textContent = '';
     for (const o of S.ornaments) {
@@ -748,120 +729,87 @@
       b.style.left = o.x * 100 + '%';
       b.style.top = o.y * 100 + '%';
       b.style.width = Math.max(o.r * 2.3, 0.02) * 100 + '%';
-      const done = !!answers[o.day];
+      const done = !!wall[o.day];
       if (done) b.classList.add('done');
       if (testMode) b.classList.add('testable');
       ornButtons[o.day] = b;
       if (o.day === today.day) { b.classList.add('today'); b.dataset.label = `Day ${o.day}`; }
-      b.setAttribute('aria-label', `Day ${o.day}${o.day === today.day ? ', today' : ''}${done ? ', answered' : ''}`);
+      b.setAttribute('aria-label', `Day ${o.day}${o.day === today.day ? ', today' : ''}${done ? ', on your wall' : ''}`);
       b.addEventListener('click', () => ornamentClicked(o.day));
       layer.appendChild(b);
     }
-    const n = Object.keys(answers).length;
+    const n = Object.keys(wall).length;
     const prog = $('progress');
     prog.textContent = '';
     for (let d = 1; d <= 24; d++) {
       const i = document.createElement('i');
-      if (answers[d]) i.className = 'on';
+      if (wall[d]) i.className = 'on';
       if (d === today.day) i.classList.add('now');
       prog.appendChild(i);
     }
-    prog.setAttribute('aria-label', `${n} of 24 days answered`);
-    prog.title = `${n} of 24 days answered`;
+    prog.setAttribute('aria-label', `${n} of 24 pictures on your wall`);
+    prog.title = `${n} of 24 pictures on your wall`;
     let status;
     if (testMode) status = 'Every ornament opens in test mode. Nothing is saved.';
     else if (today.day === 0) status = 'The calendar opens on 1 December. Come back then!';
-    else if (today.day === 25) status = `Merry Christmas! You answered ${n} of 24 days.`;
+    else if (today.day === 25) status = `Merry Christmas! You hung ${n} of 24 pictures on your wall.`;
     else status = `${today.preview ? 'Preview · ' : ''}Day ${today.day}: find today's ornament on the tree.`;
     $('status').textContent = status;
   }
 
   function ornamentClicked(day) {
-    const answers = loadAnswers();
-    if (testMode) return openDay(day);
-    if (day === today.day) return openDay(day);
-    if (answers[day]) return openDay(day, true);
+    if (testMode || day === today.day || loadWall()[day]) return showPicture(day);
     if (today.day === 0) return toast('The calendar opens on 1 December.');
     if (day > today.day) return toast(`Day ${day} opens on ${dateLabel(day)}.`);
     toast(`Day ${day} has passed. Each ornament opens only on its own day.`);
   }
 
-  const panel = $('dayPanel');
   function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   // what pops out of each ornament: the picture and caption chosen in pictures.js
   function pictureFor(day) {
     const p = P[day] || {};
     return {
-      picture: p.picture || (Q[day] && Q[day].picture) || `assets/days/day-${String(day).padStart(2, '0')}.png`,
+      picture: p.picture || `assets/days/day-${String(day).padStart(2, '0')}.png`,
       caption: p.caption || '',
       alt: p.alt || p.caption || `The picture for day ${day}`,
     };
   }
 
-  function openDay(day, readOnly = false) {
-    const q = Q[day] || { q: 'Share anything about LeMSIC.' };
-    const answers = loadAnswers();
-    const box = $('dayContent');
-    if (answers[day]) {
-      showReveal(day, answers);
-      return;
-    } else if (readOnly) {
-      return;
-    } else {
-      const choices = q.options
-        ? `<fieldset class="choices"><legend class="sr" hidden>Choose an answer</legend>${q.options.map((o, i) =>
-            `<label class="choice"><input type="radio" name="ans" value="${esc(o)}" ${i === 0 ? 'required' : ''}><span>${esc(o)}</span></label>`).join('')}</fieldset>`
-        : `<label class="field" for="freeAnswer">Your answer</label><textarea class="input" id="freeAnswer" name="ans" maxlength="400" required></textarea>`;
-      box.innerHTML = `
-        <p class="eyebrow">Day ${day} · ${dateLabel(day)}</p>
-        <h2 id="dayTitle">${esc(q.q)}</h2>
-        <form id="answerForm" novalidate>
-          ${choices}
-          <p class="error" id="answerError" role="alert"></p>
-          <button class="primary" type="submit">Log my answer</button>
-          ${testMode ? '<button class="ghost" type="button" id="skipQuestion">Skip to the picture</button>' : ''}
-          <button class="ghost" type="button" id="notNow">Not now</button>
-        </form>`;
-      $('notNow').addEventListener('click', () => panel.close());
-      if (testMode) $('skipQuestion').addEventListener('click', () => showReveal(day, loadAnswers()));
-      $('answerForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const val = q.options ? (form.querySelector('input[name="ans"]:checked') || {}).value : form.ans.value.trim();
-        if (!val) { $('answerError').textContent = q.options ? 'Pick an answer first. Any answer counts!' : 'Write a few words first. Any answer counts!'; return; }
-        const all = saveAnswer(day, val);
-        renderTree();
-        showReveal(day, all, true);
-      });
-    }
-    if (!panel.open) panel.showModal();
-  }
-
-  // the picture pops out of the ornament and lands in front of you, its caption written underneath
+  // the picture pops out of the ornament and lands in front of you, its caption written underneath;
+  // then you hang it on your wall
   const pop = $('popout');
   pop.addEventListener('click', (e) => { if (e.target === pop) pop.close(); });
-  async function showReveal(day, answers, fresh = false) {
-    const q = Q[day] || {};
+  async function showPicture(day) {
     const item = pictureFor(day);
-    const n = Object.keys(answers).length;
-    const done = n >= 24 && !testMode;
+    const hung = !!loadWall()[day];
     const img = $('popImg');
     img.src = item.picture;
     img.alt = item.alt;
     $('popCaption').textContent = item.caption;
-    const lines = [];
-    if (testMode) lines.push(`<p>Test mode · day ${day} · ${dateLabel(day)}. Nothing is saved.</p>`);
-    else if (fresh) lines.push(`<p>Answer logged! You've answered ${n} of 24 days.${day === today.day && !done ? ' See you tomorrow by the fire!' : ''}</p>`);
-    else lines.push(`<p>Day ${day} · ${dateLabel(day)} · you've answered ${n} of 24 days.</p>`);
-    if (answers[day] && q.fact) lines.push(`<p class="fact">${esc(q.fact)}</p>`);
-    if (done) lines.push(`<p class="prize">${esc(C.prize)}</p>`);
-    $('popInfo').innerHTML = lines.join('') + '<button class="primary" type="button" id="popClose">Back to the tree</button>';
-    $('popClose').addEventListener('click', () => pop.close());
+    const note = testMode ? `Test mode · day ${day} · ${dateLabel(day)}. Nothing is saved.`
+      : `Day ${day} · ${dateLabel(day)}${hung ? ' · on your wall' : ''}`;
+    $('popInfo').innerHTML = `<p>${esc(note)}</p>`
+      + (hung ? '<button class="primary" type="button" id="popClose">Back to the tree</button>'
+              : '<button class="primary" type="button" id="hangBtn">Hang it on the wall</button>');
+    if (hung) $('popClose').addEventListener('click', () => pop.close());
+    else $('hangBtn').addEventListener('click', () => hang(day));
     await Promise.race([img.decode().catch(() => {}), wait(1500)]);
     fitPicture(img);
-    if (panel.open) panel.close();
     pop.showModal();
     popFrom(ornButtons[day]);
+  }
+  function hang(day) {
+    const wall = hangOnWall(day);
+    renderTree();
+    const n = Object.keys(wall).length;
+    if (n >= 24 && !testMode) {
+      $('popInfo').innerHTML = `<p class="prize">${esc(C.prize)}</p>`
+        + '<button class="primary" type="button" id="popClose">Back to the tree</button>';
+      $('popClose').addEventListener('click', () => pop.close());
+      return;
+    }
+    pop.close();
+    toast(`Day ${day} is on your wall · ${n} of 24${day === today.day && !testMode ? '. See you tomorrow by the fire!' : ''}`);
   }
   // size the picture to fit the screen whatever its shape, so the print hugs it
   function fitPicture(img) {
