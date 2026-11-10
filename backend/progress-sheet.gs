@@ -8,9 +8,10 @@
  *
  * Setup (once, about 5 minutes):
  *   1. Create a new Google Sheet (e.g. "LeMSIC Advent progress").
- *      Optional but recommended: add a tab named "Members" with the LeMSIC IDs in column A
- *      and full names in column B (paste them from the Excel list). Then only those IDs are
- *      recorded, and the names come from your list.
+ *      Optional but recommended: add a tab named "Members" with a column of LeMSIC IDs and a
+ *      column of full names, with headers such as "ID_to_email" and "Full Name" in row 1 (in
+ *      either order; without headers, IDs go in column A and names in column B). Then only
+ *      those IDs are recorded, and the names come from your list.
  *   2. In the sheet: Extensions > Apps Script. Delete what's there, paste this whole file,
  *      and save.
  *   3. Deploy > New deployment > Select type: Web app.
@@ -79,14 +80,22 @@ function updateProgress(ss, log, id, name, now) {
   return days;
 }
 
-// the optional Members tab: IDs in column A, full names in column B
+// the optional Members tab: found by its headers (an "ID" column and a "Name" column, in any
+// order), or without headers, IDs in column A and names in column B
 function memberNames(ss) {
   const members = ss.getSheetByName('Members');
   if (!members || members.getLastRow() === 0) return null;
+  const rows = members.getDataRange().getValues();
+  const head = rows[0].map((h) => String(h || '').trim().toLowerCase());
+  let idCol = head.findIndex((h) => /(^|[^a-z])id([^a-z]|$)/.test(h));
+  let nameCol = head.findIndex((h) => /name/.test(h));
+  let start = 1;
+  if (idCol === -1) { idCol = 0; nameCol = 1; start = 0; }
+  if (nameCol === -1 || nameCol === idCol) nameCol = idCol === 0 ? 1 : 0;
   const out = {};
-  members.getRange(1, 1, members.getLastRow(), 2).getValues().forEach((r) => {
-    const id = normalise(r[0]);
-    if (id) out[id] = String(r[1] || '').trim();
+  rows.slice(start).forEach((r) => {
+    const id = normalise(r[idCol]);
+    if (id) out[id] = String(r[nameCol] || '').trim();
   });
   return out;
 }
