@@ -7,7 +7,9 @@ An advent calendar for LeMSIC members, 1–24 December.
 Open `site/index.html`. This is what students see:
 
 1. **The cabin door.** A snowy log cabin at night with a carved LeMSIC sign over the door.
-   A popup asks for their **LeMSIC ID**, which is checked against the member list.
+   A popup asks for their **LeMSIC ID**, which is checked against the member list. As soon
+   as they've typed a valid ID, their full name appears under it. Non-members type `0000`
+   to come in as guests (said in small print under the button).
 2. **The door opens.** It swings open with warm light spilling onto the snow, and they're
    carried inside.
 3. **The tree.** In the cabin, by the live fire, today's ornament glows on the cedar. It's
@@ -25,11 +27,17 @@ The member list is read from its **shared link**, so daily updates reach the web
 themselves. The workflow `.github/workflows/publish-site.yml` runs every 30 minutes:
 
 1. it downloads the sheet from the link;
-2. it turns the IDs into salted SHA-256 fingerprints (`site/assets/members.js`);
+2. it turns the IDs into salted SHA-256 fingerprints, and seals each member's full name with
+   a key made from their own ID (`site/assets/members.js`);
 3. it publishes the site to GitHub Pages.
 
-The website never contains the IDs or the link. The browser fingerprints what a student types
-the same way and looks for a match, ignoring case, spaces and dashes. If the sheet can't be
+The website never contains the IDs, the link, or a readable list of names. The browser
+fingerprints what a student types the same way and looks for a match, ignoring case, spaces
+and dashes; on a match it opens that one member's name to greet them. (Anyone who knows or
+guesses an ID can see that member's name, so IDs shouldn't be easy to guess.)
+
+**The sheet needs** an ID column (a header with "ID" in it) and a **Full Name** column (or
+"Name", or "First Name" + "Last Name"). If the sheet can't be
 read, nothing is published and the last good version stays online.
 
 Setup, once, in the repository's **Settings**:
@@ -38,7 +46,7 @@ Setup, once, in the repository's **Settings**:
    and paste the shared link. Excel links from OneDrive or SharePoint and Google Sheets links
    all work. The link must let *anyone with the link view* the file without signing in.
 2. If the ID column's header doesn't contain "ID", add a **variable** `MEMBERS_ID_COLUMN`
-   with the header's exact text.
+   with the header's exact text; likewise `MEMBERS_NAME_COLUMN` for the names.
 3. **Pages › Build and deployment › Source: GitHub Actions.**
 
 It runs from the default branch. To refresh straight away, use **Actions › Publish site ›
@@ -49,6 +57,9 @@ Run workflow**. To update the list by hand instead, run
 Until the link is set up, the site uses a **sample** list (`tools/sample-members.csv`). For
 testing, use `DEMO-0001`, `DEMO-0002` or `TEST-1234`.
 
+**Codes:** `0000` lets non-members in as guests (`guestCode` in `config.js`); their wall stays
+in their own browser. `nta27` opens test mode (`testCode`).
+
 ### Pictures and settings
 
 - `site/pictures.js`: what pops out of each ornament, a **picture** and a **caption** of your
@@ -57,7 +68,7 @@ testing, use `DEMO-0001`, `DEMO-0002` or `TEST-1234`.
 - `site/config.js`: the year, the time zone (Lebanon), the prize message, the test code, and
   optional recording of who hung which picture.
 
-**Test mode:** type `LEMSIC-TEST` (the `testCode` in `config.js`) instead of a LeMSIC ID at
+**Test mode:** type `nta27` (the `testCode` in `config.js`) instead of a LeMSIC ID at
 the door. Every ornament on the tree opens, and nothing is saved or sent. *Exit the Cabin* leaves test mode. Anyone who reads `config.js` can see the
 code, so it only guards the surprise; set it to `""` to switch test mode off.
 

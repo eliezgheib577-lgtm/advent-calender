@@ -1,13 +1,15 @@
 # Publishes the advent calendar (site/) to GitHub Pages, with a fresh member ID list.
 #
 # Every 30 minutes, and whenever the site changes, it downloads the member list from
-# its shared link, turns the IDs into fingerprints (site/assets/members.js) and
-# publishes the site. The IDs and the link never appear in the repository or the site.
+# its shared link, turns the IDs into fingerprints and seals each name with its own ID
+# (site/assets/members.js), and publishes the site. The IDs, the names and the link
+# never appear readable in the repository or the site.
 #
 # Setup (once), in the repository's Settings:
 #   Secrets and variables > Actions > New repository secret:
 #     MEMBERS_SHEET_URL   the shared link to the member list (anyone with the link can view)
-#   Optional variable MEMBERS_ID_COLUMN if the ID column's header doesn't contain "ID".
+#   Optional variables: MEMBERS_ID_COLUMN if the ID column's header doesn't contain "ID";
+#   MEMBERS_NAME_COLUMN if the full names aren't in a "Full Name" or "Name" column.
 #   Pages > Build and deployment > Source: GitHub Actions.
 name: Publish site
 
@@ -38,6 +40,7 @@ jobs:
     env:
       MEMBERS_SHEET_URL: ${{ secrets.MEMBERS_SHEET_URL }}
       MEMBERS_ID_COLUMN: ${{ vars.MEMBERS_ID_COLUMN }}
+      MEMBERS_NAME_COLUMN: ${{ vars.MEMBERS_NAME_COLUMN }}
     steps:
       - uses: actions/checkout@v4
 

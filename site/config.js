@@ -14,10 +14,14 @@ window.ADVENT_CONFIG = {
   answersEndpoint: "",
 
   // Test mode, for organisers: type this code instead of a LeMSIC ID at the door.
-  // Every ornament on the tree opens, and nothing is saved
-  // or sent. Anyone who reads this file can see the code, so it only guards the
-  // surprise, not the answers. Set it to "" to switch test mode off.
-  testCode: "LEMSIC-TEST",
+  // Every ornament on the tree opens, and nothing is saved or sent. Anyone who reads
+  // this file can see the code, so it only guards the surprise. "" switches it off.
+  testCode: "nta27",
+
+  // Guests who aren't LeMSIC members type this to come in (shown under the door's
+  // button). Their wall is kept in their own browser and never sent to the sheet.
+  // "" switches it off.
+  guestCode: "0000",
 
   // Shown when a student has hung all 24 pictures on their wall.
   prize: "You opened every ornament from 1 to 24 December and hung all 24 pictures on your wall. Show this screen to the LeMSIC team to claim your prize!",

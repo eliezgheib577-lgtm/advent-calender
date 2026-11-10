@@ -150,6 +150,12 @@
   }
   .input:focus { border-color: var(--ember); outline: none; box-shadow: 0 0 0 3px var(--ember-dim); }
   .input[aria-invalid="true"] { border-color: var(--error); }
+  .who { min-height: 1.45em; margin: 8px 0 0 !important; color: var(--snow) !important; font-weight: 500; font-size: 1rem;
+         opacity: 0; transition: opacity .25s; }
+  .who.show { opacity: 1; }
+  .who .tick { color: var(--ember); margin-right: 6px; }
+  .guest-note { margin: 12px 0 0 !important; font-size: .82rem; color: var(--ash) !important; opacity: .85; }
+  .guest-note strong { color: var(--snow); font-weight: 600; letter-spacing: .06em; }
   .error { min-height: 1.4em; margin: 8px 0 6px !important; color: var(--error) !important; font-size: .92rem; }
   .primary {
     width: 100%; padding: 13px 18px; border-radius: 11px; border: 0; cursor: pointer;
@@ -326,9 +332,11 @@
       <p>Enter your LeMSIC ID to open the door.</p>
       <label class="field" for="lemsicId">LeMSIC ID</label>
       <input class="input" id="lemsicId" name="lemsicId" autocomplete="off" autocapitalize="characters"
-             spellcheck="false" required aria-describedby="loginError">
+             spellcheck="false" required aria-describedby="idWho loginError">
+      <p class="who" id="idWho" aria-live="polite"></p>
       <p class="error" id="loginError" role="alert"></p>
       <button type="submit" class="primary" id="loginBtn">Open the door</button>
+      <p class="guest-note" id="guestNote">Not a LeMSIC member? Enter <strong id="guestCode">0000</strong> to come in as a guest.</p>
       <p class="fine" id="loginFine">Your ID is checked against the LeMSIC member list.</p>
     </form>
   </dialog>
@@ -430,7 +438,7 @@
     const all = loadWall();
     all[day] = { at, preview: today.preview || undefined };
     store.set(wallKey(), all);
-    if (C.answersEndpoint && !today.preview) {
+    if (C.answersEndpoint && !today.preview && !member.guest) {
       fetch(C.answersEndpoint, {
         method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ id: member.id, day, answer: 'hung on the wall', at }),
@@ -438,12 +446,33 @@
     }
     return all;
   }
+  const isCode = (id, code) => !!code && !!id && id === normalise(String(code));
   async function checkId(raw) {
     const id = normalise(raw);
     if (!id) return { ok: false, msg: 'Type your LeMSIC ID to continue.' };
+    if (isCode(id, C.guestCode)) return { ok: true, id: 'GUEST', key: 'guest-visitor', guest: true, name: '' };
     const key = await sha256(M.salt + id);
-    if (!M.hashes.includes(key)) return { ok: false, msg: "We couldn't find that LeMSIC ID. Check it and try again." };
-    return { ok: true, id, key };
+    if (!(key in M.members)) return { ok: false, msg: "We couldn't find that LeMSIC ID. Check it and try again." };
+    return { ok: true, id, key, name: await openName(id, M.members[key]) };
+  }
+  // each member's name is sealed with a key made from their own ID (see tools/import_members.py)
+  async function openName(id, sealed) {
+    if (!sealed) return '';
+    try {
+      const enc = new TextEncoder();
+      const base = await crypto.subtle.importKey('raw', enc.encode(id), 'PBKDF2', false, ['deriveBits']);
+      const key = new Uint8Array(await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('name:' + M.salt), iterations: M.rounds }, base, 256));
+      const data = Uint8Array.from(atob(sealed), (c) => c.charCodeAt(0));
+      const out = new Uint8Array(data.length);
+      for (let i = 0; i * 32 < data.length; i++) {
+        const block = new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array([...key, i >>> 24, (i >>> 16) & 255, (i >>> 8) & 255, i & 255])));
+        for (let j = 0; j < 32 && i * 32 + j < data.length; j++) out[i * 32 + j] = data[i * 32 + j] ^ block[j];
+      }
+      return new TextDecoder().decode(out);
+    } catch (e) {
+      return '';
+    }
   }
 
   // ---------------------------------------------------------------- outside: snow falling in front of the cabin
@@ -685,8 +714,35 @@
   // ---------------------------------------------------------------- arriving: ID, door, inside
   const login = $('login');
   login.addEventListener('cancel', (e) => e.preventDefault());     // the ID is required to go in
-  if (M.sample) $('loginFine').textContent = 'Preview: the real member list isn\'t connected yet. Use DEMO-0001 to look around'
-    + (C.testCode ? `, or ${C.testCode} for test mode.` : '.');
+  if (M.sample) $('loginFine').textContent = 'Preview: the real member list isn\'t connected yet. Try DEMO-0001.';
+  if (C.guestCode) $('guestCode').textContent = C.guestCode; else $('guestNote').hidden = true;
+  let whoSeq = 0, whoTimer = 0;
+  function showWho(html) {
+    const who = $('idWho');
+    who.innerHTML = html;
+    who.classList.toggle('show', !!html);
+  }
+  $('lemsicId').addEventListener('input', () => {
+    clearTimeout(whoTimer);
+    $('loginError').textContent = '';
+    $('lemsicId').removeAttribute('aria-invalid');
+    const seq = ++whoSeq;
+    whoTimer = setTimeout(async () => {
+      const id = normalise($('lemsicId').value);
+      let html = '';
+      if (isCode(id, C.testCode)) html = '<span class="tick">✓</span>Test mode';
+      else if (isCode(id, C.guestCode)) html = '<span class="tick">✓</span>Guest · not a LeMSIC member';
+      else if (id) {
+        const key = await sha256(M.salt + id);
+        if (key in M.members) {
+          const name = await openName(id, M.members[key]);
+          html = `<span class="tick">✓</span>${esc(name || 'LeMSIC member')}`;
+        }
+      }
+      if (seq === whoSeq) showWho(html);
+    }, 180);
+  });
+  if ($('lemsicId').value) $('lemsicId').dispatchEvent(new Event('input'));
   const remembered = store.get('lemsic-advent-last-id');
   if (remembered) $('lemsicId').value = remembered;
   const doorReady = preloadDoor();
@@ -695,7 +751,7 @@
   $('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = $('lemsicId'), btn = $('loginBtn'), err = $('loginError');
-    if (C.testCode && normalise(input.value) && normalise(input.value) === normalise(C.testCode)) {
+    if (isCode(normalise(input.value), C.testCode)) {
       testMode = true;
       testWall = {};
       member = { id: 'TEST', key: 'test-mode' };
@@ -719,10 +775,12 @@
     }
     input.removeAttribute('aria-invalid');
     err.textContent = '';
-    member = { id: res.id, key: res.key };
+    member = { id: res.id, key: res.key, name: res.name, guest: !!res.guest };
     store.set('lemsic-advent-last-id', input.value.trim());
     login.close();
     await goInside();
+    toast(member.guest ? 'Welcome, guest! Make yourself at home by the fire.'
+      : `Welcome${member.name ? ', ' + member.name.split(' ')[0] : ''}! Make yourself at home by the fire.`);
   });
 
   async function goInside() {
@@ -792,6 +850,7 @@
     $('progress').hidden = true;
     $('status').textContent = '1–24 December';
     $('lemsicId').value = '';
+    showWho('');
     scrollTo(0.5);
     login.showModal();
   });
