@@ -35,6 +35,10 @@ LAYOUTS = {
     "rows5_24": ("5 across, 24 frames: the last row of 4 centred", S5,
                  [(z, XS5) for z in ZS5[:4]] + [(ZS5[4], [round((a + b) / 2, 3) for a, b in zip(XS5, XS5[1:])])], None),
 }
+# four across, six down, the same bigger frames
+XS4 = [-2.286, -1.997, -1.708, -1.419]
+ZS6 = [3.659, 3.375, 3.091, 2.807, 2.523, 2.239]
+LAYOUTS["grid4x6"] = ("4 across, 6 down", S5, [(z, XS4) for z in ZS6], None)
 ORDER = [a for a in ARGS if not a.startswith("--")] or list(LAYOUTS)
 BASE = dict(img=C.G_IMG, mat=C.G_MAT, mould=C.G_MOULD, scale=C.G_SCALE)
 ORIGINAL_WALL = C.picture_wall
