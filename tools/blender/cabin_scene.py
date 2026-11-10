@@ -412,8 +412,8 @@ G_SCALE = 1.0
 if WALL == "grid":
     # four even rows of six, a little smaller so all six fit between the chimney and the tree
     G_SCALE = 0.82
-    _xs = [round(-2.27 + 0.265 * k, 3) for k in range(6)]
-    GALLERY = [(z, _xs) for z in (3.68, 3.39, 3.10, 2.81)]
+    _xs = [round(-2.30 + 0.265 * k, 3) for k in range(6)]
+    GALLERY = [(z, _xs) for z in (3.56, 3.27, 2.98, 2.69)]
     G_IMG = (G_IMG[0] * G_SCALE, G_IMG[1] * G_SCALE)
     G_MAT, G_MOULD = G_MAT * G_SCALE, G_MOULD * G_SCALE
 G_Y = BACK_Y - 0.06

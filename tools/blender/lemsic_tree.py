@@ -139,7 +139,7 @@ for _k, (_label, _) in ARZ_SHAPES.items():
 # glow in turn on the page
 STYLES["cedar_lemsic_full"] = dict(STYLES["cedar_lemsic"], label="LeMSIC Cedar, fuller", shape="cedar_full",
                                    palette="lemsic_soft", hang="branch", numbers="edged", bauble_r=0.080,
-                                   twinkle=True)
+                                   twinkle=True, more_lights_right=90)
 STYLE_NAME = "serpent"
 STYLE = STYLES[STYLE_NAME]
 SHAPE = SHAPES["tiers"]
@@ -698,6 +698,17 @@ def fairy_lights():
         p = tier_surface(i, th, rng.uniform(0.35, 0.97))
         p[2] += rng.uniform(-0.03, 0.02)
         pts.append(p)
+    extra = STYLE.get("more_lights_right", 0)
+    if extra:
+        # more bulbs on the right of the tree (Fares's side), from the front round to the side;
+        # their own random numbers, so nothing else on the tree moves
+        r2 = np.random.default_rng(2412)
+        for _ in range(extra):
+            i = int(r2.integers(1, N_TIERS))
+            th = r2.uniform(math.radians(-80), math.radians(25))
+            p = tier_surface(i, th, r2.uniform(0.45, 0.97))
+            p[2] += r2.uniform(-0.03, 0.02)
+            pts.append(p)
     glow = (0.80, 0.88, 1.0) if kind == "white" else (1.0, 0.62, 0.28)
     mat = simple_material("Bulb", (1.0, 0.75, 0.4), rough=0.3, emit=glow, emit_strength=28)
     pts = np.array(pts)
