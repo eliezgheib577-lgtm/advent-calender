@@ -594,6 +594,11 @@ def setup(scene):
     wg.visible_glossy = False
     area_light("Fill", (0.8, -6.5, 2.6), (0, 0, 1.3), 55, 4.0, (1.0, 0.82, 0.62), "room")
     area_light("TreeKey", (1.6, -3.2, 3.6), (0, 0, 1.6), 70, 1.5, (1.0, 0.85, 0.7), "room")
+    # the warm glow of the tree's lights falling on Fares beside it
+    fx, fy, _ = FARES_AT
+    glow = area_light("FaresGlow", (fx - 1.0, fy - 1.3, 1.25), (fx, fy, 0.55), 22, 1.2, (1.0, 0.78, 0.55), "tree")
+    glow.visible_camera = False
+    glow.visible_glossy = False
 
     world = bpy.data.worlds.new("Night")
     scene.world = world

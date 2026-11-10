@@ -345,7 +345,7 @@ def steam_material():
     wv.operation = "SUBTRACT"
     nt.links.new(warp.outputs["Color"], wv.inputs[0])
     wv.inputs[1].default_value = (0.5, 0.5, 0.5)
-    amp = _math(nt, "MULTIPLY_ADD", h, 0.22, 0.004)
+    amp = _math(nt, "MULTIPLY_ADD", h, 0.16, 0.004)
     ws = nt.nodes.new("ShaderNodeVectorMath")
     ws.operation = "SCALE"
     nt.links.new(wv.outputs[0], ws.inputs[0])
@@ -357,12 +357,12 @@ def steam_material():
     qs = nt.nodes.new("ShaderNodeSeparateXYZ")
     nt.links.new(q.outputs[0], qs.inputs[0])
     # the plume's centre line drifts sideways as it rises
-    dx = _math(nt, "MULTIPLY", h, 0.32)
+    dx = _math(nt, "MULTIPLY_ADD", h, 0.42, 0.01)
     dy = _math(nt, "MULTIPLY_ADD", h, -0.1, -0.012)
     ex = _math(nt, "SUBTRACT", qs.outputs["X"], dx)
     ey = _math(nt, "SUBTRACT", qs.outputs["Y"], dy)
     d = _math(nt, "SQRT", _math(nt, "ADD", _math(nt, "MULTIPLY", ex, ex), _math(nt, "MULTIPLY", ey, ey)))
-    r = _math(nt, "MULTIPLY_ADD", h, 0.26, 0.014)
+    r = _math(nt, "MULTIPLY_ADD", h, 0.13, 0.011)
     core = _math(nt, "POWER", _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", d, r), clamp=True), 1.5)
     # thin curling sheets: where a vertically stretched noise crosses its midpoint; they rise with the air
     qa = nt.nodes.new("ShaderNodeVectorMath")
@@ -377,8 +377,8 @@ def steam_material():
     ridge = _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", _math(nt, "ABSOLUTE", _math(nt, "SUBTRACT", wisp.outputs["Fac"], 0.5)),
                                                          0.045), clamp=True)
     fade = _math(nt, "MULTIPLY", _math(nt, "DIVIDE", h, 0.025, clamp=True),
-                 _math(nt, "POWER", _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", h, 0.25), clamp=True), 2.5))
-    dens = _math(nt, "MULTIPLY", _math(nt, "MULTIPLY", core, _math(nt, "POWER", ridge, 1.5)), _math(nt, "MULTIPLY", fade, 42.0))
+                 _math(nt, "POWER", _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", h, 0.44), clamp=True), 1.6))
+    dens = _math(nt, "MULTIPLY", _math(nt, "MULTIPLY", core, _math(nt, "POWER", ridge, 1.5)), _math(nt, "MULTIPLY", fade, 85.0))
     v = nt.nodes.new("ShaderNodeVolumePrincipled")
     v.inputs["Color"].default_value = (0.92, 0.92, 0.92, 1)
     v.inputs["Anisotropy"].default_value = 0.45
@@ -1111,7 +1111,7 @@ def build_fares(steam=True):
     for ob in build_tumbler():
         add(place(ob, M_cup))
     # steam rising from the open cup
-    st = box("Steam", (-0.09, -0.13, 0.0), (0.15, 0.07, 0.26), steam_material())
+    st = box("Steam", (-0.07, -0.14, 0.0), (0.27, 0.08, 0.45), steam_material())
     st.location = tuple(top)
     st.hide_render = not steam
     add(st)

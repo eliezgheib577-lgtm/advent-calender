@@ -55,7 +55,7 @@ def build():
     c.volume_bounces = 1
     scene.view_settings.view_transform = "Standard"    # added on top of the tone-mapped room
     scene.view_settings.look = "None"
-    scene.view_settings.exposure = 0.6
+    scene.view_settings.exposure = 1.5
 
     # crop to the steam volume as the camera sees it
     bpy.context.view_layer.update()
@@ -78,7 +78,7 @@ def main():
     print(f"scene built in {time.time() - t0:.0f}s, crop {crop}", flush=True)
     tnode = mat.node_tree.nodes["time"]
     total = LOOP + FADE
-    count = int(os.environ.get("STEAM_TEST_FRAMES", 4)) if PREVIEW else total
+    count = int(os.environ.get("STEAM_TEST_FRAMES", 4 if PREVIEW else total))
     t0 = time.time()
     for f in range(count):
         tnode.outputs[0].default_value = f / FPS
@@ -86,7 +86,7 @@ def main():
         bpy.ops.render.render(write_still=True)
         if f % 12 == 0:
             print(f"  frame {f}/{count}  {time.time() - t0:.0f}s", flush=True)
-    if PREVIEW:
+    if count < total:
         return
 
     frames = [FIRE.read_png(os.path.join(FRAMES_DIR, f"s{f:03d}.png")) for f in range(total)]
