@@ -48,11 +48,18 @@ ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
 RES = (640, 360) if PREVIEW else (1920, 1080)
 SAMPLES = 64 if PREVIEW else 640
+WALL = "slope"                       # the picture wall: "slope" (6, 6, 5, 4, 3) or "grid" (4 rows of 6)
 for _a in ARGS:
     if _a.startswith("--res="):
         RES = tuple(int(x) for x in _a[6:].split("x"))
     if _a.startswith("--samples="):
         SAMPLES = int(_a[10:])
+    if _a.startswith("--tree="):                     # try another tree style
+        TREE_STYLE = _a[7:]
+    if _a.startswith("--wall="):                     # try another picture-wall layout
+        WALL = _a[7:]
+    if _a.startswith("--out="):                      # write somewhere else (a preview), not into the site
+        OUT_DIR = BUILD_DIR = os.path.abspath(_a[6:])
 
 rng = np.random.default_rng(7)
 
@@ -401,6 +408,14 @@ GALLERY = [(3.68, [-2.24, -1.91, -1.58, -1.25, -0.92, -0.59]),
            (2.20, [-2.24, -1.91, -1.58])]
 G_IMG = (0.17, 0.17 * 378 / 453)          # the print, in the emblem's proportions
 G_MAT, G_MOULD = 0.02, 0.022
+G_SCALE = 1.0
+if WALL == "grid":
+    # four even rows of six, a little smaller so all six fit between the chimney and the tree
+    G_SCALE = 0.82
+    _xs = [round(-2.27 + 0.265 * k, 3) for k in range(6)]
+    GALLERY = [(z, _xs) for z in (3.68, 3.39, 3.10, 2.81)]
+    G_IMG = (G_IMG[0] * G_SCALE, G_IMG[1] * G_SCALE)
+    G_MAT, G_MOULD = G_MAT * G_SCALE, G_MOULD * G_SCALE
 G_Y = BACK_Y - 0.06
 NUMBER_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
 
@@ -427,14 +442,15 @@ def picture_wall():
         cu = bpy.data.curves.new(f"GalleryNumber{day}", "FONT")
         cu.body = str(day)
         cu.align_x, cu.align_y = "CENTER", "CENTER"
-        cu.size = 0.085
+        cu.size = 0.085 * G_SCALE
         if font:
             cu.font = font
         cu.materials.append(ink)
         ob = link(bpy.data.objects.new(f"GalleryNumber{day}", cu))
         ob.location = (cx, G_Y - 0.0152, cz)
         ob.rotation_euler = (math.radians(90), 0, 0)
-        plate = box("GalleryPlate", (0.078, 0.006, 0.028), (cx, G_Y - 0.003, cz - H / 2 - 0.036), brass)
+        plate = box("GalleryPlate", (0.078 * G_SCALE, 0.006, 0.028 * G_SCALE),
+                    (cx, G_Y - 0.003, cz - H / 2 - 0.036 * G_SCALE), brass)
         plate.modifiers["bevel"].width = 0.003
 
 
@@ -634,12 +650,15 @@ def setup(scene):
     scene.camera = cam
 
     vl = scene.view_layers[0]
-    for name in ("fire_l", "fire_r", "embers", "tree", "room"):
+    twinkle = "FairyLights2" in bpy.data.objects
+    for name in ("fire_l", "fire_r", "embers", "tree", "room") + (("tree2",) if twinkle else ()):
         vl.lightgroups.add(name=name)
 
     # tree lights (fairy lights, star) twinkle separately from the fire
     for name in ("FairyLights", "Star", "StarGlow"):
         set_lightgroup(bpy.data.objects[name], "tree")
+    if twinkle:                                        # the second set of bulbs glows in turn with the first
+        set_lightgroup(bpy.data.objects["FairyLights2"], "tree2")
 
     # moonlight through the window, and a dim bounce fill from the room
     sun = bpy.data.lights.new("Moon", "SUN")
@@ -657,7 +676,8 @@ def setup(scene):
     area_light("TreeKey", (1.6, -3.2, 3.6), (0, 0, 1.6), 70, 1.5, (1.0, 0.85, 0.7), "room")
     # the warm glow of the tree's lights falling on Fares beside it
     fx, fy, _ = FARES_AT
-    glow = area_light("FaresGlow", (fx - 1.0, fy - 1.3, 1.5), (fx, fy, 0.85), 24, 1.2, (1.0, 0.78, 0.55), "tree")
+    glow = area_light("FaresGlow", (fx - 1.0, fy - 1.3, 1.5), (fx, fy, 0.85), 24, 1.2, (1.0, 0.78, 0.55),
+                      "room" if twinkle else "tree")      # (steady when the tree lights glow in turn)
     glow.visible_camera = False
     glow.visible_glossy = False
 
@@ -741,16 +761,31 @@ def blur(img, sigma):
     return out
 
 
-def save_tonemapped(scene, rgb, path):
+def save_tonemapped(scene, rgb, path, quality=90):
     h, w, _ = rgb.shape
     img = bpy.data.images.new("tmp", w, h, float_buffer=True, alpha=False)
     rgba = np.concatenate([rgb, np.ones((h, w, 1), np.float32)], -1)[::-1]      # Blender images are bottom-up
     img.pixels.foreach_set(np.ascontiguousarray(rgba, dtype=np.float32).ravel())
     scene.render.image_settings.media_type = "IMAGE"
     scene.render.image_settings.file_format = "JPEG"
-    scene.render.image_settings.quality = 90
+    scene.render.image_settings.quality = quality
     scene.render.image_settings.color_mode = "RGB"
     img.save_render(path, scene=scene)
+    bpy.data.images.remove(img)
+
+
+def write_jpeg(scene, rgb, path, quality=86):
+    """Display values (0-1, top row first) straight into a JPEG, with no colour management."""
+    h, w, _ = rgb.shape
+    img = bpy.data.images.new("out", w, h, alpha=False)
+    img.colorspace_settings.name = "sRGB"
+    rgba = np.concatenate([rgb, np.ones((h, w, 1), np.float32)], -1)[::-1]
+    img.pixels.foreach_set(np.ascontiguousarray(rgba, dtype=np.float32).ravel())
+    img.filepath_raw = path
+    img.file_format = "JPEG"
+    scene.render.image_settings.file_format = "JPEG"
+    scene.render.image_settings.quality = quality
+    img.save(filepath=path, quality=quality)
     bpy.data.images.remove(img)
 
 
@@ -786,6 +821,13 @@ def make_variants(scene, exr_path):
     FL = blur(p["Combined_fire_l"], 1.2)
     FR = blur(p["Combined_fire_r"], 1.2)
     EM = blur(p["Combined_embers"], 1.2)
+    glows = {}
+    if "Combined_tree2" in p:
+        # the tree lights glow softly on the page: the room images have the bulbs at half strength, and
+        # two light layers (each set of bulbs) are added over them, brightening and dimming in turn
+        TA, TB = p["Combined_tree"], p["Combined_tree2"]
+        C = C - 0.5 * (TA + TB)
+        glows = {"cabin-glow-a.jpg": TA, "cabin-glow-b.jpg": TB}
     # C already contains the fire at strength 1.0; add or remove some of it
     variants = {
         "cabin.jpg": C,
@@ -796,6 +838,16 @@ def make_variants(scene, exr_path):
     for name, img in variants.items():
         save_tonemapped(scene, photo_finish(np.clip(img, 0, None)), os.path.join(OUT_DIR, name))
         print("  wrote", name)
+    if glows:
+        ref_path = os.path.join(BUILD_DIR, "glow-ref.jpg")
+        save_tonemapped(scene, photo_finish(np.clip(C, 0, None)), ref_path, quality=100)
+        ref = read_display(ref_path)
+        for name, T in glows.items():
+            lit_path = os.path.join(BUILD_DIR, "glow-lit.jpg")
+            save_tonemapped(scene, photo_finish(np.clip(C + 0.8 * T, 0, None)), lit_path, quality=100)
+            add = np.clip(read_display(lit_path) - ref - 2.5 / 255, 0, 1)        # (minus the JPEG noise)
+            write_jpeg(scene, add, os.path.join(OUT_DIR, name), quality=88)
+            print("  wrote", name)
 
 
 # ---------------------------------------------------------------- scene info for the website
@@ -833,8 +885,8 @@ def scene_info(scene, spots):
         b = project(scene, cam, (cx + G_IMG[0] / 2, y, cz - G_IMG[1] / 2))
         m0 = project(scene, cam, (cx - W_ / 2 + G_MOULD, y, cz + H_ / 2 - G_MOULD))
         m1 = project(scene, cam, (cx + W_ / 2 - G_MOULD, y, cz - H_ / 2 + G_MOULD))
-        p0 = project(scene, cam, (cx - 0.039, G_Y - 0.006, cz - H_ / 2 - 0.022))
-        p1 = project(scene, cam, (cx + 0.039, G_Y - 0.006, cz - H_ / 2 - 0.050))
+        p0 = project(scene, cam, (cx - 0.039 * G_SCALE, G_Y - 0.006, cz - H_ / 2 - 0.022 * G_SCALE))
+        p1 = project(scene, cam, (cx + 0.039 * G_SCALE, G_Y - 0.006, cz - H_ / 2 - 0.050 * G_SCALE))
         info["gallery"].append({"day": day, "picture": [a[0], a[1], b[0], b[1]], "mat": [m0[0], m0[1], m1[0], m1[1]],
                                 "plate": [p0[0], p0[1], p1[0], p1[1]]})
     for s in sorted(spots, key=lambda s: s["day"]):

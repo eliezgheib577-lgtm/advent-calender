@@ -29,3 +29,26 @@ for day in range(1, 25):
     d.text((x, y), text, font=font, fill=(255, 255, 255, 255))
     img.save(os.path.join(OUT, f"num-{day:02d}.png"))
 print("decals written to", OUT)
+
+# edged numbers: the digits in red and the digits grown by a thin edge in green, on black
+# (lemsic_tree.edged_decal_material paints the edge in a colour that stands out on the ornament)
+EDGE = 15
+for day in range(1, 25):
+    text = str(day)
+    probe = ImageDraw.Draw(Image.new("L", (SIZE, SIZE)))
+    fs = 400
+    while True:
+        font = ImageFont.truetype(FONT, fs)
+        l, t, r, b = probe.textbbox((0, 0), text, font=font, stroke_width=EDGE)
+        if r - l <= SIZE * 0.80 and b - t <= SIZE * 0.66:
+            break
+        fs -= 6
+    x = (SIZE - (r - l)) / 2 - l
+    y = (SIZE - (b - t)) / 2 - t
+    fill = Image.new("L", (SIZE, SIZE), 0)
+    ImageDraw.Draw(fill).text((x, y), text, font=font, fill=255)
+    edge = Image.new("L", (SIZE, SIZE), 0)
+    ImageDraw.Draw(edge).text((x, y), text, font=font, fill=255, stroke_width=EDGE, stroke_fill=255)
+    Image.merge("RGB", (fill, edge, Image.new("L", (SIZE, SIZE), 0))).save(
+        os.path.join(OUT, f"edged-{day:02d}.png"))
+print("edged decals written to", OUT)

@@ -97,6 +97,10 @@ ARZ_SHAPES = {
                                              nb=(18, 4), prof=(0.12, 0.34), tilt=(-0.20, 0.08), twig=1.10)),
 }
 SHAPES.update({k: v for k, (_, v) in ARZ_SHAPES.items()})
+# the current cedar, fuller: the same nine layers at the same sizes, with more branches, longer side
+# twigs and more twiglets, so the layers close up and the gaps in them fill in
+SHAPES["cedar_full"] = dict(SHAPES["cedar"], nb=(22, 3.4), twig=1.12, jitter=(0.84, 1.05), tilt=(-0.14, 0.26),
+                            twiglets=(4, 8), top_twigs=60)
 NEEDLE_SETS = {
     "fir": dict(dark=(0.012, 0.040, 0.016), mid=(0.030, 0.085, 0.030), tip=(0.085, 0.190, 0.045),
                 blue=(0.016, 0.055, 0.048), length=(0.020, 0.032)),
@@ -130,6 +134,12 @@ STYLES = {
 }
 for _k, (_label, _) in ARZ_SHAPES.items():
     STYLES[_k] = dict(STYLES["cedar_lemsic"], label=_label, shape=_k)
+# the current tree, fuller, with its ornaments hung from real branches where they can be seen, a little
+# larger, their numbers edged so they read on every colour, and the fairy lights in two sets that can
+# glow in turn on the page
+STYLES["cedar_lemsic_full"] = dict(STYLES["cedar_lemsic"], label="LeMSIC Cedar, fuller", shape="cedar_full",
+                                   palette="lemsic_soft", hang="branch", numbers="edged", bauble_r=0.080,
+                                   twinkle=True)
 STYLE_NAME = "serpent"
 STYLE = STYLES[STYLE_NAME]
 SHAPE = SHAPES["tiers"]
@@ -391,6 +401,61 @@ def decal_material(name, base_kw, decal_kw, image_path, half_size):
     return m
 
 
+def edged_decal_material(name, base_kw, decal_kw, edge_kw, image_path, half_size):
+    """Like decal_material, with a thin edge round the digits in a contrasting colour.
+    The image holds the digits in red and the digits grown by the edge in green."""
+    m, nt, out = new_material(name)
+    base = principled(nt, **base_kw)
+    dec = principled(nt, **decal_kw)
+    edge = principled(nt, **edge_kw)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    uv = []
+    for _ in range(2):
+        mth = nt.nodes.new("ShaderNodeMath")
+        mth.operation = "MULTIPLY_ADD"
+        mth.inputs[1].default_value = 0.5 / half_size
+        mth.inputs[2].default_value = 0.5
+        uv.append(mth)
+    comb = nt.nodes.new("ShaderNodeCombineXYZ")
+    img = nt.nodes.new("ShaderNodeTexImage")
+    img.image = bpy.data.images.load(image_path, check_existing=True)
+    img.image.colorspace_settings.name = "Non-Color"
+    img.extension = "CLIP"
+    img.interpolation = "Cubic"
+    chan = nt.nodes.new("ShaderNodeSeparateColor")
+    front = nt.nodes.new("ShaderNodeMath")
+    front.operation = "LESS_THAN"
+    front.inputs[1].default_value = 0.0
+    f_edge = nt.nodes.new("ShaderNodeMath")
+    f_edge.operation = "MULTIPLY"
+    f_fill = nt.nodes.new("ShaderNodeMath")
+    f_fill.operation = "MULTIPLY"
+    mix_edge = nt.nodes.new("ShaderNodeMixShader")
+    mix_fill = nt.nodes.new("ShaderNodeMixShader")
+    L = nt.links.new
+    L(tc.outputs["Object"], sep.inputs[0])
+    L(sep.outputs["X"], uv[0].inputs[0])
+    L(sep.outputs["Z"], uv[1].inputs[0])
+    L(uv[0].outputs[0], comb.inputs["X"])
+    L(uv[1].outputs[0], comb.inputs["Y"])
+    L(comb.outputs[0], img.inputs["Vector"])
+    L(img.outputs["Color"], chan.inputs[0])
+    L(sep.outputs["Y"], front.inputs[0])
+    L(chan.outputs[1], f_edge.inputs[0])
+    L(front.outputs[0], f_edge.inputs[1])
+    L(chan.outputs[0], f_fill.inputs[0])
+    L(front.outputs[0], f_fill.inputs[1])
+    L(f_edge.outputs[0], mix_edge.inputs[0])
+    L(base.outputs[0], mix_edge.inputs[1])
+    L(edge.outputs[0], mix_edge.inputs[2])
+    L(f_fill.outputs[0], mix_fill.inputs[0])
+    L(mix_edge.outputs[0], mix_fill.inputs[1])
+    L(dec.outputs[0], mix_fill.inputs[2])
+    L(mix_fill.outputs[0], out.inputs["Surface"])
+    return m
+
+
 # ---------------------------------------------------------------- foliage
 NEEDLE_DARK = np.array([0.012, 0.040, 0.016])
 NEEDLE_MID = np.array([0.030, 0.085, 0.030])
@@ -488,6 +553,9 @@ def rotate_z(vecs, angles):
     return np.stack([x, y, vecs[:, 2]], axis=1)
 
 
+BRANCHES = []          # (tier, angle, spine points) of every branch, filled by build_tier
+
+
 def build_tier(i):
     """One flat tier of branches. Returns wood segments, twigs, and tier surface samples."""
     z0, R = TIER_Z[i], TIER_R[i]
@@ -503,6 +571,7 @@ def build_tier(i):
         rad = r0 + t * L
         zz = z0 + L * (SHAPE["prof"][0] * t - SHAPE["prof"][1] * t ** 2) + rng.uniform(-0.05, 0.05)
         pts = np.stack([rad * np.cos(ang), rad * np.sin(ang), zz], axis=1)
+        BRANCHES.append((i, float(th) % (2 * np.pi), pts))
         rb = (0.010 + 0.011 * R) * (1 - 0.8 * t)
         wood[0].append(pts[:-1]); wood[1].append(pts[1:]); wood[2].append(rb[:-1]); wood[3].append(rb[1:])
         # the spine carries needles too, beyond the bare inner part
@@ -528,7 +597,7 @@ def build_tier(i):
             wood[0].append(p[None]); wood[1].append((p + d2 * l2 * 0.9)[None])
             wood[2].append(np.array([0.003])); wood[3].append(np.array([0.0012]))
             # twiglets off each twig give the foliage depth
-            for q in range(int(rng.integers(3, 7))):
+            for q in range(int(rng.integers(*SHAPE.get("twiglets", (3, 7))))):
                 tq = rng.uniform(0.15, 0.85)
                 pq = p + d2 * l2 * tq
                 dq = rotate_z(d2[None], np.array([rng.choice([-1, 1]) * np.radians(rng.uniform(30, 60))]))[0]
@@ -546,7 +615,7 @@ def build_top():
     D = np.tile([0.0, 0, 1], (5, 1))
     Ls = np.diff(z)
     extra_P, extra_D, extra_L = [P], [D], [Ls]
-    for k in range(36):
+    for k in range(SHAPE.get("top_twigs", 36)):
         a = rng.uniform(0, 2 * np.pi)
         zz = rng.uniform(TIER_Z[0] - 0.04, TRUNK_TOP - 0.03)
         d = np.array([np.cos(a), np.sin(a), rng.uniform(0.6, 1.4)])
@@ -587,6 +656,7 @@ def build_tree():
     """
     mat_needles = needle_material()
     mat_bark = bark_material()
+    BRANCHES.clear()
 
     # trunk
     zs = np.linspace(TRUNK_BOTTOM, TRUNK_TOP, 40)
@@ -628,11 +698,15 @@ def fairy_lights():
         p = tier_surface(i, th, rng.uniform(0.35, 0.97))
         p[2] += rng.uniform(-0.03, 0.02)
         pts.append(p)
-    v, q = spheres(np.array(pts), 0.011, icosphere_template(1))
     glow = (0.80, 0.88, 1.0) if kind == "white" else (1.0, 0.62, 0.28)
     mat = simple_material("Bulb", (1.0, 0.75, 0.4), rough=0.3, emit=glow, emit_strength=28)
-    ob = tri_mesh_object("FairyLights", v, q[:, :3], mat=mat)
-    ob.visible_shadow = False
+    pts = np.array(pts)
+    # a twinkling tree has two sets of bulbs (every other one) that the page can brighten in turn
+    sets = [("FairyLights", pts[0::2]), ("FairyLights2", pts[1::2])] if STYLE.get("twinkle") else [("FairyLights", pts)]
+    for name, group in sets:
+        v, q = spheres(group, 0.011, icosphere_template(1))
+        ob = tri_mesh_object(name, v, q[:, :3], mat=mat)
+        ob.visible_shadow = False
 
 
 def box(name, size, loc, mat, rot=0.0):
@@ -789,6 +863,13 @@ PALETTES = {
     "lemsic": [
         (dict(color=(0.025, 0.08, 0.30), rough=0.12, metal=0.5, coat=1.0), WHITE_NUM),     # LeMSIC blue
         (dict(color=(0.85, 0.87, 0.90), rough=0.14, metal=1.0), BLUE_NUM),                 # mirror silver
+        (dict(color=(0.80, 0.80, 0.82), rough=0.45, coat=0.3), BLUE_NUM),                  # white satin
+        (dict(color=(0.95, 0.66, 0.25), rough=0.22, metal=0.85, coat=0.5), BLUE_NUM),      # warm gold
+        (dict(color=(0.30, 0.45, 0.72), rough=0.35, metal=0.3, coat=0.5), WHITE_NUM),      # ice blue
+    ],
+    "lemsic_soft": [
+        (dict(color=(0.025, 0.08, 0.30), rough=0.12, metal=0.5, coat=1.0), WHITE_NUM),     # LeMSIC blue
+        (dict(color=(0.85, 0.87, 0.90), rough=0.22, metal=1.0), BLUE_NUM),                 # silver
         (dict(color=(0.80, 0.80, 0.82), rough=0.45, coat=0.3), BLUE_NUM),                  # white satin
         (dict(color=(0.95, 0.66, 0.25), rough=0.22, metal=0.85, coat=0.5), BLUE_NUM),      # warm gold
         (dict(color=(0.30, 0.45, 0.72), rough=0.35, metal=0.3, coat=0.5), WHITE_NUM),      # ice blue
@@ -951,6 +1032,88 @@ def tier_counts(total):
     return [int(c) for c in counts]
 
 
+def visible_fraction(center, r):
+    """How much of a ball of radius r at `center` the camera sees past the foliage and presents."""
+    scene = bpy.context.scene
+    dg = bpy.context.evaluated_depsgraph_get()
+    cam = Vector(CAMERA)
+    c = Vector(center)
+    view = (c - cam).normalized()
+    side = view.cross(Vector((0, 0, 1))).normalized()
+    up = side.cross(view).normalized()
+    probes = [(0.0, 0.0)] + [(0.62 * math.cos(a), 0.62 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 8, endpoint=False)]
+    seen = 0
+    for dx, dy in probes:
+        target = c + (side * dx + up * dy) * r - view * (r * 0.75)
+        d = target - cam
+        hit = scene.ray_cast(dg, cam, d.normalized(), distance=d.length - 0.003)[0]
+        seen += not hit
+    return seen / len(probes)
+
+
+TREE_PARTS = ("Needles", "Branches", "Trunk", "FairyLights")
+
+
+def placement_score(center, r):
+    """How good a spot is for an ornament: seen whole by the camera, out in the light (open towards
+    the front and above), and against the tree rather than in front of the presents."""
+    scene = bpy.context.scene
+    dg = bpy.context.evaluated_depsgraph_get()
+    c = Vector(center)
+    seen = visible_fraction(center, r)
+    opened = 0
+    dirs = [Vector((0.35 * math.cos(a), -1.0, 0.75 + 0.35 * math.sin(a))).normalized()
+            for a in np.linspace(0, 2 * math.pi, 6, endpoint=False)]
+    for d in dirs:
+        opened += not scene.ray_cast(dg, c + d * (r * 1.05), d, distance=0.8)[0]
+    view = (c - Vector(CAMERA)).normalized()
+    hit, _, _, _, ob, _ = scene.ray_cast(dg, c + view * (r * 1.1), view, distance=1.6)
+    behind = 0.0 if (not hit or ob.name.startswith(TREE_PARTS)) else 1.0
+    return seen + 0.5 * opened / len(dirs) - 0.6 * behind
+
+
+def branch_slots():
+    """Where days 1-23 hang when they hang from real branches: spread across the front of the tree
+    as before (more on the wider layers), each from the branch nearest its place, about four fifths of
+    the way out, and only where the camera can see it whole."""
+    # one fewer on the bottom layer than before, so less hangs in front of the presents
+    counts = {9: [0, 1, 2, 2, 3, 4, 4, 4, 3]}.get(N_TIERS) or tier_counts(23)
+    R = STYLE.get("bauble_r", BAUBLE_R)
+    drop = 0.018 + 0.02 + R
+    front = 1.5 * math.pi
+    used, slots = set(), []
+    for i, count in enumerate(counts):
+        if not count:
+            continue
+        span = math.radians(64 if i == N_TIERS - 1 else 56)
+        phis = np.linspace(-span, span, count) if count > 1 else np.array([math.radians(-12)])
+        for phi in phis:
+            want = (front + phi) % (2 * math.pi)
+            near = sorted((abs((b[1] - want + math.pi) % (2 * math.pi) - math.pi), k)
+                          for k, b in enumerate(BRANCHES) if b[0] == i and k not in used)
+            best = None
+            for rank, (_, k) in enumerate(near[:5]):
+                pts = BRANCHES[k][2]
+                for t in (0.86, 0.80, 0.92, 0.74):
+                    j = t * (len(pts) - 1)
+                    j0 = int(j)
+                    attach = pts[j0] + (pts[min(j0 + 1, len(pts) - 1)] - pts[j0]) * (j - j0)
+                    attach = attach + np.array([0, 0, 0.01])
+                    center = attach - np.array([0, 0, drop])
+                    if any(np.linalg.norm(center - (s - np.array([0, 0, drop]))) < 2.6 * R for s in slots):
+                        continue
+                    score = placement_score(center, R) - 0.04 * rank - 0.3 * abs(t - 0.86)
+                    if best is None or score > best[0]:
+                        best = (score, k, attach)
+                    if score > 1.3:
+                        break
+                if best and best[0] > 1.3:
+                    break
+            used.add(best[1])
+            slots.append(best[2])
+    return slots
+
+
 def ornament_slots():
     """Where days 1-23 hang: along the serpent (in order) or scattered over the tree (mixed)."""
     if STYLE["placement"] == "serpent":
@@ -968,6 +1131,8 @@ def ornament_slots():
         return list(zip(range(1, 24), slots))
     days = list(range(1, 24))
     random.Random(1964).shuffle(days)
+    if STYLE.get("hang") == "branch":
+        return list(zip(days, branch_slots()))
     if STYLE["placement"] == "tiers":
         # hung from the edges of the layers, spread across the front; days in a mixed order
         counts = {9: [0, 1, 2, 2, 3, 3, 4, 4, 4]}.get(N_TIERS) or tier_counts(23)
@@ -998,19 +1163,29 @@ def ornament_slots():
     return list(zip(days, slots))
 
 
+DARK_EDGE = dict(color=(0.006, 0.018, 0.07), rough=0.4)       # round white digits
+LIGHT_EDGE = dict(color=(0.86, 0.83, 0.74), rough=0.45)       # round blue digits
+
+
 def hang_bauble(day, n, attach, gold, thread):
     palette = PALETTES[STYLE["palette"]]
-    center = attach - np.array([0, 0, 0.018 + 0.02 + BAUBLE_R])
+    R = STYLE.get("bauble_r", BAUBLE_R)
+    center = attach - np.array([0, 0, 0.018 + 0.02 + R])
     base_kw, dec_kw = palette[n % len(palette)]
-    mat = decal_material(f"Bauble{day}", base_kw, dec_kw,
-                         os.path.join(DECALS, f"num-{day:02d}.png"), BAUBLE_R * 0.78)
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=BAUBLE_R, segments=48, ring_count=24, location=center)
+    if STYLE.get("numbers") == "edged":
+        edge_kw = DARK_EDGE if dec_kw is WHITE_NUM else LIGHT_EDGE
+        mat = edged_decal_material(f"Bauble{day}", base_kw, dec_kw, edge_kw,
+                                   os.path.join(DECALS, f"edged-{day:02d}.png"), R * 0.86)
+    else:
+        mat = decal_material(f"Bauble{day}", base_kw, dec_kw,
+                             os.path.join(DECALS, f"num-{day:02d}.png"), R * 0.78)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=R, segments=48, ring_count=24, location=center)
     ob = bpy.context.active_object
     ob.name = f"Ornament{day:02d}"
     ob.rotation_euler = (0, 0, face_camera_angle(center))
     ob.data.materials.append(mat)
     bpy.ops.object.shade_smooth()
-    top = center + np.array([0, 0, BAUBLE_R])
+    top = center + np.array([0, 0, R])
     bpy.ops.mesh.primitive_cylinder_add(radius=0.016, depth=0.02, location=top + np.array([0, 0, 0.006]))
     bpy.context.active_object.data.materials.append(gold)
     bpy.ops.mesh.primitive_torus_add(major_radius=0.007, minor_radius=0.0016,
@@ -1018,7 +1193,7 @@ def hang_bauble(day, n, attach, gold, thread):
     bpy.context.active_object.data.materials.append(gold)
     v, q = tubes([top + np.array([0, 0, 0.024])], [attach], [0.0011], [0.0011], sides=4)
     mesh_object("Thread", v, q, mat=thread)
-    return center, BAUBLE_R
+    return center, R
 
 
 def hang_wood_slice(day, attach, twine):
