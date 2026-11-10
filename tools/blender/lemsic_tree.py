@@ -139,7 +139,7 @@ for _k, (_label, _) in ARZ_SHAPES.items():
 # glow in turn on the page
 STYLES["cedar_lemsic_full"] = dict(STYLES["cedar_lemsic"], label="LeMSIC Cedar, fuller", shape="cedar_full",
                                    palette="lemsic_soft", hang="branch", numbers="edged", bauble_r=0.080,
-                                   twinkle=True, more_lights_right=90)
+                                   twinkle=True, lights_even=True)
 STYLE_NAME = "serpent"
 STYLE = STYLES[STYLE_NAME]
 SHAPE = SHAPES["tiers"]
@@ -681,11 +681,56 @@ def build_tree():
     Lt = np.concatenate([t[2] for t in twig_parts])
     v, q, c = needles(P, D, Lt, flock=STYLE["flock"])
     mesh_object("Needles", v, q, colors=c, mat=mat_needles)
+    global TWIGS
+    TWIGS = (P, D, Lt)
     print(f"  needles: {len(q):,}  twigs: {len(P):,}")
 
     fairy_lights()
     stand_and_presents()
     return ornaments()
+
+
+TWIGS = None          # (points, directions, lengths) of every twig, set by build_tree
+
+
+def even_light_points():
+    """Bulbs spread evenly over the tree, as if strung by hand: each one sits on a real twig in the
+    outer part of its layer, and no two are closer than about a hand's width (a little closer on the
+    side facing the room, a little further apart round the back, where they mostly glow through)."""
+    P, D, Lt = TWIGS
+    r2 = np.random.default_rng(1225)
+    pts = P + D * (r2.uniform(0.45, 1.0, len(P)) * Lt)[:, None]
+    pts[:, 2] += 0.012
+    th = np.arctan2(pts[:, 1], pts[:, 0])
+    z = pts[:, 2]
+    tier = np.argmin(np.abs(TIER_Z[None, :] - z[:, None]), axis=1)
+    bias = np.where(tier % 2 == 1, np.pi, 0.0)
+    outer = np.interp(z, TIER_Z[::-1], TIER_R[::-1]) * (1.0 + SHAPE["lop"] * np.cos(th - bias))
+    keep = (np.hypot(pts[:, 0], pts[:, 1]) >= 0.5 * outer) | (z > TIER_Z[0])
+    gap_front, gap_back = STYLE.get("light_gap", (0.17, 0.27))
+    gap = np.where(np.sin(th) < 0.3, gap_front, gap_back)          # the room is towards -y
+    cell = max(gap_front, gap_back)
+    grid, chosen = {}, []
+    for k in r2.permutation(np.nonzero(keep)[0]):
+        p, g = pts[k], gap[k]
+        c = (int(p[0] // cell), int(p[1] // cell), int(p[2] // cell))
+        clear = True
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for dz in (-1, 0, 1):
+                    for q in grid.get((c[0] + dx, c[1] + dy, c[2] + dz), ()):
+                        if (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2 < g * g:
+                            clear = False
+                            break
+                    if not clear:
+                        break
+                if not clear:
+                    break
+        if clear:
+            grid.setdefault(c, []).append(p)
+            chosen.append(p)
+    r2.shuffle(chosen)                     # so the two sets of bulbs are mixed evenly
+    return chosen
 
 
 def fairy_lights():
@@ -698,6 +743,8 @@ def fairy_lights():
         p = tier_surface(i, th, rng.uniform(0.35, 0.97))
         p[2] += rng.uniform(-0.03, 0.02)
         pts.append(p)
+    if STYLE.get("lights_even"):          # (the random bulbs above are still drawn, so nothing else moves)
+        pts = even_light_points()
     extra = STYLE.get("more_lights_right", 0)
     if extra:
         # more bulbs on the right of the tree (Fares's side), from the front round to the side;
@@ -710,8 +757,11 @@ def fairy_lights():
             p[2] += r2.uniform(-0.03, 0.02)
             pts.append(p)
     glow = (0.80, 0.88, 1.0) if kind == "white" else (1.0, 0.62, 0.28)
-    mat = simple_material("Bulb", (1.0, 0.75, 0.4), rough=0.3, emit=glow, emit_strength=28)
+    # (with more bulbs, each is a little softer, so the tree as a whole is about as bright)
+    strength = 28 * min(1.0, (260 / max(len(pts), 1)) ** 0.5) if STYLE.get("lights_even") else 28
+    mat = simple_material("Bulb", (1.0, 0.75, 0.4), rough=0.3, emit=glow, emit_strength=strength)
     pts = np.array(pts)
+    print(f"  fairy lights: {len(pts)}")
     # a twinkling tree has two sets of bulbs (every other one) that the page can brighten in turn
     sets = [("FairyLights", pts[0::2]), ("FairyLights2", pts[1::2])] if STYLE.get("twinkle") else [("FairyLights", pts)]
     for name, group in sets:
