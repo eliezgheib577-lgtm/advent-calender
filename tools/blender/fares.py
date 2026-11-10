@@ -188,9 +188,9 @@ def yarn(name="Yarn", color=(0.006, 0.0055, 0.0055)):
     w.inputs["Detail"].default_value = 3.0
     fuzz = _noise(nt, tc, 2500.0, 4.0, 0.6)
     b = principled(nt, color, rough=0.6)
-    b.inputs["Sheen Weight"].default_value = 0.3
+    b.inputs["Sheen Weight"].default_value = 0.15
     b.inputs["Sheen Roughness"].default_value = 0.45
-    b.inputs["Sheen Tint"].default_value = (0.5, 0.5, 0.53, 1)
+    b.inputs["Sheen Tint"].default_value = (0.4, 0.4, 0.43, 1)
     b.inputs["Specular IOR Level"].default_value = 0.4
     n = _bump(nt, w.outputs["Fac"], 0.8, 0.0012)
     nt.links.new(_bump(nt, fuzz.outputs["Fac"], 0.3, 0.0004, n), b.inputs["Normal"])
@@ -804,14 +804,14 @@ def build_head():
     black = thread("Thread")
     eye = plain("SafetyEye", (0.004, 0.004, 0.005), rough=0.05, coat=1.0)
     for s in (-1, 1):
-        ep, en = face_point(s * 0.04, 0.592, -0.0012)
-        obs.append(oriented("Eye", ep, (0.0105, 0.0048, 0.0088), en, eye, seg=32, rings=16))
+        ep, en = face_point(s * 0.04, 0.592, -0.0014)
+        obs.append(oriented("Eye", ep, (0.0125, 0.0055, 0.0108), en, eye, seg=32, rings=16))
         # eyelashes: five stitches fanning up from the outer upper rim
         lashes = []
         for k in range(5):
             a = math.radians(30 + 22 * k)
-            x0 = s * (0.04 + 0.0105 * math.cos(a) * 0.95)
-            z0 = 0.592 + 0.0088 * math.sin(a) * 0.95
+            x0 = s * (0.04 + 0.0125 * math.cos(a) * 0.95)
+            z0 = 0.592 + 0.0108 * math.sin(a) * 0.95
             p0, n0 = face_point(x0, z0, 0.0015)
             p1, _ = face_point(x0 + s * 0.006 * math.cos(a), z0 + 0.0075 * math.sin(a) + 0.002, 0.0012)
             lashes.append([p0, (p0 + p1) / 2 + n0 * 0.0016, p1])
@@ -833,21 +833,24 @@ def build_head():
     obs.append(curves("Mouth", [[face_point(x, 0.522 + 9 * x * x, 0.0012)[0] for x in np.linspace(-0.016, 0.016, 9)]],
                       0.0014, red_thread, res=1))
 
-    # the bushy mustache: curly black yarn loops packed along a sweeping path
+    # the mustache: a compact pad of curly black yarn stitched flat just under the nose,
+    # a little thinner in the middle, the ends drooping and finished with a small curl
     wool = yarn()
     loops = []
     for s in (-1, 1):
-        ctrl = np.array([(0.003, 0.541), (0.022, 0.545), (0.045, 0.541), (0.064, 0.531), (0.077, 0.517), (0.081, 0.505)])
+        ctrl = np.array([(0.002, 0.539), (0.014, 0.542), (0.027, 0.542), (0.039, 0.537), (0.047, 0.53), (0.051, 0.523)])
         path = smooth_path([(s * c[0], 0, c[1]) for c in ctrl], 80, 2)
-        for k in range(300):
-            t = rng.uniform(0, 1) ** 0.85
+        for k in range(260):
+            t = rng.uniform(0, 1) ** 0.9
             c = path[int(t * (len(path) - 1))]
-            half = 0.0125 * (1 - 0.6 * t)
+            half = 0.0128 * (1 - 0.3 * t) * (0.82 + 0.18 * min(1.0, abs(c[0]) / 0.012))
             dz = rng.uniform(-1, 1) * half
             p, n = face_point(c[0], c[2] + dz, 0.0)
-            depth = (0.004 + 0.013 * (1 - abs(dz) / half) ** 0.5 * (1 - 0.5 * t)) * rng.uniform(0.6, 1.0)
-            loops.append(curl(p + n * depth, n, rng.uniform(0.0035, 0.0055), rng.uniform(1.1, 1.8), 0.004, 18))
-    obs.append(curves("Mustache", loops, 0.0021, wool))
+            depth = (0.002 + 0.005 * (1 - abs(dz) / half) ** 0.5) * rng.uniform(0.7, 1.0)
+            loops.append(curl(p + n * depth, n, rng.uniform(0.0028, 0.004), rng.uniform(1.2, 1.9), 0.0032, 16))
+        p, n = face_point(path[-1][0], path[-1][2] - 0.004, 0.003)
+        loops.append(curl(p, n, 0.0045, 1.6, 0.003, 20))
+    obs.append(curves("Mustache", loops, 0.0019, wool))
 
     # curly black yarn hair at the sides and back, under the hat
     locks = []
@@ -864,7 +867,7 @@ def build_head():
         p = np.array([HR[0] * rad * math.cos(az), HC[1] + HR[1] * rad * math.sin(az), z])
         n = (p - HC) / HR ** 2
         n /= np.linalg.norm(n)
-        lift = rng.uniform(0.003, 0.009 + 0.024 * side * (1 - max(0.0, (z - 0.6) / 0.05)))
+        lift = rng.uniform(0.003, 0.007 + 0.012 * side * (1 - max(0.0, (z - 0.6) / 0.05)))
         locks.append(curl(p + n * lift, n, rng.uniform(0.006, 0.0105), rng.uniform(1.2, 2.2), 0.0055, 22))
     obs.append(curves("Hair", locks, 0.0029, wool))
 
