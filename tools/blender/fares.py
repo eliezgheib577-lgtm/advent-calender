@@ -768,7 +768,8 @@ def build_head():
                  fibre=0.25, scale=1000)
     prof = [(1.0, 0.626), (1.035, 0.645), (1.065, 0.668), (1.07, 0.692), (1.03, 0.716), (0.94, 0.739), (0.78, 0.757),
             (0.55, 0.769), (0.28, 0.776), (0.0, 0.778)]
-    hat, _ = lathe("Tarboush", [(z, 0.121 * r, 0.113 * r, HC[1]) for r, z in prof], red, seg=96, cap=True)
+    hat, _ = lathe("Tarboush", [(0.626 + (z - 0.626) * 0.84, 0.1115 * r, 0.1045 * r, HC[1]) for r, z in prof], red,
+                   seg=96, cap=True)
     hat = remesh(hat, 0.0035, 6)
     co = coords(hat)
     az = np.arctan2(co[:, 1] - HC[1], co[:, 0])
@@ -791,13 +792,13 @@ def build_head():
         pts = []
         for a in np.linspace(0, 2 * math.pi, 361):
             tw = a * 9 + ph
-            rx, ry = 0.1255 + 0.0055 * math.cos(tw), 0.117 + 0.0055 * math.cos(tw)
+            rx, ry = 0.1165 + 0.0052 * math.cos(tw), 0.1085 + 0.0052 * math.cos(tw)
             pts.append((rx * math.cos(a), HC[1] + ry * math.sin(a), 0.637 + 0.0062 * math.sin(tw)))
         strands.append(pts)
     for pts in strands:
-        obs.append(subsurf(tube("HatBand", pts, [0.0072] * len(pts), lame, sides=14, caps=False, squash=0.8, n=len(pts)), 1))
+        obs.append(subsurf(tube("HatBand", pts, [0.0066] * len(pts), lame, sides=14, caps=False, squash=0.8, n=len(pts)), 1))
     ka = math.radians(196)
-    kp = np.array([0.131 * math.cos(ka), HC[1] + 0.122 * math.sin(ka), 0.636])
+    kp = np.array([0.1215 * math.cos(ka), HC[1] + 0.113 * math.sin(ka), 0.636])
     obs.append(subsurf(oriented("BandKnot", kp, (0.014, 0.008, 0.012), -(kp - np.array([0, HC[1], 0.636])), lame), 1))
     for k, (dx, dz) in enumerate(((-0.004, -0.035), (0.01, -0.03))):
         out = (kp - np.array([0, HC[1], kp[2]]))
@@ -809,7 +810,7 @@ def build_head():
         d = rng.normal(size=3)
         d[2] = abs(d[2]) * 1.6 + 0.4
         d /= np.linalg.norm(d)
-        p0 = np.array([0, HC[1], 0.776]) + d * 0.004
+        p0 = np.array([0, HC[1], 0.752]) + d * 0.004
         L = rng.uniform(0.022, 0.04)
         bend = rng.normal(size=3) * 0.004
         pom.append([p0 + d * L * t + bend * t * t + np.array([0, 0, -0.006 * t * t]) for t in np.linspace(0, 1, 7)])
@@ -1018,7 +1019,6 @@ def build_fares():
     red = fabric("ClothRed", (0.30, 0.006, 0.008), rough=0.9, sheen=0.2, sheen_rough=0.5, tint=(1, 0.3, 0.3),
                  fibre=0.25, scale=1000)
     ribbon = satin("RibbonWhite", (0.78, 0.76, 0.74), rough=0.22, sheen=0.5, crease=0.2)
-    pink = plain("PinkPin", (0.62, 0.07, 0.33), rough=0.25, coat=0.6)
     gold = plain("GoldButton", (0.8, 0.6, 0.3), rough=0.25, metal=1.0)
     parts = []
     add, extend = parts.append, parts.extend
@@ -1222,7 +1222,7 @@ def build_fares():
     for arm in arms:
         add(arm)
 
-    # ---------- the red scarf knotted at the throat, a white satin bow and a pink pin on the chest
+    # ---------- the red scarf knotted at the throat, and a white satin bow on the chest
     nk = []
     for a in np.linspace(0, 2 * math.pi, 48):
         nk.append((0.074 * math.cos(a), 0.03 + 0.066 * math.sin(a), 0.458 + 0.006 * math.sin(2 * a + 0.5)))
@@ -1243,28 +1243,6 @@ def build_fares():
                 bow_at + np.array([s * 0.012, -0.004, -0.1])]
         add(place(subsurf(tube("BowTail", tail, [0.005] * 4, ribbon, sides=10, squash=0.22), 1), M_UP))
     add(place(ellipsoid("BowKnot", bow_at + np.array([0, -0.002, 0]), (0.005, 0.004, 0.006), ribbon, 16, 8), M_UP))
-    pin_at = np.array([-0.083, -0.09, 0.36])
-    for s in (-1, 1):
-        add(place(oriented("PinWing", pin_at + np.array([s * 0.006, 0, 0.002]), (0.0065, 0.0015, 0.0055),
-                           np.array([0, -1.0, 0]), pink, 16, 8), M_UP))
-    # the round white LeMSIC badge on the outside of his left upper arm
-    left_sleeve = sleeves[0]
-    sh = np.array(M_UP @ Vector((0.132, 0.035, 0.405)))
-    el = np.array([0.217, 0.03, ARM_Z + 0.064])
-    dg = bpy.context.evaluated_depsgraph_get()
-    target = left_sleeve.matrix_world.inverted() @ Vector(((sh + el) / 2 + np.array([0.07, -0.03, 0.0])).tolist())
-    ok, loc, nrm_, _ = left_sleeve.evaluated_get(dg).closest_point_on_mesh(target)
-    if ok:
-        wl = left_sleeve.matrix_world @ loc
-        wn = (left_sleeve.matrix_world.to_3x3() @ nrm_).normalized()
-        bpy.ops.mesh.primitive_cylinder_add(vertices=40, radius=0.016, depth=0.003)
-        badge = bpy.context.active_object
-        badge.data.materials.append(plain("BadgeWhite", (0.82, 0.82, 0.8), rough=0.25, coat=0.8))
-        badge.location = wl + wn * 0.004
-        badge.rotation_euler = wn.to_track_quat("Z", "Y").to_euler()
-        smooth_shade(badge)
-        add(badge)
-
     root = bpy.data.objects.new("Fares", None)
     link(root)
     for ob in parts:
