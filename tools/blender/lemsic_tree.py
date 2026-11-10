@@ -1041,7 +1041,8 @@ def visible_fraction(center, r):
     view = (c - cam).normalized()
     side = view.cross(Vector((0, 0, 1))).normalized()
     up = side.cross(view).normalized()
-    probes = [(0.0, 0.0)] + [(0.62 * math.cos(a), 0.62 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 8, endpoint=False)]
+    probes = [(0.0, 0.0)] + [(f * math.cos(a), f * math.sin(a)) for f in (0.4, 0.8)
+                             for a in np.linspace(0, 2 * math.pi, 8, endpoint=False) + f]
     seen = 0
     for dx, dy in probes:
         target = c + (side * dx + up * dy) * r - view * (r * 0.75)
@@ -1085,7 +1086,7 @@ def branch_slots():
     for i, count in enumerate(counts):
         if not count:
             continue
-        span = math.radians(64 if i == N_TIERS - 1 else 56)
+        span = math.radians(62 if i == N_TIERS - 1 else 50)
         phis = np.linspace(-span, span, count) if count > 1 else np.array([math.radians(-12)])
         for phi in phis:
             want = (front + phi) % (2 * math.pi)
@@ -1094,7 +1095,7 @@ def branch_slots():
             best = None
             for rank, (_, k) in enumerate(near[:5]):
                 pts = BRANCHES[k][2]
-                for t in (0.86, 0.80, 0.92, 0.74):
+                for t in (0.92, 0.86, 0.97, 0.80):
                     j = t * (len(pts) - 1)
                     j0 = int(j)
                     attach = pts[j0] + (pts[min(j0 + 1, len(pts) - 1)] - pts[j0]) * (j - j0)
@@ -1102,7 +1103,7 @@ def branch_slots():
                     center = attach - np.array([0, 0, drop])
                     if any(np.linalg.norm(center - (s - np.array([0, 0, drop]))) < 2.6 * R for s in slots):
                         continue
-                    score = placement_score(center, R) - 0.04 * rank - 0.3 * abs(t - 0.86)
+                    score = placement_score(center, R) - 0.04 * rank - 0.3 * abs(t - 0.92)
                     if best is None or score > best[0]:
                         best = (score, k, attach)
                     if score > 1.3:
@@ -1111,6 +1112,7 @@ def branch_slots():
                     break
             used.add(best[1])
             slots.append(best[2])
+            print(f"    ornament spot on layer {i}: score {best[0]:.2f}", flush=True)
     return slots
 
 
