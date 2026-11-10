@@ -38,6 +38,9 @@ PREVIEW = "--preview" in ARGS
 MAX_ANGLE = 7.0                        # degrees either way
 STEPS = 3 if PREVIEW else 15           # odd, so the middle frame is the chair at rest
 SAMPLES = 24 if PREVIEW else 160
+for _a in ARGS:
+    if _a.startswith("--samples="):
+        SAMPLES = int(_a[10:])
 FRAMES_DIR = os.path.join(C.BUILD_DIR, "rock")
 
 

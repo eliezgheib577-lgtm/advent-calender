@@ -821,7 +821,7 @@ def make_variants(scene, exr_path):
     FL = blur(p["Combined_fire_l"], 1.2)
     FR = blur(p["Combined_fire_r"], 1.2)
     EM = blur(p["Combined_embers"], 1.2)
-    glows = {}
+    full, glows = C, {}
     if "Combined_tree2" in p:
         # the tree lights glow softly on the page: the room images have the bulbs at half strength, and
         # two light layers (each set of bulbs) are added over them, brightening and dimming in turn
@@ -830,7 +830,7 @@ def make_variants(scene, exr_path):
         glows = {"cabin-glow-a.jpg": TA, "cabin-glow-b.jpg": TB}
     # C already contains the fire at strength 1.0; add or remove some of it
     variants = {
-        "cabin.jpg": C,
+        "cabin.jpg": full,                  # the room as it is, every light at full
         "cabin-low.jpg": C - 0.45 * (FL + FR) - 0.15 * EM,
         "cabin-left.jpg": C + 0.40 * FL - 0.05 * FR + 0.08 * EM,
         "cabin-right.jpg": C - 0.05 * FL + 0.40 * FR + 0.08 * EM,
