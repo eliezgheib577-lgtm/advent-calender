@@ -197,6 +197,7 @@
         <img id="imgRight" class="light" src="assets/cabin/cabin-right.jpg" alt="">
         <canvas id="snow" class="snow"></canvas>
         <canvas id="fire" class="fire"></canvas>
+        <canvas id="steam" class="fire"></canvas>
         <div class="ornaments" id="ornaments" role="group" aria-label="Ornaments on the tree, one for each day"></div>
       </section>
     </div>
@@ -242,10 +243,11 @@
 <script src="assets/door/door.js"></script>
 <script src="assets/cabin/scene.js"></script>
 <script src="assets/cabin/fire.js"></script>
+<script src="assets/cabin/steam.js"></script>
 <script>
 (() => {
   const C = window.ADVENT_CONFIG, Q = window.ADVENT_QUESTIONS, M = window.LEMSIC_MEMBERS;
-  const DOOR = window.CABIN_DOOR, S = window.CABIN_SCENE, F = window.CABIN_FIRE;
+  const DOOR = window.CABIN_DOOR, S = window.CABIN_SCENE, F = window.CABIN_FIRE, ST = window.CABIN_STEAM;
   const $ = (id) => document.getElementById(id);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const stage = $('stage'), wrap = $('sceneWrap');
@@ -373,29 +375,39 @@
     });
   }
 
-  // ---------------------------------------------------------------- inside: fire, firelight, snow at the window
-  const fireCanvas = $('fire'), fctx = fireCanvas.getContext('2d');
-  Object.assign(fireCanvas.style, {
-    left: F.crop.x0 * 100 + '%', top: F.crop.y0 * 100 + '%',
-    width: (F.crop.x1 - F.crop.x0) * 100 + '%', height: (F.crop.y1 - F.crop.y0) * 100 + '%',
-  });
-  const sprite = new Image();
-  let spriteReady = false;
-  sprite.onload = () => { spriteReady = true; };
-  function drawSpriteFrame(k, alpha) {
-    const c = k % F.cols, r = Math.floor(k / F.cols);
-    fctx.globalAlpha = alpha;
-    fctx.drawImage(sprite, c * F.frameWidth, r * F.frameHeight, F.frameWidth, F.frameHeight, 0, 0, fireCanvas.width, fireCanvas.height);
+  // ---------------------------------------------------------------- inside: fire, steam, firelight, snow at the window
+  // a rendered loop (a sprite sheet of frames) added over its patch of the room image
+  function spriteLayer(canvas, info, src) {
+    const ctx = canvas.getContext('2d');
+    Object.assign(canvas.style, {
+      left: info.crop.x0 * 100 + '%', top: info.crop.y0 * 100 + '%',
+      width: (info.crop.x1 - info.crop.x0) * 100 + '%', height: (info.crop.y1 - info.crop.y0) * 100 + '%',
+    });
+    const img = new Image();
+    let ready = false;
+    img.onload = () => { ready = true; };
+    function frameAt(k, alpha) {
+      const c = k % info.cols, r = Math.floor(k / info.cols);
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(img, c * info.frameWidth, r * info.frameHeight, info.frameWidth, info.frameHeight, 0, 0, canvas.width, canvas.height);
+    }
+    return {
+      canvas, info,
+      load() { if (!img.src) img.src = src; },
+      draw(pos) {
+        if (!ready) return;
+        const i = Math.floor(pos) % info.frames, j = (i + 1) % info.frames, f = pos - Math.floor(pos);
+        ctx.globalCompositeOperation = 'copy';
+        frameAt(i, 1);
+        ctx.globalCompositeOperation = 'source-over';
+        frameAt(j, f);
+        ctx.globalAlpha = 1;
+      },
+    };
   }
-  function drawFire(pos) {
-    if (!spriteReady) return;
-    const i = Math.floor(pos) % F.frames, j = (i + 1) % F.frames, f = pos - Math.floor(pos);
-    fctx.globalCompositeOperation = 'copy';
-    drawSpriteFrame(i, 1);
-    fctx.globalCompositeOperation = 'source-over';
-    drawSpriteFrame(j, f);
-    fctx.globalAlpha = 1;
-  }
+  const fire = spriteLayer($('fire'), F, 'assets/cabin/fire-sprite.jpg');
+  const steam = ST ? spriteLayer($('steam'), ST, 'assets/cabin/steam-sprite.jpg') : null;
+  if (!steam) $('steam').hidden = true;
   function fireLight(pos) {
     const i = Math.floor(pos) % F.frames, j = (i + 1) % F.frames, f = pos - Math.floor(pos);
     const A = F.flicker[i], B = F.flicker[j];
@@ -450,7 +462,7 @@
     const size = (el, x0, x1, y0, y1) => { el.width = Math.max(1, Math.round((x1 - x0) * W * dpr)); el.height = Math.max(1, Math.round((y1 - y0) * H * dpr)); };
     size(snowFront, 0, 1, 0, 1);
     size(doorAnim, crop.x0, crop.x1, crop.y0, crop.y1);
-    size(fireCanvas, F.crop.x0, F.crop.x1, F.crop.y0, F.crop.y1);
+    for (const layer of [fire, steam]) if (layer) size(layer.canvas, layer.info.crop.x0, layer.info.crop.x1, layer.info.crop.y0, layer.info.crop.y1);
     size(snowCanvas, wx0, wx1, wy0, wy1);
   }
   new ResizeObserver(resize).observe(stage);
@@ -467,7 +479,8 @@
       drawFrontSnow(dt);
     } else {
       const pos = reduceMotion ? 0 : (now / 1000) * F.fps;
-      drawFire(pos);
+      fire.draw(pos);
+      if (steam) steam.draw(reduceMotion ? 0 : (now / 1000) * ST.fps);
       const target = reduceMotion ? { a: 0.5, b: 0.5 } : fireLight(pos);
       const k = Math.min(1, dt * 10);
       light = { a: light.a + (target.a - light.a) * k, b: light.b + (target.b - light.b) * k };
@@ -512,7 +525,8 @@
   });
 
   async function goInside() {
-    sprite.src = 'assets/cabin/fire-sprite.jpg';
+    fire.load();
+    if (steam) steam.load();
     const outside = $('outside'), inside = $('inside');
     // have the room's images ready before we walk in, so nothing flashes or stutters
     const roomReady = Promise.all(['imgBase', 'imgLeft', 'imgRight'].map((id) => $(id).decode().catch(() => {})));

@@ -770,10 +770,9 @@ def scene_info(scene, spots):
         f.write("window.CABIN_SCENE = " + json.dumps(info) + ";\n")
 
 
-def main():
-    t0 = time.time()
-    os.makedirs(OUT_DIR, exist_ok=True)
-    os.makedirs(BUILD_DIR, exist_ok=True)
+def build_cabin(steam=False):
+    """The whole room, lit and with the camera set. The steam from Fares' tumbler is left out
+    unless asked for: the website animates it on top (cabin_steam.py)."""
     scene = T.reset_scene()
     T.apply_style(TREE_STYLE)
     T.FLOOR_LIFT = 0.03                     # the skirt and presents rest on the braided rug
@@ -781,11 +780,19 @@ def main():
     spots = T.build_tree()
     build_room()
     build_fireplace()
-    mascot = FARES.build_fares()           # Fares, sitting by the tree with his LeMSIC tumbler
+    mascot = FARES.build_fares(steam=steam)   # Fares, sitting by the tree sipping from his LeMSIC tumbler
     mascot.location = FARES_AT
     mascot.rotation_euler = (0, 0, math.radians(-34))
     mascot.scale = (1.2, 1.2, 1.2)
     setup(scene)
+    return scene, spots
+
+
+def main():
+    t0 = time.time()
+    os.makedirs(OUT_DIR, exist_ok=True)
+    os.makedirs(BUILD_DIR, exist_ok=True)
+    scene, spots = build_cabin()
     scene_info(scene, spots)
     print(f"scene built in {time.time() - t0:.0f}s")
 

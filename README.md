@@ -93,15 +93,22 @@ right. Everything you see is rendered in Blender (Cycles).
   with the fire split into its own light groups. Three images are made from it (fire dim,
   leaning left, leaning right). The page fades between them using each fire frame's measured
   brightness, so the glow on the stones, floor and tree rises and falls with the flames.
+- **Fares, the LeMSIC mascot doll** (`tools/blender/fares.py`) sits on the floor by the tree,
+  sipping from the white LeMSIC tumbler; its lid lies on the floor beside him. He is built the
+  way the real rag doll is made: the long black robe and the sleeves are cloth simulations
+  dropped onto his body and the floor, the hat and mitten hands are stuffed cloth inflated with
+  the cloth pressure solver, and his hair and mustache are curly yarn.
+- **The steam from his tumbler rises live:** a volumetric steam loop is rendered on its own,
+  lit by the room's lights (`tools/blender/cabin_steam.py`), and added over the room like the fire.
 - **Snow** falls outside the window, softly out of focus and behind the window bars.
 - **Fire sound:** a crackling sound can be switched on. It is generated in the browser, so
   there are no audio files.
 - **On phones** the scene scrolls sideways.
 - **Data:** `site/assets/cabin/scene.json` (and `scene.js`) give the position of the window
   and every ornament in the image, so the ornaments can be made clickable. `fire.json` (and
-  `fire.js`) describe the fire loop.
+  `fire.js`) describe the fire loop, and `steam.json` (and `steam.js`) the steam loop.
 
-To re-render (about 45 minutes for the room and 25 for the fire, on a 4-core CPU):
+To re-render (about 45 minutes for the room, 25 for the fire and 15 for the steam, on a 4-core CPU):
 
 ```bash
 pip install bpy==5.2.3 OpenEXR
@@ -115,7 +122,12 @@ python tools/blender/cabin_scene.py
 python tools/blender/cabin_fire.py
 ```
 
-Add `--preview` to either for a quick low-resolution test. Intermediate files go to `build/`,
+```bash
+python tools/blender/cabin_steam.py
+```
+
+Add `--preview` to any of them for a quick low-resolution test. `python tools/blender/fares.py`
+renders Fares on his own (`front`, `face` or `cabin` view) to `build/`. Intermediate files go to `build/`,
 which is not committed. The realistic room parts are generated in `tools/blender/cabin_props.py`.
 
 ## The 3D tree calendar
