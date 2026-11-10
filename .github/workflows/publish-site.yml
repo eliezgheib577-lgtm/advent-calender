@@ -58,7 +58,7 @@ jobs:
 
       - name: No shared sheet set up yet
         if: env.MEMBERS_SHEET_URL == ''
-        run: echo "::warning::MEMBERS_SHEET_URL is not set, so the site uses the sample member list."
+        run: echo "::notice::MEMBERS_SHEET_URL is not set, so the site uses the member list committed in site/assets/members.js."
 
       - uses: actions/configure-pages@v5
 
