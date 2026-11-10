@@ -2,18 +2,19 @@
 """Turn the LeMSIC member list into the list the website checks IDs against.
 
     python3 tools/import_members.py members.xlsx
-    python3 tools/import_members.py members.xlsx --column "LeMSIC ID" --name-column "Full Name"
+    python3 tools/import_members.py members.xlsx --tab ID --column ID_to_email --name-column "Full Name"
     python3 tools/import_members.py members.csv
 
 Reads the first sheet (or a CSV). The ID column is the one whose header mentions "ID"
 (or the column you name); the name column is "Full Name", "Name", or "First Name" +
 "Last Name" together (or the column you name). Writes site/assets/members.js.
 
-The website never receives the IDs, and it never receives the names in a readable form:
-  * each ID is normalised (upper case, letters and digits only) and stored as a salted
-    SHA-256 fingerprint; the browser fingerprints what a student types the same way;
-  * each full name is encrypted with a key made from that member's own ID (PBKDF2), so
-    the page can show "Welcome, <name>" only to someone who types that exact ID.
+The website never receives the IDs, and it never receives the names in a readable form.
+Each ID is normalised (upper case, letters and digits only) and stretched with PBKDF2
+(100,000 rounds of SHA-256, salted) into 64 bytes: the first half is the ID's fingerprint,
+the second half the key that seals that member's full name. The browser does the same with
+what a student types, so it can greet them by name, and only them. The slow stretching
+makes guessing IDs to read names off the site take hours rather than seconds.
 The salt is kept from one run to the next, so the file only changes when the list does.
 
 To read the list straight from a shared Excel / Google Sheets link, see fetch_members.py.
@@ -31,7 +32,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "site", "assets", "members.js")
-NAME_ROUNDS = 20000                     # PBKDF2 rounds for the key that opens a name
+ROUNDS = 100000                         # PBKDF2 rounds per ID
 
 
 def normalise(value):
@@ -42,12 +43,20 @@ def clean_name(value):
     return re.sub(r"\s+", " ", str(value if value is not None else "")).strip()
 
 
-def rows_from_bytes(data, name_hint=""):
-    """Rows of the first sheet of an .xlsx, or of a CSV."""
+def rows_from_bytes(data, name_hint="", sheet=None):
+    """Rows of one tab of an .xlsx (the one named `sheet`, else the first), or of a CSV."""
     if data[:2] == b"PK":                               # .xlsx is a zip file
         import openpyxl
         wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-        return [list(r) for r in wb.worksheets[0].iter_rows(values_only=True)]
+        ws = wb.worksheets[0]
+        if sheet:
+            match = [w for w in wb.worksheets if w.title.strip().lower() == sheet.strip().lower()]
+            if match:
+                ws = match[0]
+            else:
+                print(f'No tab called "{sheet}"; using "{ws.title}". Tabs: {", ".join(w.title for w in wb.worksheets)}',
+                      file=sys.stderr)
+        return [list(r) for r in ws.iter_rows(values_only=True)]
     head = data[:512].lstrip().lower()
     if head.startswith(b"<!doctype html") or head.startswith(b"<html"):
         raise ValueError("Got a web page instead of a spreadsheet. Make sure the link lets "
@@ -113,12 +122,16 @@ def pick_ids(rows, column=None):
     return [m for m, _ in members], used
 
 
-def seal_name(salt, member_id, name):
-    """The name, encrypted with a key only that member's ID can make (the page reverses this)."""
+def stretch(salt, member_id):
+    """64 bytes from the ID: its fingerprint (first half) and the key to its name (second half)."""
+    return hashlib.pbkdf2_hmac("sha256", member_id.encode(), ("lemsic:" + salt).encode(), ROUNDS, 64)
+
+
+def seal_name(key, name):
+    """The name, encrypted with the ID's key (the page reverses this)."""
     if not name:
         return ""
     data = name.encode("utf-8")
-    key = hashlib.pbkdf2_hmac("sha256", member_id.encode(), ("name:" + salt).encode(), NAME_ROUNDS, 32)
     stream = b"".join(hashlib.sha256(key + i.to_bytes(4, "big")).digest() for i in range(len(data) // 32 + 1))
     return base64.b64encode(bytes(a ^ b for a, b in zip(data, stream))).decode()
 
@@ -136,8 +149,11 @@ def write_members(members, salt=None, sample=False):
     """Write members.js from [(id, name)] (or plain IDs); returns True if its contents changed."""
     members = [(m, "") if isinstance(m, str) else m for m in members]
     salt = salt or os.environ.get("MEMBERS_SALT") or existing_salt() or secrets.token_hex(16)
-    table = {hashlib.sha256((salt + mid).encode()).hexdigest(): seal_name(salt, mid, name) for mid, name in members}
-    data = {"salt": salt, "count": len(table), "rounds": NAME_ROUNDS, "members": dict(sorted(table.items()))}
+    table = {}
+    for mid, name in members:
+        d = stretch(salt, mid)
+        table[d[:32].hex()] = seal_name(d[32:], name)
+    data = {"salt": salt, "count": len(table), "rounds": ROUNDS, "members": dict(sorted(table.items()))}
     if sample:
         data["sample"] = True
     content = ("// Generated from the LeMSIC member list by tools/import_members.py.\n"
@@ -159,10 +175,12 @@ def main():
     ap.add_argument("sheet", help="the member list (.xlsx or .csv)")
     ap.add_argument("--column", help="header of the column holding the LeMSIC IDs")
     ap.add_argument("--name-column", help='header of the column holding the full names (default: "Full Name" or "Name")')
+    ap.add_argument("--tab", help="which tab of the workbook to read (default: the first)")
     args = ap.parse_args()
     try:
         with open(args.sheet, "rb") as f:
-            members, used, name_used = pick_members(rows_from_bytes(f.read(), args.sheet), args.column, args.name_column)
+            members, used, name_used = pick_members(rows_from_bytes(f.read(), args.sheet, args.tab), args.column,
+                                                    args.name_column)
     except ValueError as e:
         sys.exit(str(e))
     changed = write_members(members, sample=os.path.basename(args.sheet) == "sample-members.csv")

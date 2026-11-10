@@ -8,7 +8,8 @@ Works with a shared link to an Excel file on OneDrive or SharePoint, or to a Goo
 Sheet. The link must allow anyone with it to view the file without signing in.
 Optional: --column "LeMSIC ID" (or MEMBERS_ID_COLUMN) if the ID column's header
 doesn't contain "ID", and --name-column "Full Name" (or MEMBERS_NAME_COLUMN) if the
-names aren't in a "Full Name" / "Name" column (or "First Name" + "Last Name").
+names aren't in a "Full Name" / "Name" column (or "First Name" + "Last Name"), and
+--tab "ID" (or MEMBERS_SHEET_TAB) to read a tab other than the first.
 
 The scheduled GitHub workflow (.github/workflows/publish-site.yml) runs this every
 30 minutes, so members added to the sheet can log in shortly after.
@@ -80,6 +81,7 @@ def main():
     ap.add_argument("link", nargs="?", default=os.environ.get("MEMBERS_SHEET_URL"))
     ap.add_argument("--column", default=os.environ.get("MEMBERS_ID_COLUMN") or None)
     ap.add_argument("--name-column", default=os.environ.get("MEMBERS_NAME_COLUMN") or None)
+    ap.add_argument("--tab", default=os.environ.get("MEMBERS_SHEET_TAB") or None)
     args = ap.parse_args()
     if not args.link:
         sys.exit("Give the shared link to the member list (or set MEMBERS_SHEET_URL).")
@@ -89,7 +91,7 @@ def main():
                 data = f.read()
         else:
             data = fetch(args.link)
-        members, used, name_used = pick_members(rows_from_bytes(data), args.column, args.name_column)
+        members, used, name_used = pick_members(rows_from_bytes(data, sheet=args.tab), args.column, args.name_column)
     except (RuntimeError, ValueError) as e:
         sys.exit(str(e))
     changed = write_members(members)

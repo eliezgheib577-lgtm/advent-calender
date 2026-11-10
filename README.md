@@ -54,8 +54,14 @@ Run workflow**. To update the list by hand instead, run
 `python3 tools/fetch_members.py "<shared link>"` or
 `python3 tools/import_members.py members.xlsx`.
 
-Until the link is set up, the site uses a **sample** list (`tools/sample-members.csv`). For
-testing, use `DEMO-0001`, `DEMO-0002` or `TEST-1234`.
+The `site/assets/members.js` in the repository is always the **sample** list
+(`tools/sample-members.csv`; try `DEMO-0001`, `DEMO-0002` or `TEST-1234`). The real one is
+built by the workflow when it publishes, so the member list never enters the repository's
+history. The LeMSIC workbook is read from its **ID** tab: IDs from **ID_to_email**, names from
+**Full Name** (set in the workflow; change them with the variables `MEMBERS_SHEET_TAB`,
+`MEMBERS_ID_COLUMN` and `MEMBERS_NAME_COLUMN` if the sheet changes). To build it by hand:
+`python3 tools/import_members.py LeMSIC_Membership_Sheet.xlsx --tab ID --column ID_to_email`
+(but don't commit the result).
 
 **Codes:** `0000` lets non-members in as guests (`guestCode` in `config.js`); their wall stays
 in their own browser. `nta27` opens test mode (`testCode`).

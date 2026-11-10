@@ -463,22 +463,24 @@
     } catch (e) { /* offline or not set up: the wall in this browser stands */ }
   }
   const isCode = (id, code) => !!code && !!id && id === normalise(String(code));
-  async function checkId(raw) {
-    const id = normalise(raw);
-    if (!id) return { ok: false, msg: 'Type your LeMSIC ID to continue.' };
-    if (isCode(id, C.guestCode)) return { ok: true, id: 'GUEST', key: 'guest-visitor', guest: true, name: '' };
-    const key = await sha256(M.salt + id);
-    if (!(key in M.members)) return { ok: false, msg: "We couldn't find that LeMSIC ID. Check it and try again." };
-    return { ok: true, id, key, name: await openName(id, M.members[key]) };
+  // an ID is stretched (PBKDF2) into its fingerprint and the key that opens that member's name;
+  // see tools/import_members.py
+  const stretched = new Map();
+  async function stretch(id) {
+    if (!stretched.has(id)) {
+      stretched.set(id, (async () => {
+        const enc = new TextEncoder();
+        const base = await crypto.subtle.importKey('raw', enc.encode(id), 'PBKDF2', false, ['deriveBits']);
+        const bits = new Uint8Array(await crypto.subtle.deriveBits(
+          { name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('lemsic:' + M.salt), iterations: M.rounds }, base, 512));
+        return { fp: [...bits.slice(0, 32)].map((b) => b.toString(16).padStart(2, '0')).join(''), key: bits.slice(32) };
+      })());
+    }
+    return stretched.get(id);
   }
-  // each member's name is sealed with a key made from their own ID (see tools/import_members.py)
-  async function openName(id, sealed) {
+  async function openName(key, sealed) {
     if (!sealed) return '';
     try {
-      const enc = new TextEncoder();
-      const base = await crypto.subtle.importKey('raw', enc.encode(id), 'PBKDF2', false, ['deriveBits']);
-      const key = new Uint8Array(await crypto.subtle.deriveBits(
-        { name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('name:' + M.salt), iterations: M.rounds }, base, 256));
       const data = Uint8Array.from(atob(sealed), (c) => c.charCodeAt(0));
       const out = new Uint8Array(data.length);
       for (let i = 0; i * 32 < data.length; i++) {
@@ -489,6 +491,20 @@
     } catch (e) {
       return '';
     }
+  }
+  // who an ID belongs to: null if it isn't on the list
+  async function lookUp(id) {
+    const { fp, key } = await stretch(id);
+    if (!(fp in M.members)) return null;
+    return { key: fp, name: await openName(key, M.members[fp]) };
+  }
+  async function checkId(raw) {
+    const id = normalise(raw);
+    if (!id) return { ok: false, msg: 'Type your LeMSIC ID to continue.' };
+    if (isCode(id, C.guestCode)) return { ok: true, id: 'GUEST', key: 'guest-visitor', guest: true, name: '' };
+    const found = await lookUp(id);
+    if (!found) return { ok: false, msg: "We couldn't find that LeMSIC ID. Check it and try again." };
+    return { ok: true, id, key: found.key, name: found.name };
   }
 
   // ---------------------------------------------------------------- outside: snow falling in front of the cabin
@@ -748,12 +764,9 @@
       let html = '';
       if (isCode(id, C.testCode)) html = '<span class="tick">✓</span>Test mode';
       else if (isCode(id, C.guestCode)) html = '<span class="tick">✓</span>Guest · not a LeMSIC member';
-      else if (id) {
-        const key = await sha256(M.salt + id);
-        if (key in M.members) {
-          const name = await openName(id, M.members[key]);
-          html = `<span class="tick">✓</span>${esc(name || 'LeMSIC member')}`;
-        }
+      else if (id.length >= 4) {
+        const found = await lookUp(id);
+        if (found) html = `<span class="tick">✓</span>${esc(found.name || 'LeMSIC member')}`;
       }
       if (seq === whoSeq) showWho(html);
     }, 180);

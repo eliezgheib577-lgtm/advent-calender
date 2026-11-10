@@ -8,8 +8,8 @@
 # Setup (once), in the repository's Settings:
 #   Secrets and variables > Actions > New repository secret:
 #     MEMBERS_SHEET_URL   the shared link to the member list (anyone with the link can view)
-#   Optional variables: MEMBERS_ID_COLUMN if the ID column's header doesn't contain "ID";
-#   MEMBERS_NAME_COLUMN if the full names aren't in a "Full Name" or "Name" column.
+#   It reads the "ID" tab, IDs from "ID_to_email" and names from "Full Name". If the sheet
+#   changes, set variables MEMBERS_SHEET_TAB, MEMBERS_ID_COLUMN or MEMBERS_NAME_COLUMN.
 #   Pages > Build and deployment > Source: GitHub Actions.
 name: Publish site
 
@@ -39,8 +39,10 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     env:
       MEMBERS_SHEET_URL: ${{ secrets.MEMBERS_SHEET_URL }}
-      MEMBERS_ID_COLUMN: ${{ vars.MEMBERS_ID_COLUMN }}
-      MEMBERS_NAME_COLUMN: ${{ vars.MEMBERS_NAME_COLUMN }}
+      # the LeMSIC membership workbook: the "ID" tab, IDs in "ID_to_email", names in "Full Name"
+      MEMBERS_SHEET_TAB: ${{ vars.MEMBERS_SHEET_TAB || 'ID' }}
+      MEMBERS_ID_COLUMN: ${{ vars.MEMBERS_ID_COLUMN || 'ID_to_email' }}
+      MEMBERS_NAME_COLUMN: ${{ vars.MEMBERS_NAME_COLUMN || 'Full Name' }}
     steps:
       - uses: actions/checkout@v4
 
