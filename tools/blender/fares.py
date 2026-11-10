@@ -1018,6 +1018,62 @@ def build_rocking_chair():
     return obs, seat, arms
 
 
+# ---------------------------------------------------------------- stuffed hands out of the cuffs
+# "stuffed": plump cloth mittens coming out of the cuffs (a preview for now); "flat": the ones in the cabin now
+HANDS = next((a.split("=", 1)[1] for a in __import__("sys").argv if a.startswith("--hands=")), "flat")
+
+
+def stuffed_mitten(name, mat, s):
+    """A stuffed cloth mitten like the doll's: two cream panels sewn round the edge and filled, so it is
+    domed and soft, with the thumb sticking out on the inner side. It comes out of the cuff and rests
+    palm-down on the end of the armrest."""
+    # the panel's outline: a rounded paddle with a thumb (x across, z along, from the wrist at z=0)
+    out = [(0.032 * math.cos(a), 0.052 + 0.040 * math.sin(a)) for a in np.linspace(math.radians(-20), math.radians(200), 48)]
+    out += [(-0.033, 0.036), (-0.045, 0.040), (-0.056, 0.052), (-0.058, 0.064), (-0.051, 0.070), (-0.042, 0.064),
+            (-0.033, 0.050)][1:]
+    out += [(-0.029, 0.018), (-0.026, -0.016), (0.026, -0.016), (0.030, 0.018)]
+    poly = np.array(out)
+    me = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    f = bm.faces.new([bm.verts.new((x, 0, z)) for x, z in out])
+    r = bmesh.ops.extrude_face_region(bm, geom=[f])
+    for v in [e for e in r["geom"] if isinstance(e, bmesh.types.BMVert)]:
+        v.co.y += 0.004
+    bmesh.ops.translate(bm, verts=bm.verts, vec=(0, -0.002, 0))
+    bm.to_mesh(me)
+    bm.free()
+    ob = link(bpy.data.objects.new(name, me))
+    ob = remesh(ob, 0.0016, 4)
+    co = coords(ob)
+    # puff each side out like a filled pillow: deepest in the middle of the palm, closing to the seam
+    a, b = poly, np.roll(poly, -1, 0)
+    pts = co[:, [0, 2]]
+    ab = b - a
+    t = np.clip(((pts[:, None, :] - a[None]) * ab[None]).sum(-1) / (ab ** 2).sum(-1)[None], 0, 1)
+    d = np.linalg.norm(pts[:, None, :] - (a[None] + t[..., None] * ab[None]), axis=-1).min(1)
+    dome = np.sqrt(np.clip(d / 0.026, 0, 1) * (2 - np.clip(d / 0.026, 0, 1)))
+    side = np.sign(co[:, 1])
+    co[:, 1] = side * (0.0012 + 0.019 * dome)
+    # the wrist end is gathered a little into the cuff
+    pinch = np.clip(1 - co[:, 2] / 0.02, 0, 1)
+    co[:, 1] *= 1 - 0.25 * pinch
+    co[:, 0] *= 1 - 0.12 * pinch
+    # lay it palm-down: along the forearm (forward, dipping to rest on the armrest), thumb towards the body
+    tilt = math.radians(9)
+    along = np.array([0.0, -math.cos(tilt), -math.sin(tilt)])
+    up = np.array([0.0, -math.sin(tilt), math.cos(tilt)])
+    wrist = np.array([s * 0.228, -0.106, ARM_Z + 0.032])
+    world = wrist[None] + (s * co[:, 0])[:, None] * np.array([1.0, 0, 0])[None] + co[:, 2:3] * along[None] \
+        + (co[:, 1] + 0.0)[:, None] * up[None]
+    ob.data.vertices.foreach_set("co", world.astype(np.float32).ravel())
+    ob.data.update()
+    if s < 0:
+        ob.data.flip_normals()
+    ob.data.materials.append(mat)
+    smooth_shade(ob)
+    return wrinkles(ob, 0.0012, 0.012)
+
+
 # ---------------------------------------------------------------- mitten hands at rest
 def rest_mitten(ob, s):
     """Lay a baked mitten palm-down along the armrest, its tip curling over the scrolled end."""
@@ -1103,25 +1159,34 @@ def build_fares():
         place(ob, M_HEAD)
 
     # ---------- stuffed mitten hands
-    mittens = [mitten_slab("Mitten", skin), mitten_slab("Mitten", skin)]
-    simulate(mittens, 40)
     extend(head_obs)
-    for mit, s in zip(mittens, (1, -1)):
-        add(subsurf(rest_mitten(mit, s), 1))
+    if HANDS == "stuffed":
+        for s in (1, -1):
+            add(subsurf(stuffed_mitten("Mitten", skin, s), 1))
+    else:
+        mittens = [mitten_slab("Mitten", skin), mitten_slab("Mitten", skin)]
+        simulate(mittens, 40)
+        for mit, s in zip(mittens, (1, -1)):
+            add(subsurf(rest_mitten(mit, s), 1))
 
     # ---------- arms (inside the sleeves) along the armrests, and the sleeves draped over them
     arms, sleeves = [], []
     for s in (1, -1):
         sh = np.array(M_UP @ Vector((s * 0.132, 0.035, 0.405)))
-        el = np.array([s * 0.217, 0.03, ARM_Z + 0.064])
-        wr = np.array([s * 0.226, -0.125, ARM_Z + 0.062])
+        if HANDS == "stuffed":         # forearms lying on the armrests, so the hands come straight out of the cuffs
+            el = np.array([s * 0.217, 0.03, ARM_Z + 0.050])
+            wr = np.array([s * 0.227, -0.118, ARM_Z + 0.043])
+        else:
+            el = np.array([s * 0.217, 0.03, ARM_Z + 0.064])
+            wr = np.array([s * 0.226, -0.125, ARM_Z + 0.062])
         arm = tube("Arm", [sh, (sh + el) / 2 + np.array([s * 0.012, 0, 0]), el, (el + wr) / 2, wr],
                    [0.036, 0.034, 0.033, 0.03, 0.027], black, sides=20, n=40)
         arms.append(arm)
         path = smooth_path([sh - np.array([s * 0.02, 0, -0.005]), (sh + el) / 2 + np.array([s * 0.015, 0, 0]), el,
                             (el + wr) / 2, wr + np.array([0, -0.004, 0])], 46, 2)
         T, N, B = frames_along(path)
-        radii = np.interp(np.linspace(0, 1, len(path)), [0, 0.45, 1], [0.05, 0.056, 0.058])
+        radii = np.interp(np.linspace(0, 1, len(path)), [0, 0.45, 1],
+                          [0.05, 0.052, 0.042] if HANDS == "stuffed" else [0.05, 0.056, 0.058])   # (narrower at the cuff)
         sides = 40
         ang = np.linspace(0, 2 * np.pi, sides, endpoint=False)
         V = (path[:, None, :] + radii[:, None, None] * (np.cos(ang)[None, :, None] * N[:, None, :]
@@ -1368,18 +1433,18 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, HERE)
     import lemsic_tree as T
-    view = next((a for a in sys.argv[1:] if a in ("front", "side", "cabin", "face", "back")), "front")
+    view = next((a for a in sys.argv[1:] if a in ("front", "side", "cabin", "face", "back", "hands")), "front")
     scene = T.reset_scene()
     import time
     t0 = time.time()
     build_fares()
     print("built in %.0fs" % (time.time() - t0))
     cam_data = bpy.data.cameras.new("Cam")
-    cam_data.lens = {"face": 85, "cabin": 50}.get(view, 50)
+    cam_data.lens = {"face": 85, "cabin": 50, "hands": 60}.get(view, 50)
     cam = link(bpy.data.objects.new("Cam", cam_data))
     cam.location = {"front": (-0.45, -2.0, 1.0), "side": (-1.6, -1.0, 0.9), "cabin": (-1.0, -2.6, 1.35),
-                    "face": (-0.15, -0.95, 0.98), "back": (0.9, 1.8, 1.3)}[view]
-    aim = {"face": (0, -0.03, 0.92)}.get(view, (0, -0.05, 0.55))
+                    "face": (-0.15, -0.95, 0.98), "back": (0.9, 1.8, 1.3), "hands": (-0.25, -1.25, 0.95)}[view]
+    aim = {"face": (0, -0.03, 0.92), "hands": (0, -0.12, 0.6)}.get(view, (0, -0.05, 0.55))
     cam.rotation_euler = (Vector(aim) - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
     # firelight from the left, tree lights behind right, a dim cool fill from the window
