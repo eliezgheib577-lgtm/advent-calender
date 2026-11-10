@@ -9,7 +9,8 @@ Open `site/index.html`. This is what students see:
 1. **The cabin door.** A snowy log cabin at night with a carved LeMSIC sign over the door.
    A popup asks for their **LeMSIC ID**, which is checked against the member list. As soon
    as they've typed a valid ID, their first name appears under it. Non-members type `0000`
-   to come in as guests (said in small print under the button).
+   to come in as guests (said in small print under the button). Until 1 December the popup
+   also counts down the days, hours, minutes and seconds to midnight on 1 December (Lebanon time).
 2. **The door opens.** It swings open with warm light spilling onto the snow, and they're
    carried inside.
 3. **The tree.** In the cabin, by the live fire, the tree's lights come up softly. Today's
@@ -92,6 +93,12 @@ guards the surprise; set it to `""` to switch test mode off.
 
 **Trying a single day without test mode:** set `previewDay` in `config.js` (and back to `null`
 before launch). Preview days are kept apart and never sent to the sheet.
+
+**Sharing the link:** when the link is shared (WhatsApp, Instagram, iMessage...), apps show
+`site/assets/share-card.jpg` with the title and a one-line description, and the browser tab shows
+a small LeMSIC cedar. These tags in `index.html` hold the site's full address
+(`https://eliezgheib577-lgtm.github.io/advent-calender/`); change them if the repository is
+renamed. After re-rendering the cabin, run `python3 tools/make_share_card.py` to refresh the card.
 
 ### Keeping track of everyone's progress (who wins the prize)
 

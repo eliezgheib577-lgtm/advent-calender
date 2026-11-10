@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LeMSIC Advent Calendar</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Open one ornament a day from 1 to 24 December and hang its picture on your wall. Fill all 24 for the LeMSIC prize.">
+<meta name="theme-color" content="#0d0a08">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/icon-64.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<!-- the card shown when the link is shared (WhatsApp, Instagram, iMessage...): these need the full address -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LeMSIC">
+<meta property="og:title" content="LeMSIC Advent Calendar">
+<meta property="og:description" content="Open one ornament a day from 1 to 24 December and hang its picture on your wall. Fill all 24 for the LeMSIC prize.">
+<meta property="og:url" content="https://eliezgheib577-lgtm.github.io/advent-calender/">
+<meta property="og:image" content="https://eliezgheib577-lgtm.github.io/advent-calender/assets/share-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The LeMSIC cedar Christmas tree with its numbered ornaments, in a log cabin by the fire">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
@@ -273,6 +288,18 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); font-size: .88rem;
   }
   .testpanel[hidden] { display: none; }
+
+  /* the countdown on the door, until 1 December */
+  .countdown { display: grid; justify-items: center; gap: 7px; margin: 2px 0 6px; }
+  .countdown[hidden] { display: none; }
+  .cd-label { margin: 0; color: var(--ash); font-size: .9rem; }
+  .cd-row { display: flex; gap: 8px; }
+  .cd-row span {
+    display: grid; justify-items: center; gap: 4px; min-width: 56px; padding: 7px 6px 6px; border-radius: 10px;
+    background: rgba(242, 162, 79, 0.08); border: 1px solid var(--ember-dim);
+  }
+  .cd-row b { font: 700 1.55rem/1 var(--display); color: var(--ember); font-variant-numeric: tabular-nums; }
+  .cd-row i { font: 500 .62rem/1 var(--body); font-style: normal; letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
   .testpanel b { color: #8fb8f2; font: 700 .7rem/1 var(--body); letter-spacing: .12em; text-transform: uppercase; }
   .testpanel label { display: flex; align-items: center; gap: 6px; color: var(--ash); }
   .testpanel select, .testpanel button {
@@ -354,6 +381,15 @@
     <form id="loginForm" novalidate>
       <img class="emblem" src="assets/lemsic-emblem.png" alt="LeMSIC emblem">
       <h2 id="loginTitle">Welcome to the cabin</h2>
+      <div class="countdown" id="countdown" role="timer" hidden>
+        <p class="cd-label">The calendar opens in</p>
+        <div class="cd-row" aria-hidden="true">
+          <span><b id="cdD">0</b><i id="cdDl">days</i></span>
+          <span><b id="cdH">00</b><i>hours</i></span>
+          <span><b id="cdM">00</b><i>min</i></span>
+          <span><b id="cdS">00</b><i>sec</i></span>
+        </div>
+      </div>
       <p>Enter your LeMSIC ID to open the door.</p>
       <label class="field" for="lemsicId">LeMSIC ID</label>
       <input class="input" id="lemsicId" name="lemsicId" autocomplete="off" autocapitalize="characters"
@@ -445,6 +481,33 @@
     const ended = t.year > C.year || (t.year === C.year && t.month === 12);
     return { day: ended ? 25 : 0, preview: false };
   }
+  // the countdown on the door: to midnight at the start of 1 December, Lebanon time
+  function startOfDay(y, mo, d, tz) {
+    const guess = Date.UTC(y, mo - 1, d);
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric',
+      month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(new Date(guess))
+      .filter((x) => x.type !== 'literal').map((x) => [x.type, +x.value]));
+    return guess - (Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - guess);
+  }
+  const OPENS = startOfDay(C.year, 12, 1, C.timeZone);
+  let countdownTimer = 0;
+  function tickCountdown() {
+    const left = OPENS - Date.now(), el = $('countdown');
+    if (left <= 0 || C.previewDay) { el.hidden = true; clearInterval(countdownTimer); return; }
+    el.hidden = false;
+    const s = Math.floor(left / 1000), d = Math.floor(s / 86400);
+    const two = (n) => String(n).padStart(2, '0');
+    $('cdD').textContent = d;
+    $('cdDl').textContent = d === 1 ? 'day' : 'days';
+    $('cdH').textContent = two(Math.floor(s / 3600) % 24);
+    $('cdM').textContent = two(Math.floor(s / 60) % 60);
+    $('cdS').textContent = two(s % 60);
+    el.setAttribute('aria-label', d > 0 ? `The calendar opens in ${d} ${d === 1 ? 'day' : 'days'}, on 1 December`
+      : 'The calendar opens tonight at midnight');
+  }
+  tickCountdown();
+  countdownTimer = setInterval(tickCountdown, 1000);
+
   let testMode = false;         // organisers: nothing is saved or sent
   let testDay = null;           // in test mode: the day to pretend it is (0 before, 25 after), or null for every day open
   const openAll = () => testMode && testDay === null;
