@@ -339,6 +339,39 @@ def build_room():
     P.braided_rug("Rug", center=(-0.1, -1.05))
 
     emblem_frame()
+    picture_wall()
+
+
+def framed(cx, cz, w_img, h_img, mat_w, mould, print_mat, depth=0.035, y=BACK_Y - 0.06):
+    """A picture on the log wall, framed like the LeMSIC emblem: walnut moulding, a cream mat
+    board, the print behind glass. Returns the frame's outer size."""
+    walnut = bpy.data.materials.get("FrameWood") or P.log_side_material("FrameWood", "Z")
+    mat_board = bpy.data.materials.get("FrameMat") or simple_material("FrameMat", (0.72, 0.68, 0.6), rough=0.9)
+    W, H = w_img + 2 * mat_w + 2 * mould, h_img + 2 * mat_w + 2 * mould
+    for (sx, sz, x, z) in ((W, mould, cx, cz + H / 2 - mould / 2), (W, mould, cx, cz - H / 2 + mould / 2),
+                           (mould, H, cx - W / 2 + mould / 2, cz), (mould, H, cx + W / 2 - mould / 2, cz)):
+        b = box("FrameMoulding", (sx, depth, sz), (x, y - depth / 2, z), walnut)
+        b.modifiers["bevel"].width = mould * 0.24
+        b.modifiers["bevel"].segments = 3
+    box("FrameMatBoard", (W - 2 * mould, 0.01, H - 2 * mould), (cx, y - 0.008, cz), mat_board)
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(cx, y - 0.0145, cz), rotation=(math.radians(90), 0, 0))
+    pic = bpy.context.active_object
+    pic.scale = (w_img, h_img, 1)
+    pic.data.materials.append(print_mat)
+    return W, H
+
+
+def print_material(name, color=None, image=None):
+    m, nt, out = new_material(name)
+    b = principled(nt, color or (0.2, 0.3, 0.5), rough=0.45)
+    b.inputs["Coat Weight"].default_value = 0.5           # behind glass
+    b.inputs["Coat Roughness"].default_value = 0.02
+    if image:
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = bpy.data.images.load(image, check_existing=True)
+        nt.links.new(tex.outputs["Color"], b.inputs["Base Color"])
+    nt.links.new(b.outputs[0], out.inputs["Surface"])
+    return m
 
 
 def emblem_frame():
@@ -346,29 +379,7 @@ def emblem_frame():
     w_img, h_img = 0.46, 0.46 * 378 / 453
     cx, cz = 1.62, 2.30
     y = BACK_Y - 0.06
-    walnut = P.log_side_material("FrameWood", "Z")
-    mould = 0.05
-    W, H = w_img + 2 * 0.045 + 2 * mould, h_img + 2 * 0.045 + 2 * mould
-    for (sx, sz, x, z) in ((W, mould, cx, cz + H / 2 - mould / 2), (W, mould, cx, cz - H / 2 + mould / 2),
-                           (mould, H, cx - W / 2 + mould / 2, cz), (mould, H, cx + W / 2 - mould / 2, cz)):
-        b = box("FrameMoulding", (sx, 0.035, sz), (x, y - 0.0175, z), walnut)
-        b.modifiers["bevel"].width = 0.012
-        b.modifiers["bevel"].segments = 3
-    mat_board = simple_material("FrameMat", (0.72, 0.68, 0.6), rough=0.9)
-    box("FrameMatBoard", (W - 2 * mould, 0.01, H - 2 * mould), (cx, y - 0.008, cz), mat_board)
-    img = bpy.data.images.load(EMBLEM, check_existing=True)
-    m, nt, out = new_material("EmblemPrint")
-    tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = img
-    b = principled(nt, (0.2, 0.3, 0.5), rough=0.45)
-    b.inputs["Coat Weight"].default_value = 0.5           # behind glass
-    b.inputs["Coat Roughness"].default_value = 0.02
-    nt.links.new(tex.outputs["Color"], b.inputs["Base Color"])
-    nt.links.new(b.outputs[0], out.inputs["Surface"])
-    bpy.ops.mesh.primitive_plane_add(size=1, location=(cx, y - 0.0145, cz), rotation=(math.radians(90), 0, 0))
-    pic = bpy.context.active_object
-    pic.scale = (w_img, h_img, 1)
-    pic.data.materials.append(m)
+    W, H = framed(cx, cz, w_img, h_img, 0.045, 0.05, print_material("EmblemPrint", image=EMBLEM))
     # brass picture light above the frame
     brass = simple_material("Brass", (0.75, 0.52, 0.22), rough=0.3, metal=1.0)
     lamp = box("PictureLamp", (0.34, 0.05, 0.035), (cx, y - 0.11, cz + H / 2 + 0.07), brass)
@@ -377,6 +388,54 @@ def emblem_frame():
     mesh_object("PictureLampArm", v, q, mat=brass, smooth=True)
     area_light("PictureLight", (cx, y - 0.12, cz + H / 2 + 0.045), (cx, y + 0.1, cz - 0.05), 9, 0.3,
                (1.0, 0.8, 0.55), "room", shape="RECTANGLE", size_y=0.03)
+
+
+# ---------------------------------------------------------------- the picture wall
+# 24 small frames like the LeMSIC one on the log wall between the chimney and the tree, stepping
+# down with the tree's slope, numbered left to right from the top row. Until a student hangs that
+# day's picture (the website lays it over the print), each holds a LeMSIC-blue card with its number.
+GALLERY = [(3.68, [-2.24, -1.91, -1.58, -1.25, -0.92, -0.59]),
+           (3.31, [-2.24, -1.91, -1.58, -1.25, -0.92, -0.59]),
+           (2.94, [-2.24, -1.91, -1.58, -1.25, -0.92]),
+           (2.57, [-2.24, -1.91, -1.58, -1.25]),
+           (2.20, [-2.24, -1.91, -1.58])]
+G_IMG = (0.17, 0.17 * 378 / 453)          # the print, in the emblem's proportions
+G_MAT, G_MOULD = 0.02, 0.022
+G_Y = BACK_Y - 0.06
+NUMBER_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
+
+
+def gallery_slots():
+    day = 0
+    for z, xs in GALLERY:
+        for x in xs:
+            day += 1
+            yield day, x, z
+
+
+def gallery_frame_size():
+    return G_IMG[0] + 2 * G_MAT + 2 * G_MOULD, G_IMG[1] + 2 * G_MAT + 2 * G_MOULD
+
+
+def picture_wall():
+    card = print_material("GalleryCard", color=(0.05, 0.13, 0.36))
+    ink = simple_material("GalleryInk", (0.82, 0.8, 0.74), rough=0.5)
+    brass = bpy.data.materials.get("Brass") or simple_material("Brass", (0.75, 0.52, 0.22), rough=0.3, metal=1.0)
+    font = bpy.data.fonts.load(NUMBER_FONT, check_existing=True) if os.path.exists(NUMBER_FONT) else None
+    for day, cx, cz in gallery_slots():
+        W, H = framed(cx, cz, G_IMG[0], G_IMG[1], G_MAT, G_MOULD, card, depth=0.026, y=G_Y)
+        cu = bpy.data.curves.new(f"GalleryNumber{day}", "FONT")
+        cu.body = str(day)
+        cu.align_x, cu.align_y = "CENTER", "CENTER"
+        cu.size = 0.085
+        if font:
+            cu.font = font
+        cu.materials.append(ink)
+        ob = link(bpy.data.objects.new(f"GalleryNumber{day}", cu))
+        ob.location = (cx, G_Y - 0.0152, cz)
+        ob.rotation_euler = (math.radians(90), 0, 0)
+        plate = box("GalleryPlate", (0.078, 0.006, 0.028), (cx, G_Y - 0.003, cz - H / 2 - 0.036), brass)
+        plate.modifiers["bevel"].width = 0.003
 
 
 # ---------------------------------------------------------------- fireplace
@@ -766,6 +825,18 @@ def scene_info(scene, spots):
                     (WINDOW_X[1], BACK_Y + 0.1, WINDOW_Z[1]), (WINDOW_X[0], BACK_Y + 0.1, WINDOW_Z[1]))],
         "ornaments": [],
     }
+    info["gallery"] = []
+    W_, H_ = gallery_frame_size()
+    for day, cx, cz in gallery_slots():
+        y = G_Y - 0.015
+        a = project(scene, cam, (cx - G_IMG[0] / 2, y, cz + G_IMG[1] / 2))
+        b = project(scene, cam, (cx + G_IMG[0] / 2, y, cz - G_IMG[1] / 2))
+        m0 = project(scene, cam, (cx - W_ / 2 + G_MOULD, y, cz + H_ / 2 - G_MOULD))
+        m1 = project(scene, cam, (cx + W_ / 2 - G_MOULD, y, cz - H_ / 2 + G_MOULD))
+        p0 = project(scene, cam, (cx - 0.039, G_Y - 0.006, cz - H_ / 2 - 0.022))
+        p1 = project(scene, cam, (cx + 0.039, G_Y - 0.006, cz - H_ / 2 - 0.050))
+        info["gallery"].append({"day": day, "picture": [a[0], a[1], b[0], b[1]], "mat": [m0[0], m0[1], m1[0], m1[1]],
+                                "plate": [p0[0], p0[1], p1[0], p1[1]]})
     for s in sorted(spots, key=lambda s: s["day"]):
         c = Vector(s["center"])
         x, y = project(scene, cam, c)
@@ -774,6 +845,41 @@ def scene_info(scene, spots):
     with open(os.path.join(OUT_DIR, "scene.json"), "w") as f:
         json.dump(info, f, indent=1)
     with open(os.path.join(OUT_DIR, "scene.js"), "w") as f:      # loadable straight from disk
+        f.write("window.CABIN_SCENE = " + json.dumps(info) + ";\n")
+
+
+def read_display(path):
+    """A saved JPEG's pixels as display values, top row first."""
+    img = bpy.data.images.load(path)
+    w, h = img.size
+    px = np.empty(w * h * 4, np.float32)
+    img.pixels.foreach_get(px)
+    bpy.data.images.remove(img)
+    return px.reshape(h, w, 4)[::-1, :, :3]
+
+
+def gallery_tints():
+    """How each picture-wall frame is lit in the three room images, measured on its cream mat:
+    the website shades a hung picture by this, following the firelight like the rest of the wall."""
+    mat_display = np.array([0.87, 0.85, 0.80])          # the mat board's own colour, as displayed
+    path = os.path.join(OUT_DIR, "scene.json")
+    with open(path) as f:
+        info = json.load(f)
+    images = {k: read_display(os.path.join(OUT_DIR, f"cabin-{k}.jpg")) for k in ("low", "left", "right")}
+    for g in info["gallery"]:
+        g["tint"] = {}
+        for k, img in images.items():
+            h, w, _ = img.shape
+            x0, y0, x1, y1 = (int(g["mat"][0] * w), int(g["mat"][1] * h), int(g["mat"][2] * w), int(g["mat"][3] * h))
+            px0, py0, px1, py1 = (int(g["picture"][0] * w), int(g["picture"][1] * h), int(g["picture"][2] * w),
+                                  int(g["picture"][3] * h))
+            region = img[y0:y1, x0:x1].reshape(-1, 3)
+            yy, xx = np.mgrid[y0:y1, x0:x1]
+            ring = ~((xx >= px0 - 1) & (xx <= px1 + 1) & (yy >= py0 - 1) & (yy <= py1 + 1)).ravel()
+            g["tint"][k] = [round(float(v), 3) for v in np.clip(np.median(region[ring], 0) / mat_display, 0, 1.5)]
+    with open(path, "w") as f:
+        json.dump(info, f, indent=1)
+    with open(os.path.join(OUT_DIR, "scene.js"), "w") as f:
         f.write("window.CABIN_SCENE = " + json.dumps(info) + ";\n")
 
 
@@ -812,6 +918,7 @@ def main():
     bpy.ops.render.render(write_still=True)
     print(f"rendered in {time.time() - t1:.0f}s")
     make_variants(scene, exr)
+    gallery_tints()
 
 
 if __name__ == "__main__":

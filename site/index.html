@@ -189,6 +189,24 @@
   .burst { position: fixed; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
            background: radial-gradient(circle, rgba(255, 244, 214, 0.95), rgba(255, 196, 120, 0.45) 42%, rgba(255, 196, 120, 0) 70%); }
 
+  /* ---------- the picture wall: each hung picture laid into its frame, shaded to the room's light */
+  .wall { position: absolute; inset: 0; pointer-events: none; }
+  .wpic { position: absolute; overflow: hidden; padding: 0; border: 0; background: #000; cursor: zoom-in; pointer-events: auto; }
+  .wpic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .wpic .shade { position: absolute; inset: 0; mix-blend-mode: multiply; }
+  .wpic::after {                       /* the glass over the print, and the shadow of the mat's edge */
+    content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(125deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 75%, rgba(255, 255, 255, 0.05));
+  }
+  .wpic:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+  .wtag {
+    position: absolute; transform: translateX(-50%); padding: 0 .35em; border-radius: 2px; pointer-events: none;
+    font: 700 var(--tag, 10px)/1.3 var(--display); color: #2a1a08;
+    background: linear-gradient(#b48a46, #7d5a22); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+  .flyer { position: fixed; z-index: 20; object-fit: cover; pointer-events: none; border: 4px solid #f6f1e7;
+           box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); transform-origin: 50% 50%; }
+
   /* ---------- test mode, for organisers */
   .testbadge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; vertical-align: middle;
                background: #8fb8f2; color: #0d1a2e; font: 700 .68rem/1.4 var(--body); letter-spacing: .1em; text-transform: uppercase; }
@@ -231,6 +249,7 @@
         <canvas id="rock" class="rock"></canvas>
         <button class="fares" id="faresBtn" type="button" data-label="Give Fares a push" hidden
                 aria-label="Fares, the LeMSIC mascot, in his rocking chair. Give him a push."></button>
+        <div class="wall" id="wall" role="group" aria-label="Your picture wall: one frame for each day"></div>
         <div class="ornaments" id="ornaments" role="group" aria-label="Ornaments on the tree, one for each day"></div>
       </section>
     </div>
@@ -572,6 +591,7 @@
     size(fire.canvas, F.crop.x0, F.crop.x1, F.crop.y0, F.crop.y1);
     if (rocker) size(rocker.canvas, R.crop.x0, R.crop.x1, R.crop.y0, R.crop.y1);
     size(snowCanvas, wx0, wx1, wy0, wy1);
+    stage.style.setProperty('--tag', Math.max(8, H * 0.0115).toFixed(1) + 'px');   // number tags under hung pictures
   }
   new ResizeObserver(resize).observe(stage);
   resize();
@@ -595,6 +615,7 @@
       light = { a: light.a + (target.a - light.a) * k, b: light.b + (target.b - light.b) * k };
       $('imgLeft').style.opacity = light.a.toFixed(3);
       $('imgRight').style.opacity = (light.b * 0.85).toFixed(3);
+      shadeWall(light);
       drawWindowSnow(dt);
       audio.update(light);
     }
@@ -755,6 +776,7 @@
     else if (today.day === 25) status = `Merry Christmas! You hung ${n} of 24 pictures on your wall.`;
     else status = `${today.preview ? 'Preview · ' : ''}Day ${today.day}: find today's ornament on the tree.`;
     $('status').textContent = status;
+    renderWall();
   }
 
   function ornamentClicked(day) {
@@ -779,7 +801,7 @@
   // then you hang it on your wall
   const pop = $('popout');
   pop.addEventListener('click', (e) => { if (e.target === pop) pop.close(); });
-  async function showPicture(day) {
+  async function showPicture(day, origin) {
     const item = pictureFor(day);
     const hung = !!loadWall()[day];
     const img = $('popImg');
@@ -796,20 +818,95 @@
     await Promise.race([img.decode().catch(() => {}), wait(1500)]);
     fitPicture(img);
     pop.showModal();
-    popFrom(ornButtons[day]);
+    popFrom(origin || ornButtons[day]);
   }
-  function hang(day) {
+  // hanging it: the print flies from your hands into its numbered frame on the wall
+  async function hang(day) {
+    const print = $('popImg'), from = print.getBoundingClientRect();
     const wall = hangOnWall(day);
-    renderTree();
     const n = Object.keys(wall).length;
+    const g = slot[day];
+    pop.close();
+    if (g && !reduceMotion) {
+      scrollTo((g.picture[0] + g.picture[2]) / 2);            // phones scroll the room sideways
+      await wait(80);
+      const st = stage.getBoundingClientRect();
+      const to = { x: st.left + g.picture[0] * st.width, y: st.top + g.picture[1] * st.height,
+                   w: (g.picture[2] - g.picture[0]) * st.width, h: (g.picture[3] - g.picture[1]) * st.height };
+      const flyer = document.createElement('img');
+      flyer.className = 'flyer';
+      flyer.src = print.src;
+      flyer.alt = '';
+      Object.assign(flyer.style, { left: from.left + 'px', top: from.top + 'px', width: from.width + 'px', height: from.height + 'px' });
+      document.body.appendChild(flyer);
+      const dx = to.x + to.w / 2 - (from.left + from.width / 2), dy = to.y + to.h / 2 - (from.top + from.height / 2);
+      const k = Math.sqrt((to.w * to.h) / (from.width * from.height));
+      await flyer.animate([
+        { transform: 'translate(0, 0) scale(1) rotate(-1.5deg)', opacity: 1 },
+        { transform: `translate(${dx * 0.55}px, ${dy * 0.35 - 60}px) scale(${0.5 + k * 0.5}) rotate(6deg)`, opacity: 1, offset: 0.55 },
+        { transform: `translate(${dx}px, ${dy}px) scale(${k}) rotate(0deg)`, opacity: 1, offset: 0.9 },
+        { transform: `translate(${dx}px, ${dy}px) scale(${k}) rotate(0deg)`, opacity: 0 },
+      ], { duration: 1300, easing: 'cubic-bezier(.45, .05, .3, 1)' }).finished;
+      renderTree();
+      flyer.remove();
+      const hung = wallEl.querySelector(`.wpic[data-day="${day}"]`);
+      if (hung) hung.animate([{ filter: 'brightness(1.8)' }, { filter: 'brightness(1)' }], { duration: 700, easing: 'ease-out' });
+    } else {
+      renderTree();
+    }
     if (n >= 24 && !testMode) {
+      await showPicture(day, wallEl.querySelector(`.wpic[data-day="${day}"]`));
       $('popInfo').innerHTML = `<p class="prize">${esc(C.prize)}</p>`
         + '<button class="primary" type="button" id="popClose">Back to the tree</button>';
       $('popClose').addEventListener('click', () => pop.close());
       return;
     }
-    pop.close();
     toast(`Day ${day} is on your wall · ${n} of 24${day === today.day && !testMode ? '. See you tomorrow by the fire!' : ''}`);
+  }
+
+  // ---------------------------------------------------------------- the picture wall
+  // 24 frames on the log wall left of the tree; a hung picture is laid into its frame and shaded by
+  // how that frame is lit in the room images (measured on its mat), following the firelight
+  const G = S.gallery || [];
+  const slot = Object.fromEntries(G.map((g) => [g.day, g]));
+  const wallEl = $('wall');
+  function renderWall() {
+    wallEl.textContent = '';
+    if (!member) return;
+    const wall = loadWall();
+    for (const g of G) {
+      if (!wall[g.day]) continue;
+      const item = pictureFor(g.day);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'wpic';
+      b.dataset.day = g.day;
+      const r = g.picture;
+      Object.assign(b.style, { left: r[0] * 100 + '%', top: r[1] * 100 + '%', width: (r[2] - r[0]) * 100 + '%', height: (r[3] - r[1]) * 100 + '%' });
+      b.setAttribute('aria-label', `Day ${g.day} on your wall${item.caption ? ': ' + item.caption : ''}`);
+      const img = document.createElement('img');
+      img.src = item.picture;
+      img.alt = '';
+      const shade = document.createElement('span');
+      shade.className = 'shade';
+      b.append(img, shade);
+      b.addEventListener('click', () => showPicture(g.day, b));
+      const tag = document.createElement('span');
+      tag.className = 'wtag';
+      tag.textContent = g.day;
+      Object.assign(tag.style, { left: (g.plate[0] + g.plate[2]) / 2 * 100 + '%', top: g.plate[1] * 100 + '%' });
+      wallEl.append(b, tag);
+    }
+    shadeWall(light);
+  }
+  function shadeWall(l) {
+    const w = 0.85 * l.b;
+    for (const b of wallEl.querySelectorAll('.wpic')) {
+      const t = slot[b.dataset.day].tint;
+      if (!t) continue;
+      const c = [0, 1, 2].map((i) => Math.round(255 * Math.min(1, 1.25 * ((t.low[i] * (1 - l.a) + t.left[i] * l.a) * (1 - w) + t.right[i] * w))));
+      b.lastChild.style.background = `rgb(${c.join(',')})`;
+    }
   }
   // size the picture to fit the screen whatever its shape, so the print hugs it
   function fitPicture(img) {

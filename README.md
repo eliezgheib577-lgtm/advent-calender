@@ -14,7 +14,9 @@ Open `site/index.html`. This is what students see:
    the only one they can open.
 4. **The picture.** Tapping the ornament opens it: a picture pops out and lands in front of
    them like a photo print, with a caption written underneath. You choose both.
-5. **Hang it on the wall.** They hang the day's picture on their wall.
+5. **Hang it on the wall.** The print flies into its numbered frame on the picture wall,
+   24 frames like the LeMSIC emblem's on the log wall left of the tree. Their pictures stay
+   there from day to day, and tapping one shows it big again.
 6. **The prize.** Students who hang all 24 pictures, one each day, see the prize message.
 
 ### Member IDs (the shared Excel sheet)
@@ -103,6 +105,11 @@ right. Everything you see is rendered in Blender (Cycles).
   mitten hands are stuffed cloth inflated with the cloth pressure solver; his hair and mustache
   are curly yarn. **Click him and he rocks:** the chair is rendered rolling on its rockers at a
   range of angles (`tools/blender/cabin_rock.py`), and the page plays them with a damped swing.
+- **The picture wall:** 24 frames built like the LeMSIC emblem's (walnut moulding, cream mat,
+  the print behind glass), stepping down the log wall between the chimney and the tree, each
+  holding a blue card with its number until that day's picture is hung. The website lays the
+  hung picture over its card, shaded by how the frame is lit in the room images and following
+  the firelight (`gallery` in `scene.json`).
 - **Snow** falls outside the window, softly out of focus and behind the window bars.
 - **Fire sound:** a crackling sound can be switched on. It is generated in the browser, so
   there are no audio files.

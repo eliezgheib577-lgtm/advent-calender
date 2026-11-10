@@ -1,4 +1,5 @@
 // What pops out of each ornament: a picture and a caption, both your choice. Edit freely.
+// Students hang each day's picture in its numbered frame on the cabin wall.
 //
 //   picture   the image that pops out. Put your pictures in site/assets/days/ (any file name;
 //             .jpg, .png or .webp; any shape, portrait or landscape) and write the path here,
