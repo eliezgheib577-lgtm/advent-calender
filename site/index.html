@@ -119,10 +119,6 @@
   .title h1 { margin: 0; font: 700 clamp(1.1rem, 2.2vw, 1.45rem)/1.1 var(--display); letter-spacing: .04em; text-wrap: balance; }
   .title p { margin: 0; color: var(--ash); font-size: .9rem; }
   .bar-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
-  .progress { display: grid; grid-template-columns: repeat(12, 7px); gap: 3px; }
-  .progress i { width: 7px; height: 7px; border-radius: 50%; background: rgba(242, 236, 228, 0.16); }
-  .progress i.on { background: var(--ember); }
-  .progress i.now { box-shadow: 0 0 0 1.5px var(--snow); }
   .pill {
     display: inline-flex; align-items: center; gap: 9px; padding: 8px 15px; border-radius: 999px;
     border: 1px solid var(--ember-dim); background: transparent; cursor: pointer; font-weight: 500; font-size: .92rem;
@@ -270,8 +266,20 @@
            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); transform-origin: 50% 50%; }
 
   /* ---------- test mode, for organisers */
-  .testbadge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; vertical-align: middle;
-               background: #8fb8f2; color: #0d1a2e; font: 700 .68rem/1.4 var(--body); letter-spacing: .1em; text-transform: uppercase; }
+  .testpanel {
+    position: fixed; z-index: 4; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+    display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; max-width: calc(100vw - 24px);
+    padding: 8px 10px 8px 12px; border-radius: 12px; background: var(--card); border: 1px solid rgba(143, 184, 242, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); font-size: .88rem;
+  }
+  .testpanel[hidden] { display: none; }
+  .testpanel b { color: #8fb8f2; font: 700 .7rem/1 var(--body); letter-spacing: .12em; text-transform: uppercase; }
+  .testpanel label { display: flex; align-items: center; gap: 6px; color: var(--ash); }
+  .testpanel select, .testpanel button {
+    font: 500 .88rem var(--body); color: var(--snow); background: #241a12; border: 1px solid var(--ember-dim);
+    border-radius: 8px; padding: 5px 8px; cursor: pointer;
+  }
+  .testpanel select:focus-visible, .testpanel button:focus-visible { outline: 2px solid #8fb8f2; outline-offset: 1px; }
   .orn.testable { box-shadow: 0 0 0 1.5px rgba(160, 200, 255, 0.6); }
 
   .toast {
@@ -319,13 +327,22 @@
     </div>
   </div>
 
+  <div class="testpanel" id="testPanel" role="group" aria-label="Test mode" hidden>
+    <b>Test mode</b>
+    <label for="testDate">Pretend it's</label>
+    <select id="testDate">
+      <option value="">any day: every ornament opens</option>
+      <option value="0">30 November (before it starts)</option>
+    </select>
+    <button type="button" id="testClear">Empty the wall</button>
+  </div>
+
   <div class="bar">
     <div class="title">
-      <h1>LeMSIC Advent Calendar<span class="testbadge" id="testBadge" hidden>Test mode</span></h1>
+      <h1>LeMSIC Advent Calendar</h1>
       <p id="status">1–24 December</p>
     </div>
     <div class="bar-actions">
-      <div class="progress" id="progress" hidden></div>
       <button class="pill" id="soundBtn" type="button" aria-pressed="false">
         <span class="dot" aria-hidden="true"></span><span id="soundLabel">Fire sound off</span>
       </button>
@@ -420,20 +437,21 @@
     return p;
   }
   function calendarDay() {
-    const h = location.hash.match(/^#day-(\d{1,2})$/);
-    const preview = h ? +h[1] : C.previewDay;
+    if (testMode && testDay !== null) return { day: testDay, preview: true };
+    const preview = C.previewDay;
     if (preview >= 1 && preview <= 24) return { day: preview, preview: true };
     const t = lebanonToday();
     if (t.year === C.year && t.month === 12 && t.day <= 24) return { day: t.day, preview: false };
     const ended = t.year > C.year || (t.year === C.year && t.month === 12);
     return { day: ended ? 25 : 0, preview: false };
   }
+  let testMode = false;         // organisers: nothing is saved or sent
+  let testDay = null;           // in test mode: the day to pretend it is (0 before, 25 after), or null for every day open
+  const openAll = () => testMode && testDay === null;
   let today = calendarDay();
-  window.addEventListener('hashchange', () => { today = calendarDay(); if (member) renderTree(); });
 
   // ---------------------------------------------------------------- members and the pictures on their wall
   let member = null;            // { id, key }
-  let testMode = false;         // organisers: every ornament opens, nothing is saved
   let testWall = {};
   const wallKey = () => `lemsic-advent-${C.year}-${member.key.slice(0, 16)}`;
   const loadWall = () => (testMode ? testWall : (store.get(wallKey()) || {}));
@@ -802,10 +820,14 @@
     if (isCode(normalise(input.value), C.testCode)) {
       testMode = true;
       testWall = {};
+      const h = location.hash.match(/^#day-(\d{1,2})$/);          // e.g. …/#day-7 starts the test on 7 December
+      testDay = h && +h[1] <= 25 ? +h[1] : null;
+      $('testDate').value = testDay === null ? '' : String(testDay);
+      today = calendarDay();
       member = { id: 'TEST', key: 'test-mode' };
       input.removeAttribute('aria-invalid');
       err.textContent = '';
-      $('testBadge').hidden = false;
+      $('testPanel').hidden = false;
       login.close();
       await goInside();
       return;
@@ -875,9 +897,28 @@
   function arrived() {
     scene = 'inside';
     $('switchBtn').hidden = false;
-    $('progress').hidden = false;
     scrollTo(0.5);
   }
+
+  // test mode: pretend it is another day, or empty the test wall
+  for (let d = 1; d <= 25; d++) {
+    const o = document.createElement('option');
+    o.value = String(d);
+    o.textContent = d === 25 ? '25 December (after it ends)' : `${d} December`;
+    $('testDate').appendChild(o);
+  }
+  $('testDate').addEventListener('change', (e) => {
+    testDay = e.target.value === '' ? null : +e.target.value;
+    today = calendarDay();
+    renderTree();
+    toast(testDay === null ? 'Every ornament opens.' : testDay === 0 ? 'Pretending it is 30 November.'
+      : testDay === 25 ? 'Pretending it is 25 December.' : `Pretending it is ${dateLabel(testDay)}.`);
+  });
+  $('testClear').addEventListener('click', () => {
+    testWall = {};
+    renderTree();
+    toast('The test wall is empty again.');
+  });
 
   $('switchBtn').addEventListener('click', async () => {
     const outside = $('outside'), inside = $('inside');
@@ -893,11 +934,12 @@
     scene = 'outside';
     member = null;
     testMode = false;
+    testDay = null;
     testWall = {};
-    $('testBadge').hidden = true;
+    today = calendarDay();
+    $('testPanel').hidden = true;
     $('switchBtn').hidden = true;
     if (rocker) rocker.stop();
-    $('progress').hidden = true;
     $('status').textContent = '1–24 December';
     $('lemsicId').value = '';
     showWho('');
@@ -921,7 +963,7 @@
       b.style.width = Math.max(o.r * 2.3, 0.02) * 100 + '%';
       const done = !!wall[o.day];
       if (done) b.classList.add('done');
-      if (testMode) b.classList.add('testable');
+      if (openAll()) b.classList.add('testable');
       ornButtons[o.day] = b;
       if (o.day === today.day) b.classList.add('today');
       if (done || o.day === today.day) {
@@ -933,27 +975,17 @@
       layer.appendChild(b);
     }
     const n = Object.keys(wall).length;
-    const prog = $('progress');
-    prog.textContent = '';
-    for (let d = 1; d <= 24; d++) {
-      const i = document.createElement('i');
-      if (wall[d]) i.className = 'on';
-      if (d === today.day) i.classList.add('now');
-      prog.appendChild(i);
-    }
-    prog.setAttribute('aria-label', `${n} of 24 pictures on your wall`);
-    prog.title = `${n} of 24 pictures on your wall`;
     let status;
-    if (testMode) status = 'Every ornament opens in test mode. Nothing is saved.';
+    if (openAll()) status = 'Every ornament opens. Nothing is saved.';
     else if (today.day === 0) status = 'The calendar opens on 1 December. Come back then!';
     else if (today.day === 25) status = `Merry Christmas! You hung ${n} of 24 pictures on your wall.`;
-    else status = `${today.preview ? 'Preview · ' : ''}Day ${today.day}: find today's ornament on the tree.`;
+    else status = `${today.preview && !testMode ? 'Preview · ' : ''}Day ${today.day}: find today's ornament on the tree.`;
     $('status').textContent = status;
     renderWall();
   }
 
   function ornamentClicked(day) {
-    if (testMode || day === today.day || loadWall()[day]) return showPicture(day);
+    if (openAll() || day === today.day || loadWall()[day]) return showPicture(day);
     if (today.day === 0) return toast('The calendar opens on 1 December.');
     if (day > today.day) return toast(`Day ${day} opens on ${dateLabel(day)}.`);
     toast(`Day ${day} has passed. Each ornament opens only on its own day.`);
@@ -981,8 +1013,7 @@
     img.src = item.picture;
     img.alt = item.alt;
     $('popCaption').textContent = item.caption;
-    const note = testMode ? `Test mode · day ${day} · ${dateLabel(day)}. Nothing is saved.`
-      : `Day ${day} · ${dateLabel(day)}${hung ? ' · on your wall' : ''}`;
+    const note = `Day ${day} · ${dateLabel(day)}${hung ? ' · on your wall' : ''}${testMode ? ' · test, nothing is saved' : ''}`;
     const back = wallView.open ? 'Back to the wall' : 'Back to the tree';
     $('popInfo').innerHTML = `<p>${esc(note)}</p>`
       + (hung ? `<button class="primary" type="button" id="popClose">${back}</button>`
@@ -1037,14 +1068,14 @@
     } else {
       renderTree();
     }
-    if (n >= 24 && !testMode) {
+    if (n >= 24 && !openAll()) {
       await showPicture(day, wallEl.querySelector(`.wpic[data-day="${day}"]`));
       $('popInfo').innerHTML = `<p class="prize">${esc(C.prize)}</p>`
         + '<button class="primary" type="button" id="popClose">Back to the tree</button>';
       $('popClose').addEventListener('click', () => pop.close());
       return;
     }
-    toast(`Day ${day} is on your wall · ${n} of 24${day === today.day && !testMode ? '. See you tomorrow by the fire!' : ''}`);
+    toast(`Day ${day} is on your wall · ${n} of 24${day === today.day && !openAll() ? '. See you tomorrow by the fire!' : ''}`);
   }
 
   // ---------------------------------------------------------------- the picture wall
@@ -1114,7 +1145,7 @@
         el.addEventListener('click', () => showPicture(day, el.querySelector('.print')));
       } else {
         el.setAttribute('aria-label', `Day ${day}: not hung yet`);
-        el.title = day > today.day && !testMode ? `Opens on ${dateLabel(day)}` : `Day ${day}: not hung yet`;
+        el.title = day > today.day && !openAll() ? `Opens on ${dateLabel(day)}` : `Day ${day}: not hung yet`;
       }
       el.innerHTML = `<span class="moulding"><span class="mat"><span class="print">${hung ? '' : day}</span></span></span>`
         + `<span class="plate">${day}</span>`;

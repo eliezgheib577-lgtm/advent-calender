@@ -48,7 +48,7 @@ ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
 RES = (640, 360) if PREVIEW else (1920, 1080)
 SAMPLES = 64 if PREVIEW else 640
-WALL = "grid"                        # the picture wall: "grid" (4 rows of 6) or "slope" (6, 6, 5, 4, 3)
+WALL = "grid4x6"                     # the picture wall: "grid4x6" (4 across, 6 down), "grid" (6 across, 4 down) or "slope"
 for _a in ARGS:
     if _a.startswith("--res="):
         RES = tuple(int(x) for x in _a[6:].split("x"))
@@ -409,7 +409,13 @@ GALLERY = [(3.68, [-2.24, -1.91, -1.58, -1.25, -0.92, -0.59]),
 G_IMG = (0.17, 0.17 * 378 / 453)          # the print, in the emblem's proportions
 G_MAT, G_MOULD = 0.02, 0.022
 G_SCALE = 1.0
-if WALL == "grid":
+if WALL == "grid4x6":
+    # four across and six down, the frames nearly the original size, between the chimney and the tree
+    G_SCALE = 0.97
+    GALLERY = [(z, [-2.277, -1.994, -1.712, -1.430]) for z in (3.710, 3.412, 3.114, 2.816, 2.518, 2.220)]
+    G_IMG = (G_IMG[0] * G_SCALE, G_IMG[1] * G_SCALE)
+    G_MAT, G_MOULD = G_MAT * G_SCALE, G_MOULD * G_SCALE
+elif WALL == "grid":
     # four even rows of six, a little smaller so all six fit between the chimney and the tree
     G_SCALE = 0.82
     _xs = [round(-2.30 + 0.265 * k, 3) for k in range(6)]

@@ -1019,8 +1019,8 @@ def build_rocking_chair():
 
 
 # ---------------------------------------------------------------- stuffed hands out of the cuffs
-# "stuffed": plump cloth mittens coming out of the cuffs (a preview for now); "flat": the ones in the cabin now
-HANDS = next((a.split("=", 1)[1] for a in __import__("sys").argv if a.startswith("--hands=")), "flat")
+# "stuffed": plump cloth mittens coming out of the cuffs, like the doll's; "flat": the earlier flat ones
+HANDS = next((a.split("=", 1)[1] for a in __import__("sys").argv if a.startswith("--hands=")), "stuffed")
 
 
 def stuffed_mitten(name, mat, s):

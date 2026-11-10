@@ -17,7 +17,7 @@ Open `site/index.html`. This is what students see:
 4. **The picture.** Tapping the ornament opens it: a picture pops out and lands in front of
    them like a photo print, with a caption written underneath. You choose both.
 5. **Hang it on the wall.** The print flies into its numbered frame on the picture wall,
-   24 frames like the LeMSIC emblem's (4 rows of 6) on the log wall left of the tree, and a
+   24 frames like the LeMSIC emblem's (4 across, 6 down) on the log wall left of the tree, and a
    gift tag with a green tick is tied to the ornament. Their pictures stay there from day to
    day, and tapping one shows it big again.
 6. **The prize.** Students who hang all 24 pictures, one each day, see the prize message.
@@ -83,11 +83,15 @@ in their own browser. `nta27` opens test mode (`testCode`).
   the optional progress sheet.
 
 **Test mode:** type `nta27` (the `testCode` in `config.js`) instead of a LeMSIC ID at
-the door. Every ornament on the tree opens, and nothing is saved or sent. *Exit the Cabin* leaves test mode. Anyone who reads `config.js` can see the
-code, so it only guards the surprise; set it to `""` to switch test mode off.
+the door. Nothing is saved or sent. A small panel at the top right lets you pretend it is any
+date from 30 November to 25 December, so you can see exactly what students see that day (only
+that day's ornament opens), or choose "any day" to open every ornament. *Empty the wall*
+clears the test wall, and *Exit the Cabin* leaves test mode. Adding `#day-7` to the page
+address starts the test on that day. Anyone who reads `config.js` can see the code, so it only
+guards the surprise; set it to `""` to switch test mode off.
 
-**Trying a single day:** add `#day-7` (any day) to the page address, or set `previewDay` in
-`config.js`. Preview days are kept apart and never sent to the sheet.
+**Trying a single day without test mode:** set `previewDay` in `config.js` (and back to `null`
+before launch). Preview days are kept apart and never sent to the sheet.
 
 ### Keeping track of everyone's progress (who wins the prize)
 
@@ -140,12 +144,13 @@ right. Everything you see is rendered in Blender (Cycles).
   brightness, so the glow on the stones, floor and tree rises and falls with the flames.
 - **Fares, the LeMSIC mascot doll** (`tools/blender/fares.py`) sits by the tree in a varnished
   wooden rocking chair. He is built the way the real rag doll is made: the long black robe and
-  the sleeves are cloth simulations draped over his body, the seat and the armrests; the hat and
-  mitten hands are stuffed cloth inflated with the cloth pressure solver; his hair and mustache
+  the sleeves are cloth simulations draped over his body, the seat and the armrests; the hat is
+  stuffed cloth inflated with the cloth pressure solver; his hands are stuffed cream mittens with
+  a thumb, coming out of the gold-trimmed cuffs onto the armrests; his hair and mustache
   are curly yarn. **Click him and he rocks:** the chair is rendered rolling on its rockers at a
   range of angles (`tools/blender/cabin_rock.py`), and the page plays them with a damped swing.
 - **The picture wall:** 24 frames built like the LeMSIC emblem's (walnut moulding, cream mat,
-  the print behind glass), in 4 rows of 6 on the log wall between the chimney and the tree, each
+  the print behind glass), 4 across and 6 down on the log wall between the chimney and the tree, each
   holding a blue card with its number until that day's picture is hung. The website lays the
   hung picture over its card, shaded by how the frame is lit in the room images and following
   the firelight (`gallery` in `scene.json`).

@@ -4,8 +4,8 @@ window.ADVENT_CONFIG = {
   year: 2026,
   timeZone: "Asia/Beirut",
 
-  // Organiser preview: set a day (1-24) to try the calendar before December,
-  // or add #day-7 (any day) to the page address. Set back to null before launch.
+  // Organiser preview: set a day (1-24) to try the calendar before December.
+  // Set back to null before launch. (Test mode has its own date picker.)
   previewDay: null,
 
   // Optional: the web-app URL of the Google Sheet that keeps everyone's progress
