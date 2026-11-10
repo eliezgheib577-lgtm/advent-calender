@@ -438,13 +438,29 @@
     const all = loadWall();
     all[day] = { at, preview: today.preview || undefined };
     store.set(wallKey(), all);
-    if (C.answersEndpoint && !today.preview && !member.guest) {
-      fetch(C.answersEndpoint, {
+    if (PROGRESS && !today.preview && !member.guest) {
+      fetch(PROGRESS, {
         method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ id: member.id, day, answer: 'hung on the wall', at }),
+        body: JSON.stringify({ id: member.id, name: member.name || '', day, at }),
       }).catch(() => { /* kept locally; the sheet will miss this one */ });
     }
     return all;
+  }
+  // the progress sheet remembers each member's wall, so it follows them to another phone or computer
+  const PROGRESS = C.progressEndpoint || C.answersEndpoint || '';
+  async function syncWall() {
+    if (!PROGRESS || !member || member.guest || testMode || today.preview) return;
+    try {
+      const res = await fetch(`${PROGRESS}?id=${encodeURIComponent(member.id)}`);
+      const data = await res.json();
+      if (!data.ok || !Array.isArray(data.days)) return;
+      const all = loadWall();
+      let added = 0;
+      for (const d of data.days) {
+        if (d >= 1 && d <= 24 && !all[d]) { all[d] = { at: 'from the progress sheet' }; added += 1; }
+      }
+      if (added) { store.set(wallKey(), all); renderTree(); }
+    } catch (e) { /* offline or not set up: the wall in this browser stands */ }
   }
   const isCode = (id, code) => !!code && !!id && id === normalise(String(code));
   async function checkId(raw) {
@@ -777,6 +793,7 @@
     err.textContent = '';
     member = { id: res.id, key: res.key, name: res.name, guest: !!res.guest };
     store.set('lemsic-advent-last-id', input.value.trim());
+    syncWall();
     login.close();
     await goInside();
     toast(member.guest ? 'Welcome, guest! Make yourself at home by the fire.'
