@@ -766,7 +766,7 @@
       else if (isCode(id, C.guestCode)) html = '<span class="tick">✓</span>Guest · not a LeMSIC member';
       else if (id.length >= 4) {
         const found = await lookUp(id);
-        if (found) html = `<span class="tick">✓</span>${esc(found.name || 'LeMSIC member')}`;
+        if (found) html = `<span class="tick">✓</span>${found.name ? 'Welcome, ' + esc(found.name) : 'LeMSIC member'}`;
       }
       if (seq === whoSeq) showWho(html);
     }, 180);
@@ -810,7 +810,7 @@
     login.close();
     await goInside();
     toast(member.guest ? 'Welcome, guest! Make yourself at home by the fire.'
-      : `Welcome${member.name ? ', ' + member.name.split(' ')[0] : ''}! Make yourself at home by the fire.`);
+      : `Make yourself at home by the fire${member.name ? ', ' + member.name : ''}!`);
   });
 
   async function goInside() {

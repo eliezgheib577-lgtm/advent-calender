@@ -8,7 +8,7 @@ Open `site/index.html`. This is what students see:
 
 1. **The cabin door.** A snowy log cabin at night with a carved LeMSIC sign over the door.
    A popup asks for their **LeMSIC ID**, which is checked against the member list. As soon
-   as they've typed a valid ID, their full name appears under it. Non-members type `0000`
+   as they've typed a valid ID, their first name appears under it. Non-members type `0000`
    to come in as guests (said in small print under the button).
 2. **The door opens.** It swings open with warm light spilling onto the snow, and they're
    carried inside.
@@ -33,8 +33,9 @@ themselves. The workflow `.github/workflows/publish-site.yml` runs every 30 minu
 
 The website never contains the IDs, the link, or a readable list of names. The browser
 fingerprints what a student types the same way and looks for a match, ignoring case, spaces
-and dashes; on a match it opens that one member's name to greet them. (Anyone who knows or
-guesses an ID can see that member's name, so IDs shouldn't be easy to guess.)
+and dashes; on a match it opens that one member's first name to greet them. Only first names are kept
+(`--full-names` in `tools/import_members.py` would keep whole names), and each ID is
+stretched with 100,000 rounds of PBKDF2, so guessing IDs to read names off the site is slow.
 
 **The sheet needs** an ID column (a header with "ID" in it) and a **Full Name** column (or
 "Name", or "First Name" + "Last Name"). If the sheet can't be

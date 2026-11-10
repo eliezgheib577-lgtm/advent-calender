@@ -12,7 +12,8 @@ Reads the first sheet (or a CSV). The ID column is the one whose header mentions
 The website never receives the IDs, and it never receives the names in a readable form.
 Each ID is normalised (upper case, letters and digits only) and stretched with PBKDF2
 (100,000 rounds of SHA-256, salted) into 64 bytes: the first half is the ID's fingerprint,
-the second half the key that seals that member's full name. The browser does the same with
+the second half the key that seals that member's name. Only the first name is kept
+(--full-names keeps whole names). The browser does the same with
 what a student types, so it can greet them by name, and only them. The slow stretching
 makes guessing IDs to read names off the site take hours rather than seconds.
 The salt is kept from one run to the next, so the file only changes when the list does.
@@ -41,6 +42,12 @@ def normalise(value):
 
 def clean_name(value):
     return re.sub(r"\s+", " ", str(value if value is not None else "")).strip()
+
+
+def first_name(full):
+    """The first name only ("Lara Merhi" -> "Lara"), in normal capitals if the sheet shouts or whispers."""
+    first = full.split(" ")[0] if full else ""
+    return first.capitalize() if first.isupper() or first.islower() else first
 
 
 def rows_from_bytes(data, name_hint="", sheet=None):
@@ -145,9 +152,12 @@ def existing_salt():
         return None
 
 
-def write_members(members, salt=None, sample=False):
-    """Write members.js from [(id, name)] (or plain IDs); returns True if its contents changed."""
+def write_members(members, salt=None, sample=False, full_names=False):
+    """Write members.js from [(id, name)] (or plain IDs); returns True if its contents changed.
+    Only first names are kept unless full_names is set."""
     members = [(m, "") if isinstance(m, str) else m for m in members]
+    if not full_names:
+        members = [(m, first_name(n)) for m, n in members]
     salt = salt or os.environ.get("MEMBERS_SALT") or existing_salt() or secrets.token_hex(16)
     table = {}
     for mid, name in members:
@@ -176,6 +186,7 @@ def main():
     ap.add_argument("--column", help="header of the column holding the LeMSIC IDs")
     ap.add_argument("--name-column", help='header of the column holding the full names (default: "Full Name" or "Name")')
     ap.add_argument("--tab", help="which tab of the workbook to read (default: the first)")
+    ap.add_argument("--full-names", action="store_true", help="keep whole names, not just first names")
     args = ap.parse_args()
     try:
         with open(args.sheet, "rb") as f:
@@ -183,9 +194,10 @@ def main():
                                                     args.name_column)
     except ValueError as e:
         sys.exit(str(e))
-    changed = write_members(members, sample=os.path.basename(args.sheet) == "sample-members.csv")
+    changed = write_members(members, sample=os.path.basename(args.sheet) == "sample-members.csv",
+                            full_names=args.full_names)
     named = sum(1 for _, n in members if n)
-    print(f'{len(members)} member IDs from "{used}", {named} with names'
+    print(f'{len(members)} member IDs from "{used}", {named} with {"full" if args.full_names else "first"} names'
           f'{f" from {name_used!r}" if name_used else " (no name column found)"} -> {os.path.relpath(OUT, ROOT)}'
           f'{"" if changed else " (no change)"}')
 
