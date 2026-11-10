@@ -191,14 +191,64 @@
 
   /* ---------- the picture wall: each hung picture laid into its frame, shaded to the room's light */
   .wall { position: absolute; inset: 0; pointer-events: none; }
-  .wpic { position: absolute; overflow: hidden; padding: 0; border: 0; background: #000; cursor: zoom-in; pointer-events: auto; }
+  .wpic { position: absolute; overflow: hidden; background: #000; pointer-events: none; }
   .wpic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .wpic .shade { position: absolute; inset: 0; mix-blend-mode: multiply; }
   .wpic::after {                       /* the glass over the print, and the shadow of the mat's edge */
     content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.6);
     background: linear-gradient(125deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 75%, rgba(255, 255, 255, 0.05));
   }
-  .wpic:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+  .wallbtn { position: absolute; border: 0; padding: 0; background: transparent; cursor: zoom-in; pointer-events: auto; border-radius: 6px; }
+  .wallbtn::before {
+    content: attr(data-label); position: absolute; left: 50%; top: -4px; transform: translate(-50%, -100%);
+    white-space: nowrap; padding: 3px 10px; border-radius: 999px; pointer-events: none;
+    background: var(--card); border: 1px solid var(--ember-dim); color: var(--snow); font: 500 clamp(11px, 1vw, 14px) var(--body);
+    opacity: 0; transition: opacity .25s;
+  }
+  .wallbtn:hover::before, .wallbtn:focus-visible::before { opacity: 1; }
+  .wallbtn:hover, .wallbtn:focus-visible { box-shadow: 0 0 0 2px rgba(255, 236, 200, 0.45), 0 0 30px rgba(255, 200, 130, 0.25); outline: none; }
+
+  /* the wall up close: every frame, with the pictures hung so far */
+  dialog.wallview {
+    width: min(860px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-sizing: border-box; overflow-y: auto;
+    padding: 22px clamp(14px, 3vw, 30px) 26px; border-radius: 16px; border: 1px solid var(--ember-dim); color: var(--snow);
+    background:
+      linear-gradient(rgba(14, 9, 6, 0.78), rgba(14, 9, 6, 0.86)),
+      repeating-linear-gradient(180deg, #4a2e1a 0 46px, #2a190d 46px 50px, #5a3820 50px 52px);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  }
+  dialog.wallview::backdrop { background: rgba(6, 4, 3, 0.55); backdrop-filter: blur(3px); }
+  dialog.wallview[open] { animation: rise .45s cubic-bezier(.2, .8, .2, 1); }
+  .wallhead { display: flex; align-items: baseline; gap: 14px; margin: 0 0 18px; }
+  .wallhead h2 { margin: 0; font: 700 clamp(1.3rem, 3vw, 1.7rem)/1.1 var(--display); letter-spacing: .03em; }
+  .wallhead p { margin: 0; color: var(--ash); flex: 1; }
+  .wallhead .x { border: 1px solid rgba(242, 236, 228, 0.2); background: transparent; color: var(--snow); width: 34px; height: 34px;
+                 border-radius: 50%; cursor: pointer; font-size: 1.1rem; line-height: 1; flex: none; align-self: center; }
+  .wallgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: clamp(14px, 2.4vw, 26px) clamp(10px, 2vw, 22px); }
+  @media (max-width: 620px) { .wallgrid { grid-template-columns: repeat(4, 1fr); } }
+  .wframe { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 100%; padding: 0; border: 0;
+            background: none; color: inherit; font: inherit; }
+  .wframe .moulding, .wframe .mat { display: block; }
+  .wframe .moulding {
+    width: 100%; aspect-ratio: 1.12; box-sizing: border-box; padding: 9%; border-radius: 2px;
+    background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.08) 0 2px, rgba(255, 255, 255, 0.03) 2px 5px),
+                linear-gradient(145deg, #6b4428, #3a2312 55%, #24150a);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 220, 170, 0.12);
+  }
+  .wframe .mat { width: 100%; height: 100%; box-sizing: border-box; padding: 8%; background: #e6dcc6;
+                 box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45); }
+  .wframe .print { position: relative; width: 100%; height: 100%; overflow: hidden; display: grid; place-items: center;
+                   background: #2a4e8c; color: #eae6dc; font: 700 clamp(1rem, 2.6vw, 1.6rem) var(--display); }
+  .wframe .print img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .wframe .print::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+                          background: linear-gradient(125deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 45%); }
+  .wframe .plate { padding: 0 .45em; border-radius: 2px; font: 700 .8rem/1.4 var(--display); color: #2a1a08;
+                   background: linear-gradient(#c49a52, #8a6426); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+  button.wframe { cursor: zoom-in; }
+  button.wframe:hover .moulding, button.wframe:focus-visible .moulding { transform: translateY(-3px); transition: transform .2s; }
+  button.wframe:focus-visible { outline: none; }
+  button.wframe:focus-visible .moulding { box-shadow: 0 0 0 2px var(--ember), 0 6px 14px rgba(0, 0, 0, 0.55); }
+  .wframe.empty .print { opacity: .82; }
   .wtag {
     position: absolute; transform: translateX(-50%); padding: 0 .35em; border-radius: 2px; pointer-events: none;
     font: 700 var(--tag, 10px)/1.3 var(--display); color: #2a1a08;
@@ -281,6 +331,15 @@
       <button type="submit" class="primary" id="loginBtn">Open the door</button>
       <p class="fine" id="loginFine">Your ID is checked against the LeMSIC member list.</p>
     </form>
+  </dialog>
+
+  <dialog id="wallView" class="wallview" aria-labelledby="wallTitle">
+    <div class="wallhead">
+      <h2 id="wallTitle">Your picture wall</h2>
+      <p id="wallCount"></p>
+      <button class="x" type="button" id="wallClose" aria-label="Close the picture wall">✕</button>
+    </div>
+    <div class="wallgrid" id="wallGrid"></div>
   </dialog>
 
   <dialog id="popout" class="popout" aria-label="What came out of the ornament">
@@ -715,6 +774,7 @@
   $('switchBtn').addEventListener('click', async () => {
     const outside = $('outside'), inside = $('inside');
     if (pop.open) pop.close();
+    if (wallView.open) wallView.close();
     dctx.clearRect(0, 0, doorAnim.width, doorAnim.height);
     outside.hidden = false;
     if (!reduceMotion) {
@@ -810,8 +870,9 @@
     $('popCaption').textContent = item.caption;
     const note = testMode ? `Test mode · day ${day} · ${dateLabel(day)}. Nothing is saved.`
       : `Day ${day} · ${dateLabel(day)}${hung ? ' · on your wall' : ''}`;
+    const back = wallView.open ? 'Back to the wall' : 'Back to the tree';
     $('popInfo').innerHTML = `<p>${esc(note)}</p>`
-      + (hung ? '<button class="primary" type="button" id="popClose">Back to the tree</button>'
+      + (hung ? `<button class="primary" type="button" id="popClose">${back}</button>`
               : '<button class="primary" type="button" id="hangBtn">Hang it on the wall</button>');
     if (hung) $('popClose').addEventListener('click', () => pop.close());
     else $('hangBtn').addEventListener('click', () => hang(day));
@@ -874,6 +935,18 @@
     wallEl.textContent = '';
     if (!member) return;
     const wall = loadWall();
+    if (G.length) {                                       // the whole wall is one button: it opens the close-up
+      const xs = G.flatMap((g) => [g.mat[0], g.mat[2]]), ys = G.flatMap((g) => [g.mat[1], g.plate[3]]);
+      const x0 = Math.min(...xs) - 0.006, x1 = Math.max(...xs) + 0.006, y0 = Math.min(...ys) - 0.01, y1 = Math.max(...ys) + 0.008;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wallbtn';
+      btn.dataset.label = 'Your picture wall';
+      btn.setAttribute('aria-label', `Your picture wall: ${Object.keys(wall).length} of 24 pictures. Open it to see them.`);
+      Object.assign(btn.style, { left: x0 * 100 + '%', top: y0 * 100 + '%', width: (x1 - x0) * 100 + '%', height: (y1 - y0) * 100 + '%' });
+      btn.addEventListener('click', openWallView);
+      wallEl.appendChild(btn);
+    }
     for (const g of G) {
       if (!wall[g.day]) continue;
       const item = pictureFor(g.day);
@@ -890,7 +963,6 @@
       const shade = document.createElement('span');
       shade.className = 'shade';
       b.append(img, shade);
-      b.addEventListener('click', () => showPicture(g.day, b));
       const tag = document.createElement('span');
       tag.className = 'wtag';
       tag.textContent = g.day;
@@ -898,6 +970,42 @@
       wallEl.append(b, tag);
     }
     shadeWall(light);
+  }
+  // the wall up close: all 24 frames; each picture hung so far opens on its own
+  const wallView = $('wallView');
+  $('wallClose').addEventListener('click', () => wallView.close());
+  wallView.addEventListener('click', (e) => { if (e.target === wallView) wallView.close(); });
+  function openWallView() {
+    const wall = loadWall();
+    const n = Object.keys(wall).length;
+    $('wallCount').textContent = testMode ? `${n} of 24 · test mode` : `${n} of 24 pictures hung`;
+    const grid = $('wallGrid');
+    grid.textContent = '';
+    for (let day = 1; day <= 24; day++) {
+      const hung = !!wall[day];
+      const item = pictureFor(day);
+      const el = document.createElement(hung ? 'button' : 'div');
+      el.className = 'wframe' + (hung ? '' : ' empty');
+      if (hung) {
+        el.type = 'button';
+        el.setAttribute('aria-label', `Day ${day}${item.caption ? ': ' + item.caption : ''}. Open it.`);
+        el.addEventListener('click', () => showPicture(day, el.querySelector('.print')));
+      } else {
+        el.setAttribute('aria-label', `Day ${day}: not hung yet`);
+        el.title = day > today.day && !testMode ? `Opens on ${dateLabel(day)}` : `Day ${day}: not hung yet`;
+      }
+      el.innerHTML = `<span class="moulding"><span class="mat"><span class="print">${hung ? '' : day}</span></span></span>`
+        + `<span class="plate">${day}</span>`;
+      if (hung) {
+        const img = document.createElement('img');
+        img.src = item.picture;
+        img.alt = '';
+        img.loading = 'lazy';
+        el.querySelector('.print').appendChild(img);
+      }
+      grid.appendChild(el);
+    }
+    wallView.showModal();
   }
   function shadeWall(l) {
     const w = 0.85 * l.b;
