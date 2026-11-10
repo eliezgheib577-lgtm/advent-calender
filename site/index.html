@@ -163,6 +163,38 @@
   .fact { border-left: 3px solid var(--ember); padding-left: 12px; }
   .prize { border: 1px solid var(--ember); border-radius: 12px; padding: 12px 14px; color: var(--snow) !important; background: rgba(242, 162, 79, 0.08); }
 
+  /* ---------- what pops out of an ornament: a picture and its caption, like a photo print */
+  dialog.popout {
+    padding: 16px; border: 0; background: transparent; color: var(--snow); overflow: visible;
+    max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); box-sizing: border-box;
+    flex-direction: column; align-items: center; gap: 18px;
+  }
+  dialog.popout[open] { display: flex; }
+  dialog.popout::backdrop { background: rgba(6, 4, 3, 0.62); backdrop-filter: blur(3px); }
+  .polaroid {
+    margin: 0; padding: 12px 12px 0; box-sizing: border-box; border-radius: 3px;
+    width: fit-content; min-width: min(280px, calc(100vw - 48px)); max-width: min(584px, calc(100vw - 48px));
+    background: #f6f1e7; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1), 0 26px 70px rgba(0, 0, 0, 0.65);
+    transform: rotate(-1.5deg);
+  }
+  .polaroid img { display: block; margin: 0 auto; max-width: 100%; border-radius: 2px; background: #e4ddd1; }
+  /* the caption wraps to the picture's width instead of widening the print */
+  .polaroid figcaption { width: 0; min-width: 100%; box-sizing: border-box;
+                         padding: 14px 10px 18px; color: #2b1e15; text-align: center; text-wrap: balance;
+                         font: 500 clamp(1.05rem, 2.4vw, 1.3rem)/1.35 var(--display); letter-spacing: .02em; }
+  .polaroid figcaption:empty { padding: 6px 0; }
+  .popinfo { width: min(440px, calc(100vw - 48px)); text-align: center; }
+  .popinfo p { margin: 0 0 10px; color: var(--ash); line-height: 1.45; }
+  .popinfo .fact { text-align: left; }
+  .popinfo .primary { max-width: 260px; }
+  .burst { position: fixed; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
+           background: radial-gradient(circle, rgba(255, 244, 214, 0.95), rgba(255, 196, 120, 0.45) 42%, rgba(255, 196, 120, 0) 70%); }
+
+  /* ---------- test mode, for organisers */
+  .testbadge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; vertical-align: middle;
+               background: #8fb8f2; color: #0d1a2e; font: 700 .68rem/1.4 var(--body); letter-spacing: .1em; text-transform: uppercase; }
+  .orn.testable { box-shadow: 0 0 0 1.5px rgba(160, 200, 255, 0.6); }
+
   .toast {
     position: fixed; left: 50%; bottom: calc(var(--bar) + 18px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px);
     max-width: min(440px, calc(100vw - 32px)); padding: 11px 16px; border-radius: 12px;
@@ -205,7 +237,7 @@
 
   <div class="bar">
     <div class="title">
-      <h1>LeMSIC Advent Calendar</h1>
+      <h1>LeMSIC Advent Calendar<span class="testbadge" id="testBadge" hidden>Test mode</span></h1>
       <p id="status">1–24 December</p>
     </div>
     <div class="bar-actions">
@@ -235,10 +267,19 @@
     <div id="dayContent"></div>
   </dialog>
 
+  <dialog id="popout" class="popout" aria-label="What came out of the ornament">
+    <figure class="polaroid" id="polaroid">
+      <img id="popImg" alt="">
+      <figcaption id="popCaption"></figcaption>
+    </figure>
+    <div class="popinfo" id="popInfo"></div>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="config.js"></script>
 <script src="questions.js"></script>
+<script src="pictures.js"></script>
 <script src="assets/members.js"></script>
 <script src="assets/door/door.js"></script>
 <script src="assets/cabin/scene.js"></script>
@@ -246,7 +287,7 @@
 <script src="assets/cabin/steam.js"></script>
 <script>
 (() => {
-  const C = window.ADVENT_CONFIG, Q = window.ADVENT_QUESTIONS, M = window.LEMSIC_MEMBERS;
+  const C = window.ADVENT_CONFIG, Q = window.ADVENT_QUESTIONS, M = window.LEMSIC_MEMBERS, P = window.ADVENT_PICTURES || {};
   const DOOR = window.CABIN_DOOR, S = window.CABIN_SCENE, F = window.CABIN_FIRE, ST = window.CABIN_STEAM;
   const $ = (id) => document.getElementById(id);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -302,9 +343,15 @@
 
   // ---------------------------------------------------------------- members and answers
   let member = null;            // { id, key }
+  let testMode = false;         // organisers: every ornament opens, nothing is saved
+  let testAnswers = {};
   const answersKey = () => `lemsic-advent-${C.year}-${member.key.slice(0, 16)}`;
-  const loadAnswers = () => (store.get(answersKey()) || {});
+  const loadAnswers = () => (testMode ? testAnswers : (store.get(answersKey()) || {}));
   function saveAnswer(day, answer) {
+    if (testMode) {
+      testAnswers[day] = { answer, at: new Date().toISOString(), test: true };
+      return testAnswers;
+    }
     const all = loadAnswers();
     all[day] = { answer, at: new Date().toISOString(), preview: today.preview || undefined };
     store.set(answersKey(), all);
@@ -496,7 +543,8 @@
   // ---------------------------------------------------------------- arriving: ID, door, inside
   const login = $('login');
   login.addEventListener('cancel', (e) => e.preventDefault());     // the ID is required to go in
-  if (M.sample) $('loginFine').textContent = 'Preview: the real member list isn\'t connected yet. Use DEMO-0001 to look around.';
+  if (M.sample) $('loginFine').textContent = 'Preview: the real member list isn\'t connected yet. Use DEMO-0001 to look around'
+    + (C.testCode ? `, or ${C.testCode} for test mode.` : '.');
   const remembered = store.get('lemsic-advent-last-id');
   if (remembered) $('lemsicId').value = remembered;
   const doorReady = preloadDoor();
@@ -505,6 +553,17 @@
   $('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = $('lemsicId'), btn = $('loginBtn'), err = $('loginError');
+    if (C.testCode && normalise(input.value) && normalise(input.value) === normalise(C.testCode)) {
+      testMode = true;
+      testAnswers = {};
+      member = { id: 'TEST', key: 'test-mode' };
+      input.removeAttribute('aria-invalid');
+      err.textContent = '';
+      $('testBadge').hidden = false;
+      login.close();
+      await goInside();
+      return;
+    }
     btn.disabled = true;
     btn.textContent = 'Checking…';
     const res = await checkId(input.value);
@@ -573,6 +632,7 @@
   $('switchBtn').addEventListener('click', async () => {
     const outside = $('outside'), inside = $('inside');
     if (panel.open) panel.close();
+    if (pop.open) pop.close();
     dctx.clearRect(0, 0, doorAnim.width, doorAnim.height);
     outside.hidden = false;
     if (!reduceMotion) {
@@ -582,6 +642,9 @@
     inside.hidden = true;
     scene = 'outside';
     member = null;
+    testMode = false;
+    testAnswers = {};
+    $('testBadge').hidden = true;
     $('switchBtn').hidden = true;
     $('progress').hidden = true;
     $('status').textContent = '1–24 December';
@@ -592,6 +655,7 @@
 
   // ---------------------------------------------------------------- the tree: one ornament a day
   function dateLabel(d) { return `${d} December`; }
+  const ornButtons = {};
   function renderTree() {
     const answers = loadAnswers();
     const layer = $('ornaments');
@@ -605,6 +669,8 @@
       b.style.width = Math.max(o.r * 2.3, 0.02) * 100 + '%';
       const done = !!answers[o.day];
       if (done) b.classList.add('done');
+      if (testMode) b.classList.add('testable');
+      ornButtons[o.day] = b;
       if (o.day === today.day) { b.classList.add('today'); b.dataset.label = `Day ${o.day}`; }
       b.setAttribute('aria-label', `Day ${o.day}${o.day === today.day ? ', today' : ''}${done ? ', answered' : ''}`);
       b.addEventListener('click', () => ornamentClicked(o.day));
@@ -622,7 +688,8 @@
     prog.setAttribute('aria-label', `${n} of 24 days answered`);
     prog.title = `${n} of 24 days answered`;
     let status;
-    if (today.day === 0) status = 'The calendar opens on 1 December. Come back then!';
+    if (testMode) status = 'Every ornament opens in test mode. Nothing is saved.';
+    else if (today.day === 0) status = 'The calendar opens on 1 December. Come back then!';
     else if (today.day === 25) status = `Merry Christmas! You answered ${n} of 24 days.`;
     else status = `${today.preview ? 'Preview · ' : ''}Day ${today.day}: find today's ornament on the tree.`;
     $('status').textContent = status;
@@ -630,6 +697,7 @@
 
   function ornamentClicked(day) {
     const answers = loadAnswers();
+    if (testMode) return openDay(day);
     if (day === today.day) return openDay(day);
     if (answers[day]) return openDay(day, true);
     if (today.day === 0) return toast('The calendar opens on 1 December.');
@@ -639,7 +707,15 @@
 
   const panel = $('dayPanel');
   function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-  function pictureFor(day) { return (Q[day] && Q[day].picture) || `assets/days/day-${String(day).padStart(2, '0')}.png`; }
+  // what pops out of each ornament: the picture and caption chosen in pictures.js
+  function pictureFor(day) {
+    const p = P[day] || {};
+    return {
+      picture: p.picture || (Q[day] && Q[day].picture) || `assets/days/day-${String(day).padStart(2, '0')}.png`,
+      caption: p.caption || '',
+      alt: p.alt || p.caption || `The picture for day ${day}`,
+    };
+  }
 
   function openDay(day, readOnly = false) {
     const q = Q[day] || { q: 'Share anything about LeMSIC.' };
@@ -647,6 +723,7 @@
     const box = $('dayContent');
     if (answers[day]) {
       showReveal(day, answers);
+      return;
     } else if (readOnly) {
       return;
     } else {
@@ -661,9 +738,11 @@
           ${choices}
           <p class="error" id="answerError" role="alert"></p>
           <button class="primary" type="submit">Log my answer</button>
+          ${testMode ? '<button class="ghost" type="button" id="skipQuestion">Skip to the picture</button>' : ''}
           <button class="ghost" type="button" id="notNow">Not now</button>
         </form>`;
       $('notNow').addEventListener('click', () => panel.close());
+      if (testMode) $('skipQuestion').addEventListener('click', () => showReveal(day, loadAnswers()));
       $('answerForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const form = e.target;
@@ -677,19 +756,63 @@
     if (!panel.open) panel.showModal();
   }
 
-  function showReveal(day, answers, fresh = false) {
+  // the picture pops out of the ornament and lands in front of you, its caption written underneath
+  const pop = $('popout');
+  pop.addEventListener('click', (e) => { if (e.target === pop) pop.close(); });
+  async function showReveal(day, answers, fresh = false) {
     const q = Q[day] || {};
+    const item = pictureFor(day);
     const n = Object.keys(answers).length;
-    const done = n >= 24;
-    $('dayContent').innerHTML = `
-      <p class="eyebrow">Day ${day} · ${fresh ? 'answer logged' : 'opened'}</p>
-      <h2 id="dayTitle">${fresh ? 'Your ornament is open!' : esc(q.q || `Day ${day}`)}</h2>
-      <figure class="reveal"><img src="${esc(pictureFor(day))}" alt="The picture for day ${day}"></figure>
-      <p class="yours">Your answer: “${esc(answers[day].answer)}”</p>
-      ${q.fact ? `<p class="fact">${esc(q.fact)}</p>` : ''}
-      ${done ? `<p class="prize">${esc(C.prize)}</p>` : `<p>You've answered ${n} of 24 days. ${day === today.day ? 'See you tomorrow by the fire!' : ''}</p>`}
-      <button class="primary" type="button" id="backToTree">Back to the tree</button>`;
-    $('backToTree').addEventListener('click', () => panel.close());
+    const done = n >= 24 && !testMode;
+    const img = $('popImg');
+    img.src = item.picture;
+    img.alt = item.alt;
+    $('popCaption').textContent = item.caption;
+    const lines = [];
+    if (testMode) lines.push(`<p>Test mode · day ${day} · ${dateLabel(day)}. Nothing is saved.</p>`);
+    else if (fresh) lines.push(`<p>Answer logged! You've answered ${n} of 24 days.${day === today.day && !done ? ' See you tomorrow by the fire!' : ''}</p>`);
+    else lines.push(`<p>Day ${day} · ${dateLabel(day)} · you've answered ${n} of 24 days.</p>`);
+    if (answers[day] && q.fact) lines.push(`<p class="fact">${esc(q.fact)}</p>`);
+    if (done) lines.push(`<p class="prize">${esc(C.prize)}</p>`);
+    $('popInfo').innerHTML = lines.join('') + '<button class="primary" type="button" id="popClose">Back to the tree</button>';
+    $('popClose').addEventListener('click', () => pop.close());
+    await Promise.race([img.decode().catch(() => {}), wait(1500)]);
+    fitPicture(img);
+    if (panel.open) panel.close();
+    pop.showModal();
+    popFrom(ornButtons[day]);
+  }
+  // size the picture to fit the screen whatever its shape, so the print hugs it
+  function fitPicture(img) {
+    const w = img.naturalWidth || 600, h = img.naturalHeight || 600;
+    const maxW = Math.min(560, window.innerWidth - 72), maxH = Math.min(window.innerHeight * 0.56, 520);
+    const k = Math.min(2, maxW / w, maxH / h);
+    img.style.width = Math.round(w * k) + 'px';
+    img.style.height = Math.round(h * k) + 'px';
+  }
+  function popFrom(btn) {
+    const card = $('polaroid'), info = $('popInfo');
+    if (reduceMotion || !btn) {
+      card.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+      return;
+    }
+    const o = btn.getBoundingClientRect(), c = card.getBoundingClientRect();
+    const ox = o.left + o.width / 2, oy = o.top + o.height / 2;
+    const dx = ox - (c.left + c.width / 2), dy = oy - (c.top + c.height / 2);
+    const s = Math.max(0.03, o.width / c.width);
+    const burst = document.createElement('div');
+    burst.className = 'burst';
+    Object.assign(burst.style, { left: ox + 'px', top: oy + 'px', width: o.width * 2 + 'px', height: o.width * 2 + 'px' });
+    pop.appendChild(burst);
+    burst.animate([{ transform: 'translate(-50%, -50%) scale(.4)', opacity: 1 }, { transform: 'translate(-50%, -50%) scale(4)', opacity: 0 }],
+      { duration: 800, easing: 'cubic-bezier(.2, .7, .3, 1)' }).finished.then(() => burst.remove());
+    card.animate([
+      { transform: `translate(${dx}px, ${dy}px) scale(${s}) rotate(-28deg)`, opacity: 0.3 },
+      { transform: 'translate(0, 0) scale(1.05) rotate(2deg)', opacity: 1, offset: 0.68 },
+      { transform: 'translate(0, 0) scale(1) rotate(-1.5deg)', opacity: 1 },
+    ], { duration: 950, easing: 'cubic-bezier(.22, .8, .3, 1)' });
+    info.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
+      { duration: 420, delay: 620, easing: 'ease-out', fill: 'backwards' });
   }
 
   // ---------------------------------------------------------------- crackling fire sound (generated, no files)

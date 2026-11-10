@@ -2,7 +2,7 @@
 //   q        the question
 //   options  answer choices (leave out for a free-text answer)
 //   fact     shown after the student answers (optional)
-//   picture  the picture revealed that day (defaults to assets/days/day-NN.png)
+// The picture and caption that pop out of each ornament are chosen in pictures.js.
 // Any answer counts: what matters is that students log one every day.
 // Organisers: please check the facts before launch.
 window.ADVENT_QUESTIONS = {

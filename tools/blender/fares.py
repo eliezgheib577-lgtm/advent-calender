@@ -326,8 +326,9 @@ def tumbler_material():
 
 
 def steam_material():
-    """Rising steam: a soft plume bent by the air, broken into thin curling wisps, fading as it climbs.
-    The node named "time" (seconds) animates it: the wisps rise and slowly change shape."""
+    """Steam off a hot drink: two thin, translucent ribbons of vapour rising from the rim at his
+    left, swaying gently as they climb and thinning out to nothing. The node named "time"
+    (seconds) animates it: the sway travels up the ribbons, as it does in still air."""
     if _cached("Steam"):
         return _cached("Steam")
     m, nt, out = _new_material("Steam")
@@ -338,55 +339,44 @@ def steam_material():
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     _set(nt, sep.inputs[0], tc)
-    h = sep.outputs["Z"]
-    rise = nt.nodes.new("ShaderNodeCombineXYZ")
-    _set(nt, rise.inputs["Z"], _math(nt, "MULTIPLY", t, -0.11))
+    x, y, h = sep.outputs["X"], sep.outputs["Y"], sep.outputs["Z"]
+    grow = _math(nt, "DIVIDE", h, 0.07, clamp=True)            # the sway builds up above the rim
+
+    def ribbon(x0, y0, lean, amp, k, w, phase, r0, spread):
+        wave = _math(nt, "SINE", _math(nt, "ADD", _math(nt, "SUBTRACT", _math(nt, "MULTIPLY", h, k),
+                                                         _math(nt, "MULTIPLY", t, w)), phase))
+        wave2 = _math(nt, "COSINE", _math(nt, "ADD", _math(nt, "SUBTRACT", _math(nt, "MULTIPLY", h, k * 0.7),
+                                                           _math(nt, "MULTIPLY", t, w * 0.8)), phase + 1.3))
+        cx = _math(nt, "ADD", _math(nt, "MULTIPLY_ADD", h, lean, x0),
+                   _math(nt, "MULTIPLY", grow, _math(nt, "MULTIPLY", wave, amp)))
+        cy = _math(nt, "ADD", y0, _math(nt, "MULTIPLY", grow, _math(nt, "MULTIPLY", wave2, amp * 0.6)))
+        dx = _math(nt, "SUBTRACT", x, cx)
+        dy = _math(nt, "SUBTRACT", y, cy)
+        r = _math(nt, "MULTIPLY_ADD", h, spread, r0)
+        d2 = _math(nt, "DIVIDE", _math(nt, "ADD", _math(nt, "MULTIPLY", dx, dx), _math(nt, "MULTIPLY", dy, dy)),
+                   _math(nt, "MULTIPLY", r, r))
+        # thinner as it widens, so a ribbon keeps its total amount of vapour
+        return _math(nt, "DIVIDE", _math(nt, "EXPONENT", _math(nt, "MULTIPLY", d2, -1.0)),
+                     _math(nt, "MULTIPLY", r, 260.0))
+
+    a = ribbon(0.026, -0.012, 0.1, 0.014, 24.0, 2.6, 0.0, 0.003, 0.035)
+    b = ribbon(0.014, -0.02, 0.05, 0.011, 30.0, 3.1, 2.6, 0.0026, 0.03)
+    both = _math(nt, "ADD", a, _math(nt, "MULTIPLY", b, 0.7))
+    # soft unevenness that drifts upward with the vapour
+    drift = nt.nodes.new("ShaderNodeCombineXYZ")
+    _set(nt, drift.inputs["Z"], _math(nt, "MULTIPLY", t, -0.07))
     adv = nt.nodes.new("ShaderNodeVectorMath")
     adv.operation = "ADD"
     _set(nt, adv.inputs[0], tc)
-    nt.links.new(rise.outputs[0], adv.inputs[1])
-    warp = _noise(nt, adv.outputs[0], 14.0, 3.0, 0.55, dims="4D", w=_math(nt, "MULTIPLY", t, 0.25))
-    wv = nt.nodes.new("ShaderNodeVectorMath")
-    wv.operation = "SUBTRACT"
-    nt.links.new(warp.outputs["Color"], wv.inputs[0])
-    wv.inputs[1].default_value = (0.5, 0.5, 0.5)
-    amp = _math(nt, "MULTIPLY_ADD", h, 0.16, 0.004)
-    ws = nt.nodes.new("ShaderNodeVectorMath")
-    ws.operation = "SCALE"
-    nt.links.new(wv.outputs[0], ws.inputs[0])
-    _set(nt, ws.inputs["Scale"], amp)
-    q = nt.nodes.new("ShaderNodeVectorMath")
-    q.operation = "ADD"
-    _set(nt, q.inputs[0], tc)
-    nt.links.new(ws.outputs[0], q.inputs[1])
-    qs = nt.nodes.new("ShaderNodeSeparateXYZ")
-    nt.links.new(q.outputs[0], qs.inputs[0])
-    # the plume's centre line drifts sideways as it rises
-    dx = _math(nt, "MULTIPLY_ADD", h, 0.42, 0.01)
-    dy = _math(nt, "MULTIPLY_ADD", h, -0.1, -0.012)
-    ex = _math(nt, "SUBTRACT", qs.outputs["X"], dx)
-    ey = _math(nt, "SUBTRACT", qs.outputs["Y"], dy)
-    d = _math(nt, "SQRT", _math(nt, "ADD", _math(nt, "MULTIPLY", ex, ex), _math(nt, "MULTIPLY", ey, ey)))
-    r = _math(nt, "MULTIPLY_ADD", h, 0.13, 0.011)
-    core = _math(nt, "POWER", _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", d, r), clamp=True), 1.5)
-    # thin curling sheets: where a vertically stretched noise crosses its midpoint; they rise with the air
-    qa = nt.nodes.new("ShaderNodeVectorMath")
-    qa.operation = "ADD"
-    nt.links.new(q.outputs[0], qa.inputs[0])
-    nt.links.new(rise.outputs[0], qa.inputs[1])
-    stretch = nt.nodes.new("ShaderNodeVectorMath")
-    stretch.operation = "MULTIPLY"
-    nt.links.new(qa.outputs[0], stretch.inputs[0])
-    stretch.inputs[1].default_value = (1.0, 1.0, 0.38)
-    wisp = _noise(nt, stretch.outputs[0], 34.0, 3.0, 0.5, distortion=0.3, dims="4D", w=_math(nt, "MULTIPLY", t, 0.4))
-    ridge = _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", _math(nt, "ABSOLUTE", _math(nt, "SUBTRACT", wisp.outputs["Fac"], 0.5)),
-                                                         0.045), clamp=True)
-    fade = _math(nt, "MULTIPLY", _math(nt, "DIVIDE", h, 0.025, clamp=True),
-                 _math(nt, "POWER", _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", h, 0.44), clamp=True), 1.6))
-    dens = _math(nt, "MULTIPLY", _math(nt, "MULTIPLY", core, _math(nt, "POWER", ridge, 1.5)), _math(nt, "MULTIPLY", fade, 85.0))
+    nt.links.new(drift.outputs[0], adv.inputs[1])
+    lumps = _noise(nt, adv.outputs[0], 40.0, 1.0, 0.5, dims="4D", w=_math(nt, "MULTIPLY", t, 0.3))
+    breakup = _math(nt, "MULTIPLY_ADD", lumps.outputs["Fac"], 1.4, -0.2, clamp=True)
+    fade = _math(nt, "MULTIPLY", _math(nt, "DIVIDE", h, 0.012, clamp=True),
+                 _math(nt, "POWER", _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", h, 0.38), clamp=True), 1.1))
+    dens = _math(nt, "MULTIPLY", _math(nt, "MULTIPLY", both, breakup), _math(nt, "MULTIPLY", fade, 40.0))
     v = nt.nodes.new("ShaderNodeVolumePrincipled")
-    v.inputs["Color"].default_value = (0.92, 0.92, 0.92, 1)
-    v.inputs["Anisotropy"].default_value = 0.45
+    v.inputs["Color"].default_value = (0.95, 0.95, 0.95, 1)
+    v.inputs["Anisotropy"].default_value = 0.5
     _set(nt, v.inputs["Density"], dens)
     nt.links.new(v.outputs[0], out.inputs["Volume"])
     return m
@@ -1119,7 +1109,7 @@ def build_fares(steam=True):
     for ob in build_tumbler():
         add(place(ob, M_cup))
     # steam rising from the open cup
-    st = box("Steam", (-0.07, -0.14, 0.0), (0.27, 0.08, 0.45), steam_material())
+    st = box("Steam", (-0.03, -0.07, 0.0), (0.13, 0.035, 0.39), steam_material())
     st.location = tuple(top)
     st.hide_render = not steam
     add(st)
