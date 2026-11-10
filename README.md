@@ -100,22 +100,21 @@ right. Everything you see is rendered in Blender (Cycles).
   with the fire split into its own light groups. Three images are made from it (fire dim,
   leaning left, leaning right). The page fades between them using each fire frame's measured
   brightness, so the glow on the stones, floor and tree rises and falls with the flames.
-- **Fares, the LeMSIC mascot doll** (`tools/blender/fares.py`) sits on the floor by the tree,
-  sipping from the white LeMSIC tumbler; its lid lies on the floor beside him. He is built the
-  way the real rag doll is made: the long black robe and the sleeves are cloth simulations
-  dropped onto his body and the floor, the hat and mitten hands are stuffed cloth inflated with
-  the cloth pressure solver, and his hair and mustache are curly yarn.
-- **The steam from his tumbler rises live:** a volumetric steam loop is rendered on its own,
-  lit by the room's lights (`tools/blender/cabin_steam.py`), and added over the room like the fire.
+- **Fares, the LeMSIC mascot doll** (`tools/blender/fares.py`) sits by the tree in a varnished
+  wooden rocking chair. He is built the way the real rag doll is made: the long black robe and
+  the sleeves are cloth simulations draped over his body, the seat and the armrests; the hat and
+  mitten hands are stuffed cloth inflated with the cloth pressure solver; his hair and mustache
+  are curly yarn. **Click him and he rocks:** the chair is rendered rolling on its rockers at a
+  range of angles (`tools/blender/cabin_rock.py`), and the page plays them with a damped swing.
 - **Snow** falls outside the window, softly out of focus and behind the window bars.
 - **Fire sound:** a crackling sound can be switched on. It is generated in the browser, so
   there are no audio files.
 - **On phones** the scene scrolls sideways.
 - **Data:** `site/assets/cabin/scene.json` (and `scene.js`) give the position of the window
   and every ornament in the image, so the ornaments can be made clickable. `fire.json` (and
-  `fire.js`) describe the fire loop, and `steam.json` (and `steam.js`) the steam loop.
+  `fire.js`) describe the fire loop, and `rock.json` (and `rock.js`) Fares' rocking frames.
 
-To re-render (about 45 minutes for the room, 25 for the fire and 15 for the steam, on a 4-core CPU):
+To re-render (about 45 minutes for the room, 25 for the fire and 15 for Fares rocking, on a 4-core CPU):
 
 ```bash
 pip install bpy==5.2.3 OpenEXR
@@ -130,7 +129,7 @@ python tools/blender/cabin_fire.py
 ```
 
 ```bash
-python tools/blender/cabin_steam.py
+python tools/blender/cabin_rock.py
 ```
 
 Add `--preview` to any of them for a quick low-resolution test. `python tools/blender/fares.py`

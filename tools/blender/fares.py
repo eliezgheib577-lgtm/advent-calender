@@ -1,23 +1,25 @@
-"""Fares, the LeMSIC mascot rag doll (Blender, Cycles).
+"""Fares, the LeMSIC mascot rag doll, in his rocking chair (Blender, Cycles).
 
 Built the way the real doll is made, so it renders as a stuffed fabric toy rather
 than a cartoon:
 
-  * stuffed parts (legs, mitten hands, the tarboush) are cloth meshes inflated with
+  * stuffed parts (the mitten hands, the tarboush) are cloth meshes inflated with
     Blender's cloth pressure solver, with the seams drawn in so the panels puff out
     between them;
   * the long black robe and the sleeves are cloth simulations: pinned at the shoulders
-    and waist and dropped under gravity onto the body, legs and floor, then edged with a
-    flat gold braid that follows the simulated hem;
+    and waist and dropped under gravity onto his body, the chair seat and the armrests,
+    then edged with a flat gold braid that follows the simulated hem;
   * the face is cream stockinette with glossy black safety eyes, satin-stitched brows
-    and eyelashes, and a bushy curly-yarn mustache; curly black yarn hair under a red
-    tarboush with a twisted gold lame band and a yarn pom-pom.
+    and eyelashes, red felt lips and a compact curly-yarn mustache; curly black yarn
+    hair under a red tarboush with a twisted gold lame band and a yarn pom-pom.
 
-He sits on the floor sipping from the white LeMSIC tumbler: the lid is off and lying
-on the floor beside him, and steam rises from the cup.
+He sits back in a varnished wooden rocking chair, legs hanging over the seat, arms
+along the armrests with his mittens resting on the scrolled ends. The chair rocks on
+its rockers about ROCKER_CENTRE (see rock_matrix), which cabin_rock.py uses to render
+him rocking.
 
     build_fares()  -> an Empty; move and turn it to place him. Built facing -Y.
-    python tools/blender/fares.py [front|side|cabin]  renders build/fares-preview.png
+    python tools/blender/fares.py [front|face|cabin]  renders build/fares-<view>.png
 """
 import math
 import os
@@ -34,21 +36,34 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TEX = os.path.join(HERE, "textures")
 rng = np.random.default_rng(1964)
 
-# ---------------------------------------------------------------- pose
-LEAN = math.radians(-7)          # upper body leans back (about X)
+# ---------------------------------------------------------------- pose and chair
+# Doll units: the cabin scales him (and his chair) 1.2x, so 1 unit = 1.2 m.
+SEAT_Z = 0.36                    # top of the chair seat
+ARM_Z = 0.55                     # top of the armrests
+RECLINE = math.radians(14)       # the chair back leans back this much
+ROCKER_R = 0.92                  # radius of the rockers' curve
+ROCKER_Y = -0.02                 # where the rockers touch the floor at rest
+ROCKER_CENTRE = Vector((0.0, ROCKER_Y, ROCKER_R))
+
+LEAN = math.radians(-13)         # he leans back into the chair (about X)
 PIVOT = Vector((0.0, 0.03, 0.07))
 NECK = Vector((0.0, 0.03, 0.455))
-TILT = math.radians(-17)         # head tips back to sip
+TILT = math.radians(9)           # head tips forward a little, so he looks out into the room
 ROLL = math.radians(4)
 HC = np.array([0.0, 0.02, 0.578])  # head centre and radii, head-local (upright)
 HR = np.array([0.115, 0.104, 0.122])
-CUP_TILT = math.radians(40)
-CUP_ROLL = math.radians(14)      # and a little to his right      # tumbler leans toward the face
-CUP_H = 0.18
 
-M_UP = Matrix.Translation(PIVOT) @ Matrix.Rotation(LEAN, 4, "X") @ Matrix.Translation(-PIVOT)
+M_SEAT = Matrix.Translation((0.0, 0.0, SEAT_Z))
+M_UP = M_SEAT @ Matrix.Translation(PIVOT) @ Matrix.Rotation(LEAN, 4, "X") @ Matrix.Translation(-PIVOT)
 M_HEAD = (M_UP @ Matrix.Translation(NECK) @ Matrix.Rotation(TILT, 4, "X") @ Matrix.Rotation(ROLL, 4, "Y")
           @ Matrix.Translation(-NECK))
+
+
+def rock_matrix(angle):
+    """Doll-local transform of the chair (and Fares) rocked forward by `angle` radians:
+    the rockers roll on the floor, so the curve's centre moves forward as it tips."""
+    roll = Matrix.Translation((0.0, -ROCKER_R * angle, 0.0))
+    return roll @ Matrix.Translation(ROCKER_CENTRE) @ Matrix.Rotation(angle, 4, "X") @ Matrix.Translation(-ROCKER_CENTRE)
 
 
 # ---------------------------------------------------------------- node helpers
@@ -272,116 +287,6 @@ def plain(name, color, rough=0.5, metal=0.0, coat=0.0, transmission=0.0, ior=1.4
     return m
 
 
-def tumbler_material():
-    """White powder-coated steel with the two LeMSIC prints: Fares on the front, the logo on the back."""
-    if _cached("Tumbler"):
-        return _cached("Tumbler")
-    m, nt, out = _new_material("Tumbler")
-    tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
-    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
-    _set(nt, sep.inputs[0], tc)
-    # angle round the cup: 0 at the front (-Y), arc length in metres at radius 0.037
-    ang = _math(nt, "ARCTAN2", sep.outputs["X"], _math(nt, "MULTIPLY", sep.outputs["Y"], -1.0))
-    arc = _math(nt, "MULTIPLY", ang, 0.037)
-    white = (0.82, 0.82, 0.80, 1)
-    color = None
-    for img, centre_a, width, z0, height in (("tumbler-fares.png", 0.0, 0.056, 0.078, 0.09),
-                                             ("tumbler-lemsic.png", math.pi, 0.07, 0.095, 0.044)):
-        a = arc if centre_a == 0 else _math(nt, "MULTIPLY", _math(nt, "ARCTAN2", _math(nt, "MULTIPLY", sep.outputs["X"], -1.0),
-                                                                    sep.outputs["Y"]), 0.037)
-        u = _math(nt, "MULTIPLY_ADD", a, 1.0 / width, 0.5)
-        v = _math(nt, "MULTIPLY_ADD", _math(nt, "SUBTRACT", sep.outputs["Z"], z0), 1.0 / height, 0.0)
-        comb = nt.nodes.new("ShaderNodeCombineXYZ")
-        _set(nt, comb.inputs["X"], u)
-        _set(nt, comb.inputs["Y"], v)
-        tex = nt.nodes.new("ShaderNodeTexImage")
-        tex.image = bpy.data.images.load(os.path.join(TEX, img), check_existing=True)
-        tex.extension = "CLIP"
-        tex.interpolation = "Cubic"
-        nt.links.new(comb.outputs[0], tex.inputs["Vector"])
-        # outside the decal CLIP returns black: blend back to white there
-        inside = _math(nt, "MULTIPLY", _math(nt, "MULTIPLY", _math(nt, "GREATER_THAN", u, 0.0), _math(nt, "LESS_THAN", u, 1.0)),
-                       _math(nt, "MULTIPLY", _math(nt, "GREATER_THAN", v, 0.0), _math(nt, "LESS_THAN", v, 1.0)))
-        mix = nt.nodes.new("ShaderNodeMix")
-        mix.data_type = "RGBA"
-        _set(nt, mix.inputs["Factor"], inside)
-        if color is None:
-            mix.inputs["A"].default_value = white
-        else:
-            nt.links.new(color, mix.inputs["A"])
-        mul = nt.nodes.new("ShaderNodeMix")
-        mul.data_type = "RGBA"
-        mul.blend_type = "MULTIPLY"
-        mul.inputs["Factor"].default_value = 1.0
-        mul.inputs["A"].default_value = white
-        nt.links.new(tex.outputs["Color"], mul.inputs["B"])
-        nt.links.new(mul.outputs["Result"], mix.inputs["B"])
-        color = mix.outputs["Result"]
-    grain = _noise(nt, tc, 900.0, 6.0)
-    b = principled(nt, (0.82, 0.82, 0.8), rough=0.5)
-    nt.links.new(color, b.inputs["Base Color"])
-    nt.links.new(_bump(nt, grain.outputs["Fac"], 0.08, 0.0004), b.inputs["Normal"])
-    nt.links.new(b.outputs[0], out.inputs["Surface"])
-    return m
-
-
-def steam_material():
-    """Steam off a hot drink: two thin, translucent ribbons of vapour rising from the rim at his
-    left, swaying gently as they climb and thinning out to nothing. The node named "time"
-    (seconds) animates it: the sway travels up the ribbons, as it does in still air."""
-    if _cached("Steam"):
-        return _cached("Steam")
-    m, nt, out = _new_material("Steam")
-    time = nt.nodes.new("ShaderNodeValue")
-    time.name = "time"
-    time.outputs[0].default_value = 0.0
-    t = time.outputs[0]
-    tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
-    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
-    _set(nt, sep.inputs[0], tc)
-    x, y, h = sep.outputs["X"], sep.outputs["Y"], sep.outputs["Z"]
-    grow = _math(nt, "DIVIDE", h, 0.07, clamp=True)            # the sway builds up above the rim
-
-    def ribbon(x0, y0, lean, amp, k, w, phase, r0, spread):
-        wave = _math(nt, "SINE", _math(nt, "ADD", _math(nt, "SUBTRACT", _math(nt, "MULTIPLY", h, k),
-                                                         _math(nt, "MULTIPLY", t, w)), phase))
-        wave2 = _math(nt, "COSINE", _math(nt, "ADD", _math(nt, "SUBTRACT", _math(nt, "MULTIPLY", h, k * 0.7),
-                                                           _math(nt, "MULTIPLY", t, w * 0.8)), phase + 1.3))
-        cx = _math(nt, "ADD", _math(nt, "MULTIPLY_ADD", h, lean, x0),
-                   _math(nt, "MULTIPLY", grow, _math(nt, "MULTIPLY", wave, amp)))
-        cy = _math(nt, "ADD", y0, _math(nt, "MULTIPLY", grow, _math(nt, "MULTIPLY", wave2, amp * 0.6)))
-        dx = _math(nt, "SUBTRACT", x, cx)
-        dy = _math(nt, "SUBTRACT", y, cy)
-        r = _math(nt, "MULTIPLY_ADD", h, spread, r0)
-        d2 = _math(nt, "DIVIDE", _math(nt, "ADD", _math(nt, "MULTIPLY", dx, dx), _math(nt, "MULTIPLY", dy, dy)),
-                   _math(nt, "MULTIPLY", r, r))
-        # thinner as it widens, so a ribbon keeps its total amount of vapour
-        return _math(nt, "DIVIDE", _math(nt, "EXPONENT", _math(nt, "MULTIPLY", d2, -1.0)),
-                     _math(nt, "MULTIPLY", r, 260.0))
-
-    a = ribbon(0.026, -0.012, 0.1, 0.014, 24.0, 2.6, 0.0, 0.003, 0.035)
-    b = ribbon(0.014, -0.02, 0.05, 0.011, 30.0, 3.1, 2.6, 0.0026, 0.03)
-    both = _math(nt, "ADD", a, _math(nt, "MULTIPLY", b, 0.7))
-    # soft unevenness that drifts upward with the vapour
-    drift = nt.nodes.new("ShaderNodeCombineXYZ")
-    _set(nt, drift.inputs["Z"], _math(nt, "MULTIPLY", t, -0.07))
-    adv = nt.nodes.new("ShaderNodeVectorMath")
-    adv.operation = "ADD"
-    _set(nt, adv.inputs[0], tc)
-    nt.links.new(drift.outputs[0], adv.inputs[1])
-    lumps = _noise(nt, adv.outputs[0], 40.0, 1.0, 0.5, dims="4D", w=_math(nt, "MULTIPLY", t, 0.3))
-    breakup = _math(nt, "MULTIPLY_ADD", lumps.outputs["Fac"], 1.4, -0.2, clamp=True)
-    fade = _math(nt, "MULTIPLY", _math(nt, "DIVIDE", h, 0.012, clamp=True),
-                 _math(nt, "POWER", _math(nt, "SUBTRACT", 1.0, _math(nt, "DIVIDE", h, 0.38), clamp=True), 1.1))
-    dens = _math(nt, "MULTIPLY", _math(nt, "MULTIPLY", both, breakup), _math(nt, "MULTIPLY", fade, 40.0))
-    v = nt.nodes.new("ShaderNodeVolumePrincipled")
-    v.inputs["Color"].default_value = (0.95, 0.95, 0.95, 1)
-    v.inputs["Anisotropy"].default_value = 0.5
-    _set(nt, v.inputs["Density"], dens)
-    nt.links.new(v.outputs[0], out.inputs["Volume"])
-    return m
-
-
 # ---------------------------------------------------------------- geometry helpers
 def mesh_from(name, verts, faces, mat, smooth=True):
     me = bpy.data.meshes.new(name)
@@ -392,18 +297,6 @@ def mesh_from(name, verts, faces, mat, smooth=True):
     if mat is not None:
         me.materials.append(mat)
     return link(bpy.data.objects.new(name, me))
-
-
-def box(name, lo, hi, mat):
-    bpy.ops.mesh.primitive_cube_add(size=1.0)
-    ob = bpy.context.active_object
-    ob.name = name
-    lo, hi = np.asarray(lo, float), np.asarray(hi, float)
-    co = coords(ob) + 0.5
-    ob.data.vertices.foreach_set("co", (lo + co * (hi - lo)).astype(np.float32).ravel())
-    ob.data.update()
-    ob.data.materials.append(mat)
-    return ob
 
 
 def place(ob, M):
@@ -823,10 +716,14 @@ def build_head():
             m, nm = face_point(c[0], c[2], 0.0018)
             stitches.append([a, m, b])
         obs.append(curves("Brow", stitches, 0.001, black, res=1))
-    # mouth: a little red stitched smile, mostly hidden by the mustache and the tumbler rim
-    red_thread = thread("RedThread", (0.33, 0.012, 0.016))
-    obs.append(curves("Mouth", [[face_point(x, 0.522 + 9 * x * x, 0.0012)[0] for x in np.linspace(-0.016, 0.016, 9)]],
-                      0.0014, red_thread, res=1))
+    # red felt lips under the mustache, the line of the mouth stitched across them in a little smile
+    felt = fabric("FeltRed", (0.36, 0.018, 0.024), rough=0.85, sheen=0.3, sheen_rough=0.4, tint=(1, 0.5, 0.5),
+                  fibre=0.2, scale=1600)
+    lp, ln = face_point(0.0, 0.5155, -0.0008)
+    obs.append(subsurf(oriented("Lips", lp, (0.0135, 0.0027, 0.0052), ln, felt, seg=32, rings=16), 1))
+    dark = thread("MouthThread", (0.09, 0.004, 0.006))
+    obs.append(curves("Mouth", [[face_point(x, 0.5158 + 7 * x * x, 0.0021)[0] for x in np.linspace(-0.0125, 0.0125, 11)]],
+                      0.0007, dark, res=1))
 
     # the mustache: a compact pad of curly black yarn stitched flat just under the nose,
     # a little thinner in the middle, the ends drooping and finished with a small curl
@@ -920,59 +817,6 @@ def build_head():
     return obs
 
 
-# ---------------------------------------------------------------- the tumbler
-def cup_radius(h):
-    """Outer radius of the tumbler at height h from its base."""
-    if h < 0.055:
-        return 0.0292 + 0.0022 * h / 0.055
-    if h < 0.072:
-        t = (h - 0.055) / 0.017
-        return 0.0314 + 0.0046 * (3 * t * t - 2 * t ** 3)
-    return 0.036 + 0.0032 * (h - 0.072) / (0.165 - 0.072)
-
-
-def build_tumbler():
-    """Open tumbler in cup-local coords (axis +Z, base at 0, front decal toward -Y)."""
-    obs = []
-    prof = [(0.0, 0.0), (0.026, 0.0), (0.0288, 0.002)]
-    prof += [(cup_radius(h), h) for h in np.linspace(0.004, 0.165, 40)]
-    body, _ = lathe("TumblerBody", [(z, r, r, 0.0) for r, z in prof], tumbler_material(), seg=96)
-    obs.append(smooth_shade(body))
-    steel = plain("Steel", (0.74, 0.74, 0.75), rough=0.16, metal=1.0)
-    inner = plain("SteelInside", (0.5, 0.5, 0.52), rough=0.3, metal=1.0)
-    rim = [(0.0392, 0.165), (0.0394, 0.175), (0.0392, 0.1792), (0.0383, 0.1802), (0.0372, 0.1792), (0.0368, 0.176)]
-    band, _ = lathe("TumblerRim", [(z, r, r, 0.0) for r, z in rim], steel, seg=96)
-    obs.append(smooth_shade(band))
-    wall = [(0.0368, 0.176), (0.0362, 0.12), (0.0345, 0.07), (0.028, 0.03), (0.026, 0.016), (0.0, 0.014)]
-    iw, _ = lathe("TumblerInside", [(z, r, r, 0.0) for r, z in wall], inner, seg=96)
-    obs.append(smooth_shade(iw))
-    return obs
-
-
-def build_lid():
-    """The smoky tumbler lid, lying on the floor: lid-local, resting on z = 0."""
-    obs = []
-    smoke = plain("SmokyLid", (0.035, 0.035, 0.04), rough=0.14, transmission=0.55, ior=1.49)
-    prof = [(0.0, 0.0172), (0.03, 0.0172), (0.0335, 0.0195), (0.0372, 0.0218), (0.0405, 0.021), (0.0418, 0.017),
-            (0.0418, 0.003), (0.041, 0.0), (0.0382, 0.0), (0.0378, 0.014), (0.0, 0.0142)]
-    lid, _ = lathe("Lid", [(z, r, r, 0.0) for r, z in prof], smoke, seg=96)
-    obs.append(subsurf(smooth_shade(lid), 1))
-    gasket = plain("Gasket", (0.05, 0.05, 0.055), rough=0.6)
-    g = tube("Gasket", ring_around(np.array([0, 0, 0.006]), np.array([0, 0, 1.0]), 0.0372, 64), [0.0022] * 64,
-             gasket, sides=10, caps=False)
-    obs.append(g)
-    slider = plain("Slider", (0.02, 0.02, 0.022), rough=0.35)
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, -0.016, 0.0195))
-    s = bpy.context.active_object
-    s.scale = (0.018, 0.008, 0.0035)
-    s.data.materials.append(slider)
-    bev = s.modifiers.new("bevel", "BEVEL")
-    bev.width = 0.0015
-    bev.segments = 3
-    obs.append(s)
-    return obs
-
-
 # ---------------------------------------------------------------- mitten hands
 def mitten_slab(name, mat):
     """A stuffed mitten: two cut cloth panels sewn round the edge, inflated. Local: width x, length z."""
@@ -1001,28 +845,169 @@ def mitten_slab(name, mat):
     return ob
 
 
-def wrap_mitten(ob, M_cup, phi_c, h0, sign):
-    """Bend a baked mitten round the tumbler: width -> angle round the cup, length -> height up it."""
+# ---------------------------------------------------------------- the rocking chair
+def wood():
+    """Varnished cherry: warm red-brown with a flowing grain under a satin clear coat."""
+    if _cached("Cherry"):
+        return _cached("Cherry")
+    m, nt, out = _new_material("Cherry")
+    tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
+    sq = nt.nodes.new("ShaderNodeVectorMath")
+    sq.operation = "MULTIPLY"
+    _set(nt, sq.inputs[0], tc)
+    sq.inputs[1].default_value = (1.0, 1.0, 0.25)          # grain runs mostly up the posts and spindles
+    grain = _noise(nt, sq.outputs[0], 60.0, 9.0, 0.62, distortion=4.0)
+    fine = _noise(nt, tc, 900.0, 4.0, 0.5)
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].position = 0.3
+    ramp.color_ramp.elements[0].color = (0.042, 0.017, 0.008, 1)
+    ramp.color_ramp.elements[1].position = 0.75
+    ramp.color_ramp.elements[1].color = (0.12, 0.05, 0.022, 1)
+    nt.links.new(grain.outputs["Fac"], ramp.inputs["Fac"])
+    b = principled(nt, (0.15, 0.06, 0.025), rough=0.42)
+    b.inputs["Coat Weight"].default_value = 0.45
+    b.inputs["Coat Roughness"].default_value = 0.12
+    nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
+    n = _bump(nt, grain.outputs["Fac"], 0.12, 0.0006)
+    nt.links.new(_bump(nt, fine.outputs["Fac"], 0.05, 0.0002, n), b.inputs["Normal"])
+    nt.links.new(b.outputs[0], out.inputs["Surface"])
+    return m
+
+
+def bar(name, points, width, height, mat, up=(0.0, 0.0, 1.0), sides=28, n=None, caps=True, power=0.4):
+    """A wooden bar along a path with a rounded-rectangle section: `width` across, `height` along `up`."""
+    P = np.asarray(points, float)
+    n = n or max(24, len(P) * 10)
+    P = smooth_path(P, n, 2) if len(P) > 2 else resample(P, n)
+    T = np.gradient(P, axis=0)
+    T /= np.linalg.norm(T, axis=1, keepdims=True)
+    U = np.asarray(up, float)[None, :] - (T @ np.asarray(up, float))[:, None] * T
+    U /= np.linalg.norm(U, axis=1, keepdims=True)
+    S = np.cross(T, U)
+    ang = np.linspace(0, 2 * np.pi, sides, endpoint=False)
+    cx = np.sign(np.cos(ang)) * np.abs(np.cos(ang)) ** power * width / 2
+    cy = np.sign(np.sin(ang)) * np.abs(np.sin(ang)) ** power * height / 2
+    V = list((P[:, None, :] + cx[None, :, None] * S[:, None, :] + cy[None, :, None] * U[:, None, :]).reshape(-1, 3))
+    F = [(i * sides + a, i * sides + (a + 1) % sides, (i + 1) * sides + (a + 1) % sides, (i + 1) * sides + a)
+         for i in range(n - 1) for a in range(sides)]
+    if caps:
+        for end, sgn in ((0, -1), (n - 1, 1)):
+            c = len(V)
+            V.append(P[end] + T[end] * min(width, height) * 0.25 * sgn)
+            base = end * sides
+            F += [(c, base + (a + 1) % sides, base + a) if sgn < 0 else (c, base + a, base + (a + 1) % sides)
+                  for a in range(sides)]
+    return subsurf(mesh_from(name, V, F, mat), 1)
+
+
+def turned(name, p0, p1, profile, mat, sides=24):
+    """A lathe-turned spindle from p0 to p1; profile is [(t along it, radius), ...]."""
+    p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+    ts = np.linspace(0, 1, 48)
+    radii = np.interp(ts, [q[0] for q in profile], [q[1] for q in profile])
+    return tube(name, [p0 + (p1 - p0) * t for t in ts], radii, mat, sides=sides, n=48)
+
+
+def seat_mesh(name, mat):
+    """A saddled wooden seat: wider at the front, a shallow dish, rounded edges."""
+    yc, hd = -0.025, 0.185
+    def outline(a):
+        ux = np.sign(math.cos(a)) * abs(math.cos(a)) ** 0.42
+        uy = np.sign(math.sin(a)) * abs(math.sin(a)) ** 0.42
+        y = yc + hd * uy
+        hw = 0.2 - 0.024 * (y + 0.21) / 0.37
+        return np.array([ux * hw, y - 0.012 * (1 - ux * ux) * (uy < 0)])     # front edge bowed forward
+    # (scale of the outline, height): across the dished top, round the rolled edge, under the seat
+    prof = [(0.0, -0.011), (0.3, -0.010), (0.55, -0.007), (0.75, -0.004), (0.88, -0.0015), (0.95, -0.0003),
+            (0.985, -0.003), (1.0, -0.01), (1.0, -0.022), (0.985, -0.03), (0.95, -0.034), (0.5, -0.034), (0.0, -0.034)]
+    K = 96
+    V, F = [], []
+    for r, dz in prof:
+        for k in range(K):
+            o = outline(2 * math.pi * k / K) * r
+            V.append((o[0], o[1] + yc * (1 - r), SEAT_Z + dz))
+    for i in range(len(prof) - 1):
+        for k in range(K):
+            k2 = (k + 1) % K
+            F.append((i * K + k, (i + 1) * K + k, (i + 1) * K + k2, i * K + k2))
+    return subsurf(mesh_from(name, V, F, mat), 1)
+
+
+def build_rocking_chair():
+    """A Windsor rocking chair in doll units. Returns (objects, seat, armrests)."""
+    w = wood()
+    obs = []
+
+    def rocker_bottom(y):
+        return ROCKER_R - math.sqrt(ROCKER_R ** 2 - (y - ROCKER_Y) ** 2)
+
+    def rocker_top(y):
+        return rocker_bottom(y) + 0.052
+
+    tan_r = math.tan(RECLINE)
+    for s in (-1, 1):
+        ys = np.linspace(-0.43, 0.4, 40)
+        obs.append(bar("Rocker", [(s * 0.215, y, rocker_bottom(y) + 0.026) for y in ys], 0.026, 0.052, w,
+                       up=(0, 0, 1), n=80))
+        # front leg and back leg, standing on the rocker, splayed slightly outward
+        obs.append(turned("ChairLeg", (s * 0.215, -0.175, rocker_top(-0.175) - 0.004), (s * 0.19, -0.165, SEAT_Z - 0.03),
+                          [(0, 0.016), (0.15, 0.019), (0.3, 0.014), (0.55, 0.017), (0.8, 0.014), (1, 0.016)], w))
+        obs.append(turned("ChairLeg", (s * 0.215, 0.14, rocker_top(0.14) - 0.004), (s * 0.18, 0.13, SEAT_Z - 0.03),
+                          [(0, 0.016), (0.15, 0.019), (0.3, 0.014), (0.55, 0.017), (0.8, 0.014), (1, 0.016)], w))
+        # side stretcher between the legs
+        obs.append(turned("Stretcher", (s * 0.205, -0.17, 0.2), (s * 0.198, 0.137, 0.2),
+                          [(0, 0.009), (0.5, 0.012), (1, 0.009)], w, sides=16))
+        # back post, reclined, with a ball finial
+        top = np.array([s * 0.172, 0.13 + 0.52 * tan_r, SEAT_Z + 0.52])
+        obs.append(turned("BackPost", (s * 0.18, 0.13, SEAT_Z - 0.03), top,
+                          [(0, 0.017), (0.08, 0.02), (0.14, 0.015), (0.5, 0.016), (0.88, 0.014), (0.93, 0.018), (1, 0.013)], w))
+        obs.append(ellipsoid("Finial", top + np.array([0, 0.003, 0.014]), (0.017, 0.017, 0.02), w, 24, 12))
+        # armrest: from the back post, flaring out to a rounded scroll that curls down at the front
+        arm = bar("Armrest", [(s * 0.17, 0.13 + (ARM_Z - SEAT_Z) * tan_r, ARM_Z - 0.011), (s * 0.205, 0.0, ARM_Z - 0.011),
+                              (s * 0.226, -0.15, ARM_Z - 0.011), (s * 0.229, -0.205, ARM_Z - 0.013),
+                              (s * 0.229, -0.232, ARM_Z - 0.026), (s * 0.229, -0.236, ARM_Z - 0.045)],
+                  0.056, 0.022, w, n=60)
+        obs.append(arm)
+        # the turned post holding up the front of the armrest
+        obs.append(turned("ArmPost", (s * 0.19, -0.158, SEAT_Z - 0.01), (s * 0.226, -0.18, ARM_Z - 0.02),
+                          [(0, 0.014), (0.2, 0.012), (0.45, 0.016), (0.7, 0.011), (1, 0.013)], w))
+    obs.append(turned("Stretcher", (-0.208, -0.172, 0.23), (0.208, -0.172, 0.23), [(0, 0.01), (0.5, 0.014), (1, 0.01)],
+                      w, sides=16))
+    seat = seat_mesh("Seat", w)
+    obs.append(seat)
+    # crest rail across the top of the back, bowed backward, and the spindles under it
+    def back_y(z, x):
+        return 0.13 + (z - SEAT_Z) * tan_r + 0.028 * (1 - (x / 0.17) ** 2)
+    rail_z = SEAT_Z + 0.465
+    obs.append(bar("CrestRail", [(x, back_y(rail_z, x), rail_z) for x in np.linspace(-0.185, 0.185, 15)], 0.024, 0.075, w,
+                   up=(0, math.sin(RECLINE), math.cos(RECLINE)), n=50))
+    for x in np.linspace(-0.11, 0.11, 5):
+        obs.append(turned("Spindle", (x, 0.125, SEAT_Z - 0.01), (x, back_y(rail_z - 0.03, x), rail_z - 0.03),
+                          [(0, 0.0085), (0.3, 0.0105), (0.7, 0.008), (1, 0.0075)], w, sides=16))
+    arms = [o for o in obs if o.name.startswith("Armrest")]
+    return obs, seat, arms
+
+
+# ---------------------------------------------------------------- mitten hands at rest
+def rest_mitten(ob, s):
+    """Lay a baked mitten palm-down along the armrest, its tip curling over the scrolled end."""
     co = coords(ob)
     w, n, l = co[:, 0], co[:, 1], co[:, 2]
     n = n - n.min()
-    h = h0 + l
-    R = np.array([cup_radius(max(0.0, min(0.165, x))) for x in h]) + 0.0025
-    phi = phi_c + sign * w / (R + 0.012)
-    out = np.stack([(R + n) * np.cos(phi), (R + n) * np.sin(phi), h], 1)
+    lb, rb = 0.062, 0.022
+    along = np.where(l <= lb, l, lb + (rb + n) * np.sin((l - lb) / rb))
+    height = np.where(l <= lb, n, -rb + (rb + n) * np.cos((l - lb) / rb))
+    out = np.stack([s * 0.228 + s * w, -0.13 - (along + 0.012), ARM_Z + 0.001 + height], 1)
     ob.data.vertices.foreach_set("co", out.astype(np.float32).ravel())
     ob.data.update()
-    if sign < 0:
+    if s < 0:
         ob.data.flip_normals()
-    place(ob, M_cup)
-    wrist = M_cup @ Vector(((cup_radius(h0) + 0.016) * math.cos(phi_c), (cup_radius(h0) + 0.016) * math.sin(phi_c), h0 - 0.005))
-    return np.array(wrist)
+    return ob
 
 
 # ---------------------------------------------------------------- Fares
-def build_fares(steam=True):
-    """Fares as the real rag doll, sitting on the floor sipping from his LeMSIC tumbler.
-    steam=False leaves out the steam volume (the cabin animates it separately, see cabin_steam.py)."""
+def build_fares():
+    """Fares as the real rag doll, sitting back in his rocking chair."""
     black = fabric("ClothBlack", (0.0062, 0.0058, 0.0058), rough=0.9, sheen=0.22, sheen_rough=0.55, tint=(0.62, 0.62, 0.66),
                    fibre=0.3, scale=900)
     jersey = fabric("JerseyBlack", (0.0055, 0.0053, 0.0053), rough=0.82, sheen=0.18, sheen_rough=0.4, fibre=0.12, scale=1500)
@@ -1038,7 +1023,9 @@ def build_fares(steam=True):
     parts = []
     add, extend = parts.append, parts.extend
 
-    # the floor, for the cloth to land on (removed after the simulations)
+    # the rocking chair, and a floor for the cloth (removed after the simulations)
+    chair, seat, armrests = build_rocking_chair()
+    extend(chair)
     bpy.ops.mesh.primitive_plane_add(size=3, location=(0, 0, 0))
     floor = bpy.context.active_object
     floor.name = "SimFloor"
@@ -1053,22 +1040,25 @@ def build_fares(steam=True):
     neck, _ = lathe("Neck", [(z, 0.046, 0.042, 0.03) for z in (0.43, 0.47, 0.5)], skin, seg=32)
     add(place(smooth_shade(neck), M_UP))
 
-    # ---------- legs: black cloth legs with baggy sherwal gathered above soft black feet
+    # ---------- legs: along the seat, bending over its front edge, hanging down in baggy sherwal
     legs = []
+    Z = SEAT_Z
     for s in (-1, 1):
-        path = smooth_path([(s * 0.066, 0.0, 0.072), (s * 0.08, -0.12, 0.072), (s * 0.097, -0.24, 0.078),
-                            (s * 0.112, -0.33, 0.066), (s * 0.12, -0.392, 0.056), (s * 0.126, -0.43, 0.056),
-                            (s * 0.13, -0.462, 0.07), (s * 0.133, -0.478, 0.098)], 80, 2)
+        ctrl = [(s * 0.066, 0.005, Z + 0.072), (s * 0.077, -0.1, Z + 0.07), (s * 0.086, -0.2, Z + 0.064),
+                (s * 0.092, -0.252, Z + 0.032), (s * 0.095, -0.272, Z - 0.035), (s * 0.097, -0.272, Z - 0.11),
+                (s * 0.099, -0.268, Z - 0.155), (s * 0.101, -0.288, Z - 0.188), (s * 0.103, -0.318, Z - 0.183)]
+        path = smooth_path(ctrl, 90, 2)
         t = np.linspace(0, 1, len(path))
-        radius = np.interp(t, [0, 0.3, 0.62, 0.74, 0.8, 0.9, 1.0], [0.056, 0.056, 0.055, 0.04, 0.039, 0.046, 0.04])
+        t_ankle = t[np.argmin(np.linalg.norm(path - np.array(ctrl[6]), axis=1))]
+        radius = np.interp(t, [0, 0.35, t_ankle - 0.12, t_ankle, t_ankle + 0.06, 0.94, 1.0],
+                           [0.055, 0.052, 0.052, 0.038, 0.044, 0.042, 0.034])
         T_, N_, B_ = frames_along(path)
         sides = 40
         ang = np.linspace(0, 2 * np.pi, sides, endpoint=False)
         V = []
         for i in range(len(path)):
-            gather = math.exp(-((t[i] - 0.745) / 0.05) ** 2)          # sherwal gathered at the ankle
+            gather = math.exp(-((t[i] - t_ankle) / 0.04) ** 2)          # sherwal gathered at the ankle
             rr = radius[i] * (1 + 0.07 * gather * np.sin(11 * ang + i * 0.3))
-            rr = rr * (1 - 0.08 * np.clip(-np.sin(ang), 0, 1) * (t[i] < 0.7))   # settles flatter underneath
             V += list(path[i] + rr[:, None] * (np.cos(ang)[:, None] * N_[i] + np.sin(ang)[:, None] * B_[i]))
         F = [(i * sides + a, i * sides + (a + 1) % sides, (i + 1) * sides + (a + 1) % sides, (i + 1) * sides + a)
              for i in range(len(path) - 1) for a in range(sides)]
@@ -1078,72 +1068,34 @@ def build_fares(steam=True):
         root_c = len(V)
         V.append(path[0] - T_[0] * 0.02)
         F += [(root_c, (a + 1) % sides, a) for a in range(sides)]
-        leg = mesh_from("Leg", V, F, jersey)
-        legs.append(leg)
+        legs.append(mesh_from("Leg", V, F, jersey))
 
-    # ---------- head (head-local, tipped back to sip)
+    # ---------- head (head-local, placed on the leaning body)
     head_obs = build_head()
     for ob in head_obs:
         place(ob, M_HEAD)
     hat = next(o for o in head_obs if o.name.startswith("Tarboush"))
 
-    # ---------- mittens
+    # ---------- stuffed parts: the hat and the mittens
     mittens = [mitten_slab("Mitten", skin), mitten_slab("Mitten", skin)]
-
-    # first pass: stuffed parts (hat, mittens)
     simulate([hat] + mittens, 40)
     extend(head_obs)
+    for mit, s in zip(mittens, (1, -1)):
+        add(subsurf(rest_mitten(mit, s), 1))
 
-    # ---------- the tumbler at his lips
-    mouth = Vector(face_point(0.0, 0.518, 0.0)[0].tolist())
-    mw = M_HEAD @ mouth
-    roll = Matrix.Rotation(-CUP_ROLL, 3, "Y")
-    A = roll @ Vector((0, math.sin(CUP_TILT), math.cos(CUP_TILT)))
-    u = roll @ Vector((0, math.cos(CUP_TILT), -math.sin(CUP_TILT)))
-    side = u.cross(A)
-    rim_r = 0.0392
-    top = mw + Vector((0, -0.003, -0.003)) - rim_r * u
-    base = top - CUP_H * A
-    M_cup = Matrix.Translation(base) @ Matrix(((side.x, u.x, A.x, 0), (side.y, u.y, A.y, 0), (side.z, u.z, A.z, 0),
-                                                (0, 0, 0, 1)))
-    for ob in build_tumbler():
-        add(place(ob, M_cup))
-    # steam rising from the open cup
-    st = box("Steam", (-0.03, -0.07, 0.0), (0.13, 0.035, 0.39), steam_material())
-    st.location = tuple(top)
-    st.hide_render = not steam
-    add(st)
-    # the lid, off and lying on the floor at his left
-    lid_rig = bpy.data.objects.new("LidRig", None)
-    link(lid_rig)
-    for ob in build_lid():
-        ob.parent = lid_rig
-    lid_rig.location = (0.42, -0.36, 0.0)
-    lid_rig.rotation_euler = (0, 0, math.radians(-25))
-    add(lid_rig)
-
-    # ---------- mittens round the cup, thumbs toward the front
-    wrists = []
-    for mit, phi, sign in ((mittens[0], math.radians(-12), 1), (mittens[1], math.radians(192), -1)):
-        wrists.append(wrap_mitten(mit, M_cup, phi, 0.035, sign))
-        add(subsurf(mit, 1))
-    wrist_l, wrist_r = wrists
-
-    # ---------- arms (inside the sleeves) and the draped sleeves
+    # ---------- arms (inside the sleeves) along the armrests, and the sleeves draped over them
     arms, sleeves = [], []
-    for s, wrist in ((1, wrist_l), (-1, wrist_r)):
+    for s in (1, -1):
         sh = np.array(M_UP @ Vector((s * 0.132, 0.035, 0.405)))
-        el = np.array([s * 0.205, -0.085, 0.262])
-        fore = wrist - el
-        fore /= np.linalg.norm(fore)
-        w_in = wrist + fore * 0.004
-        arm = tube("Arm", [sh, (sh + el) / 2 + np.array([s * 0.012, 0, 0]), el, (el + w_in) / 2, w_in],
-                   [0.036, 0.034, 0.033, 0.03, 0.026], black, sides=20, n=40)
+        el = np.array([s * 0.217, 0.03, ARM_Z + 0.064])
+        wr = np.array([s * 0.226, -0.125, ARM_Z + 0.062])
+        arm = tube("Arm", [sh, (sh + el) / 2 + np.array([s * 0.012, 0, 0]), el, (el + wr) / 2, wr],
+                   [0.036, 0.034, 0.033, 0.03, 0.027], black, sides=20, n=40)
         arms.append(arm)
         path = smooth_path([sh - np.array([s * 0.02, 0, -0.005]), (sh + el) / 2 + np.array([s * 0.015, 0, 0]), el,
-                            (el + w_in) / 2, w_in - fore * 0.008], 46, 2)
+                            (el + wr) / 2, wr + np.array([0, -0.004, 0])], 46, 2)
         T, N, B = frames_along(path)
-        radii = np.interp(np.linspace(0, 1, len(path)), [0, 0.45, 1], [0.05, 0.056, 0.064])
+        radii = np.interp(np.linspace(0, 1, len(path)), [0, 0.45, 1], [0.05, 0.056, 0.058])
         sides = 40
         ang = np.linspace(0, 2 * np.pi, sides, endpoint=False)
         V = (path[:, None, :] + radii[:, None, None] * (np.cos(ang)[None, :, None] * N[:, None, :]
@@ -1183,11 +1135,11 @@ def build_fares(steam=True):
     sash, _ = lathe("Sash", sash_secs, sash_mat, seg=96)
     add(place(subsurf(wrinkles(wrinkles(sash, 0.007, 0.012, 3), 0.003, 0.005), 2), M_UP))
 
-    # ---------- the long black robe: bodice pinned on the shoulders, skirt dropped onto legs and floor
+    # ---------- the long black robe: bodice pinned on the shoulders, skirt dropped onto the seat and legs
     def gap(z):
         if z >= 0.2:
             return math.radians(30 - 8 * (0.44 - z) / 0.24)
-        return math.radians(22 + 8 * (0.2 - z) / 0.14)
+        return math.radians(22 - 12 * min(1.0, (0.2 - z) / 0.09))      # the front edges close over his lap
     seg = 150
     rows = []
     bodice = [(0.452, 0.074, 0.066), (0.437, 0.118, 0.094), (0.41, 0.146, 0.112), (0.37, 0.15, 0.115), (0.32, 0.153, 0.117),
@@ -1197,12 +1149,16 @@ def build_fares(steam=True):
     K = 30
     for k in range(1, K + 1):
         t = k / K
-        rows.append((0.205 - 0.13 * t, 0.165 + 0.27 * t, 0.128 + 0.27 * t))
+        rows.append((0.205 - 0.09 * t, 0.165 + 0.25 * t, 0.128 + 0.25 * t))
     V = []
-    for z, rx, ry in rows:
+    for i, (z, rx, ry) in enumerate(rows):
         g = gap(z)
+        flare_t = max(0.0, (i - len(bodice) + 1) / K)
         for a in np.linspace(-math.pi / 2 + g, 3 * math.pi / 2 - g, seg):
-            V.append((rx * math.cos(a), 0.03 + ry * math.sin(a), z))
+            # the back of the skirt stays close: he is sitting on it, against the chair back
+            back = max(0.0, math.sin(a))
+            k = 1 - 0.55 * back * flare_t
+            V.append((rx * k * math.cos(a), 0.03 + ry * k * math.sin(a), z))
     F = [(i * seg + j, i * seg + j + 1, (i + 1) * seg + j + 1, (i + 1) * seg + j)
          for i in range(len(rows) - 1) for j in range(seg - 1)]
     robe = mesh_from("Robe", V, F, black)
@@ -1212,8 +1168,8 @@ def build_fares(steam=True):
     vgroup(robe, "pin", pin)
 
     # second pass: robe and sleeves drape under gravity
-    col_body = sim_collection("SimBody", [floor, torso] + legs, thickness=0.004)
-    col_arms = sim_collection("SimArms", arms + [torso], thickness=0.004)
+    col_body = sim_collection("SimBody", [floor, torso, seat] + legs, thickness=0.004, friction=40.0)
+    col_arms = sim_collection("SimArms", arms + [torso] + armrests, thickness=0.004)
     cloth(robe, pin="pin", colliders=col_body, tension=20, bending=1.2, mass=0.25, quality=8, self_collide=True,
           distance=0.004, damping=2)
     for sl in sleeves:
@@ -1291,10 +1247,12 @@ def build_fares(steam=True):
     for s in (-1, 1):
         add(place(oriented("PinWing", pin_at + np.array([s * 0.006, 0, 0.002]), (0.0065, 0.0015, 0.0055),
                            np.array([0, -1.0, 0]), pink, 16, 8), M_UP))
-    # the round white LeMSIC badge on his left sleeve
+    # the round white LeMSIC badge on the outside of his left upper arm
     left_sleeve = sleeves[0]
+    sh = np.array(M_UP @ Vector((0.132, 0.035, 0.405)))
+    el = np.array([0.217, 0.03, ARM_Z + 0.064])
     dg = bpy.context.evaluated_depsgraph_get()
-    target = left_sleeve.matrix_world.inverted() @ Vector((0.19, -0.04, 0.37))
+    target = left_sleeve.matrix_world.inverted() @ Vector(((sh + el) / 2 + np.array([0.07, -0.03, 0.0])).tolist())
     ok, loc, nrm_, _ = left_sleeve.evaluated_get(dg).closest_point_on_mesh(target)
     if ok:
         wl = left_sleeve.matrix_world @ loc
@@ -1330,9 +1288,9 @@ if __name__ == "__main__":
     cam_data = bpy.data.cameras.new("Cam")
     cam_data.lens = {"face": 85, "cabin": 50}.get(view, 50)
     cam = link(bpy.data.objects.new("Cam", cam_data))
-    cam.location = {"front": (-0.35, -1.6, 0.75), "side": (-1.2, -0.9, 0.6), "cabin": (-0.8, -2.2, 1.0),
-                    "face": (-0.12, -0.75, 0.62)}[view]
-    aim = {"face": (0, -0.05, 0.53)}.get(view, (0, -0.1, 0.33))
+    cam.location = {"front": (-0.45, -2.0, 1.0), "side": (-1.6, -1.0, 0.9), "cabin": (-1.0, -2.6, 1.35),
+                    "face": (-0.15, -0.95, 0.98)}[view]
+    aim = {"face": (0, -0.03, 0.92)}.get(view, (0, -0.05, 0.55))
     cam.rotation_euler = (Vector(aim) - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
     # firelight from the left, tree lights behind right, a dim cool fill from the window

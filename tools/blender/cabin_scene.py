@@ -41,6 +41,8 @@ BUILD_DIR = os.path.join(ROOT, "build")
 EMBLEM = os.path.join(HERE, "textures", "lemsic-emblem.png")
 TREE_STYLE = "cedar_lemsic"          # see lemsic_tree.STYLES
 FARES_AT = (1.95, 0.55, 0.0)
+FARES_TURN = math.radians(-34)
+FARES_SCALE = 1.2
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
@@ -596,7 +598,7 @@ def setup(scene):
     area_light("TreeKey", (1.6, -3.2, 3.6), (0, 0, 1.6), 70, 1.5, (1.0, 0.85, 0.7), "room")
     # the warm glow of the tree's lights falling on Fares beside it
     fx, fy, _ = FARES_AT
-    glow = area_light("FaresGlow", (fx - 1.0, fy - 1.3, 1.25), (fx, fy, 0.55), 22, 1.2, (1.0, 0.78, 0.55), "tree")
+    glow = area_light("FaresGlow", (fx - 1.0, fy - 1.3, 1.5), (fx, fy, 0.85), 24, 1.2, (1.0, 0.78, 0.55), "tree")
     glow.visible_camera = False
     glow.visible_glossy = False
 
@@ -775,9 +777,8 @@ def scene_info(scene, spots):
         f.write("window.CABIN_SCENE = " + json.dumps(info) + ";\n")
 
 
-def build_cabin(steam=False):
-    """The whole room, lit and with the camera set. The steam from Fares' tumbler is left out
-    unless asked for: the website animates it on top (cabin_steam.py)."""
+def build_cabin():
+    """The whole room, lit and with the camera set."""
     scene = T.reset_scene()
     T.apply_style(TREE_STYLE)
     T.FLOOR_LIFT = 0.03                     # the skirt and presents rest on the braided rug
@@ -785,10 +786,10 @@ def build_cabin(steam=False):
     spots = T.build_tree()
     build_room()
     build_fireplace()
-    mascot = FARES.build_fares(steam=steam)   # Fares, sitting by the tree sipping from his LeMSIC tumbler
+    mascot = FARES.build_fares()           # Fares in his rocking chair, by the tree
     mascot.location = FARES_AT
-    mascot.rotation_euler = (0, 0, math.radians(-34))
-    mascot.scale = (1.35, 1.35, 1.35)
+    mascot.rotation_euler = (0, 0, FARES_TURN)
+    mascot.scale = (FARES_SCALE,) * 3
     setup(scene)
     return scene, spots
 

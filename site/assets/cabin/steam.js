@@ -1,1 +1,0 @@
-window.CABIN_STEAM = {"frames": 72, "fps": 24, "cols": 12, "rows": 6, "frameWidth": 154, "frameHeight": 174, "crop": {"x0": 0.76427, "x1": 0.84464, "y0": 0.54927, "y1": 0.71088}, "note": "crop is where the frames go in the room image (fractions, y from the top); the frames are added on top (lighter blend)"};
