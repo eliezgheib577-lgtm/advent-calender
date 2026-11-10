@@ -94,7 +94,12 @@ def _bump(nt, height, strength, distance, normal=None):
 
 
 def _cached(name):
-    return bpy.data.materials.get(name)
+    return bpy.data.materials.get("Fares " + name)
+
+
+def _new_material(name):
+    """Fares' materials get their own names, so they never pick up a cabin material of the same name."""
+    return new_material("Fares " + name)
 
 
 # ---------------------------------------------------------------- materials
@@ -103,7 +108,7 @@ def fabric(name, color, rough=0.9, sheen=0.35, sheen_rough=0.5, tint=(1, 1, 1), 
     """Felt, fleece, cotton: matte, a soft sheen at grazing angles, fibrous bump, slight mottling."""
     if _cached(name):
         return _cached(name)
-    m, nt, out = new_material(name)
+    m, nt, out = _new_material(name)
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     fine = _noise(nt, tc, scale, 8.0, 0.6)
     pill = _noise(nt, tc, scale * 0.12, 3.0, 0.5)
@@ -160,7 +165,7 @@ def satin(name, color, rough=0.32, sheen=0.25, metal=0.0, crease=0.4, scale=45.0
     """Satin / taffeta: glossy weave with soft crushed creases."""
     if _cached(name):
         return _cached(name)
-    m, nt, out = new_material(name)
+    m, nt, out = _new_material(name)
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     cr = _noise(nt, tc, scale, 6.0, 0.55, distortion=0.6)
     weave = _noise(nt, tc, 2200.0, 2.0, 0.5)
@@ -177,7 +182,7 @@ def yarn(name="Yarn", color=(0.006, 0.0055, 0.0055)):
     """Wool yarn: twisted plies, a woolly sheen."""
     if _cached(name):
         return _cached(name)
-    m, nt, out = new_material(name)
+    m, nt, out = _new_material(name)
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     w = nt.nodes.new("ShaderNodeTexWave")
     w.wave_type = "BANDS"
@@ -202,7 +207,7 @@ def thread(name="Thread", color=(0.006, 0.006, 0.006)):
     """Embroidery floss: glossy, finely twisted."""
     if _cached(name):
         return _cached(name)
-    m, nt, out = new_material(name)
+    m, nt, out = _new_material(name)
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     w = nt.nodes.new("ShaderNodeTexWave")
     w.bands_direction = "DIAGONAL"
@@ -220,7 +225,7 @@ def gold_braid():
     """Woven metallic gold braid (the jacket edging and cuffs)."""
     if _cached("GoldBraid"):
         return _cached("GoldBraid")
-    m, nt, out = new_material("GoldBraid")
+    m, nt, out = _new_material("GoldBraid")
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     w = nt.nodes.new("ShaderNodeTexWave")
     w.bands_direction = "DIAGONAL"
@@ -242,7 +247,7 @@ def gold_lame():
     """Crinkled gold lame (the hat band)."""
     if _cached("GoldLame"):
         return _cached("GoldLame")
-    m, nt, out = new_material("GoldLame")
+    m, nt, out = _new_material("GoldLame")
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     vor = nt.nodes.new("ShaderNodeTexVoronoi")
     vor.feature = "F1"
@@ -259,7 +264,7 @@ def gold_lame():
 def plain(name, color, rough=0.5, metal=0.0, coat=0.0, transmission=0.0, ior=1.45):
     if _cached(name):
         return _cached(name)
-    m, nt, out = new_material(name)
+    m, nt, out = _new_material(name)
     b = principled(nt, color, rough=rough, metal=metal, coat=coat)
     b.inputs["Transmission Weight"].default_value = transmission
     b.inputs["IOR"].default_value = ior
@@ -271,7 +276,7 @@ def tumbler_material():
     """White powder-coated steel with the two LeMSIC prints: Fares on the front, the logo on the back."""
     if _cached("Tumbler"):
         return _cached("Tumbler")
-    m, nt, out = new_material("Tumbler")
+    m, nt, out = _new_material("Tumbler")
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     _set(nt, sep.inputs[0], tc)
@@ -325,7 +330,7 @@ def steam_material():
     The node named "time" (seconds) animates it: the wisps rise and slowly change shape."""
     if _cached("Steam"):
         return _cached("Steam")
-    m, nt, out = new_material("Steam")
+    m, nt, out = _new_material("Steam")
     time = nt.nodes.new("ShaderNodeValue")
     time.name = "time"
     time.outputs[0].default_value = 0.0
@@ -888,7 +893,7 @@ def build_head():
     vgroup(hat, "seam", seam)
     smooth_shade(hat)
     hat.data.materials.append(red)
-    cloth(hat, gravity=0.0, pressure=1.1, shrink_group="seam", shrink=0.06, tension=12, bending=0.05, mass=0.3,
+    cloth(hat, gravity=0.0, pressure=1.0, shrink_group="seam", shrink=0.035, tension=12, bending=0.05, mass=0.3,
           damping=5)
     obs.append(hat)
 
