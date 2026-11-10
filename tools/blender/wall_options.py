@@ -39,6 +39,10 @@ LAYOUTS = {
 XS4 = [-2.286, -1.997, -1.708, -1.419]
 ZS6 = [3.659, 3.375, 3.091, 2.807, 2.523, 2.239]
 LAYOUTS["grid4x6"] = ("4 across, 6 down", S5, [(z, XS4) for z in ZS6], None)
+# the same, with the frames bigger still (closer together and starting a little nearer the ceiling)
+XS4B = [-2.277, -1.994, -1.712, -1.430]
+ZS6B = [3.710, 3.412, 3.114, 2.816, 2.518, 2.220]
+LAYOUTS["grid4x6_big"] = ("4 across, 6 down, bigger frames", 0.97, [(z, XS4B) for z in ZS6B], None)
 ORDER = [a for a in ARGS if not a.startswith("--")] or list(LAYOUTS)
 BASE = dict(img=C.G_IMG, mat=C.G_MAT, mould=C.G_MOULD, scale=C.G_SCALE)
 ORIGINAL_WALL = C.picture_wall
