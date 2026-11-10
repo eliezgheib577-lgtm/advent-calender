@@ -40,7 +40,7 @@ OUT_DIR = os.path.join(ROOT, "site", "assets", "cabin")
 BUILD_DIR = os.path.join(ROOT, "build")
 EMBLEM = os.path.join(HERE, "textures", "lemsic-emblem.png")
 TREE_STYLE = "cedar_lemsic"          # see lemsic_tree.STYLES
-FARES_AT = (1.80, -0.42, 0.0)
+FARES_AT = (1.95, 0.55, 0.0)
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
@@ -783,7 +783,7 @@ def build_cabin(steam=False):
     mascot = FARES.build_fares(steam=steam)   # Fares, sitting by the tree sipping from his LeMSIC tumbler
     mascot.location = FARES_AT
     mascot.rotation_euler = (0, 0, math.radians(-34))
-    mascot.scale = (1.2, 1.2, 1.2)
+    mascot.scale = (1.35, 1.35, 1.35)
     setup(scene)
     return scene, spots
 

@@ -1115,12 +1115,12 @@ def build_fares(steam=True):
     st.location = tuple(top)
     st.hide_render = not steam
     add(st)
-    # the lid, off and lying on the floor by his left foot
+    # the lid, off and lying on the floor at his left
     lid_rig = bpy.data.objects.new("LidRig", None)
     link(lid_rig)
     for ob in build_lid():
         ob.parent = lid_rig
-    lid_rig.location = (0.265, -0.53, 0.0)
+    lid_rig.location = (0.42, -0.36, 0.0)
     lid_rig.rotation_euler = (0, 0, math.radians(-25))
     add(lid_rig)
 
