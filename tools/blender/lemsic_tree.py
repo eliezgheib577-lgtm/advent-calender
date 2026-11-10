@@ -69,6 +69,34 @@ SHAPES = {
     "cedar": dict(n=9, z=(2.86, 0.62), r=[0.34, 0.50, 0.65, 0.79, 0.92, 1.03, 1.13, 1.21, 1.28], lop=0.14,
                   nb=(16, 2.6), prof=(0.05, 0.10), tilt=(-0.10, 0.22), twig=1.05, jitter=(0.74, 1.06)),
 }
+# Lebanese cedar (arz) options: the same needles, colours and decorations as "cedar_lemsic",
+# only the tree's form changes. Like the cedar in the LeMSIC emblem (and the real Cedrus libani),
+# most grow in a few flat, wide layers with the trunk showing between them.
+ARZ_SHAPES = {
+    "arz_emblem5": ("Emblem, 5 layers", dict(n=5, z=(2.62, 0.72), r=[0.48, 0.74, 0.96, 1.15, 1.32], lop=0.20, nb=(20, 5),
+                                             prof=(0.03, 0.17), tilt=(-0.08, 0.12), twig=1.15, jitter=(0.82, 1.04))),
+    "arz_emblem6": ("Emblem, 6 layers", dict(n=6, z=(2.70, 0.66), r=[0.40, 0.62, 0.82, 1.00, 1.16, 1.30], lop=0.18,
+                                             nb=(18, 4), prof=(0.03, 0.15), tilt=(-0.08, 0.14), twig=1.10,
+                                             jitter=(0.80, 1.04))),
+    "arz_flag7": ("Flag cedar, 7 even layers", dict(n=7, z=(2.75, 0.62), r=[0.30, 0.50, 0.70, 0.88, 1.04, 1.18, 1.30],
+                                                     lop=0.0, nb=(16, 3.5), prof=(0.02, 0.10), tilt=(-0.06, 0.12),
+                                                     twig=1.05, jitter=(0.90, 1.02))),
+    "arz_young": ("Young arz, full cone", dict(n=11, z=(2.92, 0.55), r=[0.22, 0.33, 0.44, 0.55, 0.66, 0.76, 0.86, 0.96, 1.06,
+                                                                        1.16, 1.25], lop=0.08, nb=(12, 2.2),
+                                                 prof=(0.07, 0.12), tilt=(-0.15, 0.28), twig=1.0)),
+    "arz_ancient": ("Ancient arz, flat crown", dict(n=6, z=(2.55, 0.75), r=[0.80, 1.00, 1.13, 1.23, 1.30, 1.34], lop=0.16,
+                                                    nb=(20, 4), prof=(0.02, 0.12), tilt=(-0.06, 0.12), twig=1.10,
+                                                    top=2.74)),
+    "arz_sweep": ("Sweeping layers", dict(n=5, z=(2.62, 0.72), r=[0.48, 0.74, 0.96, 1.15, 1.32], lop=0.38, nb=(20, 5),
+                                          prof=(0.05, 0.22), tilt=(-0.08, 0.12), twig=1.15, jitter=(0.82, 1.04))),
+    "arz_airy": ("Airy layers", dict(n=6, z=(2.70, 0.66), r=[0.40, 0.62, 0.82, 1.00, 1.16, 1.30], lop=0.16, nb=(9, 2),
+                                     prof=(0.03, 0.15), tilt=(-0.08, 0.14), twig=0.9, jitter=(0.70, 1.05))),
+    "arz_slender": ("Tall and slender", dict(n=7, z=(2.85, 0.60), r=[0.26, 0.40, 0.54, 0.67, 0.79, 0.90, 1.00], lop=0.12,
+                                             nb=(14, 3), prof=(0.03, 0.12), tilt=(-0.08, 0.14), twig=1.0)),
+    "arz_drooping": ("Drooping layers", dict(n=6, z=(2.70, 0.66), r=[0.40, 0.62, 0.82, 1.00, 1.16, 1.30], lop=0.14,
+                                             nb=(18, 4), prof=(0.12, 0.34), tilt=(-0.20, 0.08), twig=1.10)),
+}
+SHAPES.update({k: v for k, (_, v) in ARZ_SHAPES.items()})
 NEEDLE_SETS = {
     "fir": dict(dark=(0.012, 0.040, 0.016), mid=(0.030, 0.085, 0.030), tip=(0.085, 0.190, 0.045),
                 blue=(0.016, 0.055, 0.048), length=(0.020, 0.032)),
@@ -100,6 +128,8 @@ STYLES = {
     "glow": dict(label="Glowing Serpent", shape="fir", needles="fir", palette="classic", placement="serpent",
                  serpent="lights", topper="star", lights="warm_few", ornament="bauble", flock=0.0),
 }
+for _k, (_label, _) in ARZ_SHAPES.items():
+    STYLES[_k] = dict(STYLES["cedar_lemsic"], label=_label, shape=_k)
 STYLE_NAME = "serpent"
 STYLE = STYLES[STYLE_NAME]
 SHAPE = SHAPES["tiers"]
@@ -108,10 +138,12 @@ NEEDLES = NEEDLE_SETS["fir"]
 
 def apply_style(name):
     """Switch the tree to one of STYLES (call before build_tree)."""
-    global STYLE_NAME, STYLE, SHAPE, NEEDLES, N_TIERS, TIER_Z, TIER_R, TRUNK_BOTTOM
+    global STYLE_NAME, STYLE, SHAPE, NEEDLES, N_TIERS, TIER_Z, TIER_R, TRUNK_BOTTOM, TRUNK_TOP, STAR_Z
     STYLE_NAME, STYLE = name, STYLES[name]
     TRUNK_BOTTOM = 0.0 if STYLE.get("skirt") else 0.20         # no crate: the trunk stands in the skirt
     SHAPE = SHAPES[STYLE["shape"]]
+    TRUNK_TOP = SHAPE.get("top", 3.00)
+    STAR_Z = TRUNK_TOP + 0.17
     NEEDLES = NEEDLE_SETS[STYLE["needles"]]
     N_TIERS = SHAPE["n"]
     TIER_Z = np.linspace(SHAPE["z"][0], SHAPE["z"][1], N_TIERS)
@@ -908,6 +940,17 @@ def serpent_body(path, kind):
         t.parent = head
 
 
+def tier_counts(total):
+    """Spread `total` ornaments over the layers below the top one, more on the wider layers."""
+    w = np.array(TIER_R, float) ** 1.3
+    w[0] = 0.0
+    raw = w / w.sum() * total
+    counts = np.floor(raw).astype(int)
+    for i in np.argsort(-(raw - counts))[: total - counts.sum()]:
+        counts[i] += 1
+    return [int(c) for c in counts]
+
+
 def ornament_slots():
     """Where days 1-23 hang: along the serpent (in order) or scattered over the tree (mixed)."""
     if STYLE["placement"] == "serpent":
@@ -927,7 +970,7 @@ def ornament_slots():
     random.Random(1964).shuffle(days)
     if STYLE["placement"] == "tiers":
         # hung from the edges of the layers, spread across the front; days in a mixed order
-        counts = {9: [0, 1, 2, 2, 3, 3, 4, 4, 4]}[N_TIERS]
+        counts = {9: [0, 1, 2, 2, 3, 3, 4, 4, 4]}.get(N_TIERS) or tier_counts(23)
         slots = []
         for i, count in enumerate(counts):
             if not count:
