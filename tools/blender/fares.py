@@ -1,22 +1,20 @@
 """Fares, the LeMSIC mascot rag doll, in his rocking chair (Blender, Cycles).
 
-Built the way the real doll is made, so it renders as a stuffed fabric toy rather
-than a cartoon:
+Modelled on the real doll: a round cream cotton head with glossy black safety eyes,
+stitched lashes, thick dark brows, a red stitched nose and mouth and a bushy black yarn
+mustache; black yarn hair; a smooth red tarboush with a crinkled gold lame band knotted
+at his left and a black yarn tassel; the Lebanese flag worn as a cape, pinned at his
+throat; a short black jacket edged in gold braid over a green brocade vest with gold
+cords and buttons; a crinkled lame sash; very baggy black sherwal with gold stripes down
+the sides; cream mitten hands; a small green evil-eye bead and a silver key on the jacket.
 
-  * stuffed parts (the mitten hands, the tarboush) are cloth meshes inflated with
-    Blender's cloth pressure solver, with the seams drawn in so the panels puff out
-    between them;
-  * the long black robe and the sleeves are cloth simulations: pinned at the shoulders
-    and waist and dropped under gravity onto his body, the chair seat and the armrests,
-    then edged with a flat gold braid that follows the simulated hem;
-  * the face is cream stockinette with glossy black safety eyes, satin-stitched brows
-    and eyelashes, red felt lips and a compact curly-yarn mustache; curly black yarn
-    hair under a red tarboush with a twisted gold lame band and a yarn pom-pom.
+The jacket, sleeves, sherwal and flag are cloth simulations draped over his body, the
+chair seat and the armrests; the mitten hands are stuffed cloth inflated with the cloth
+pressure solver.
 
 He sits back in a varnished wooden rocking chair, legs hanging over the seat, arms
-along the armrests with his mittens resting on the scrolled ends. The chair rocks on
-its rockers about ROCKER_CENTRE (see rock_matrix), which cabin_rock.py uses to render
-him rocking.
+along the armrests. The chair rocks on its rockers about ROCKER_CENTRE (see
+rock_matrix), which cabin_rock.py uses to render him rocking.
 
     build_fares()  -> an Empty; move and turn it to place him. Built facing -Y.
     python tools/blender/fares.py [front|face|cabin]  renders build/fares-<view>.png
@@ -258,20 +256,61 @@ def gold_braid():
     return m
 
 
-def gold_lame():
-    """Crinkled gold lame (the hat band)."""
-    if _cached("GoldLame"):
-        return _cached("GoldLame")
-    m, nt, out = _new_material("GoldLame")
+def gold_lame(name="GoldLame", color=(0.80, 0.60, 0.28)):
+    """Crinkled gold lame (the hat band, the sash)."""
+    if _cached(name):
+        return _cached(name)
+    m, nt, out = _new_material(name)
     tc = nt.nodes.new("ShaderNodeTexCoord").outputs["Object"]
     vor = nt.nodes.new("ShaderNodeTexVoronoi")
     vor.feature = "F1"
     _set(nt, vor.inputs["Vector"], tc)
     vor.inputs["Scale"].default_value = 160.0
     n = _noise(nt, tc, 60.0, 8.0, 0.6, distortion=1.2)
-    b = principled(nt, (0.80, 0.60, 0.28), rough=0.28, metal=1.0)
+    b = principled(nt, color, rough=0.28, metal=1.0)
     nb = _bump(nt, vor.outputs["Distance"], 0.5, 0.0012)
     nt.links.new(_bump(nt, n.outputs["Fac"], 0.6, 0.003, nb), b.inputs["Normal"])
+    nt.links.new(b.outputs[0], out.inputs["Surface"])
+    return m
+
+
+def brocade():
+    """The vest: dark green satin brocade, woven with small pale flowers."""
+    if _cached("VestBrocade"):
+        return _cached("VestBrocade")
+    m = satin("VestBrocade", (0.018, 0.06, 0.026), rough=0.38, sheen=0.35, crease=0.25)
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    tc = nt.nodes["Texture Coordinate"].outputs["Object"]
+    vor = nt.nodes.new("ShaderNodeTexVoronoi")
+    vor.feature = "F1"
+    _set(nt, vor.inputs["Vector"], tc)
+    vor.inputs["Scale"].default_value = 140.0
+    vor.inputs["Randomness"].default_value = 0.35
+    dot = _math(nt, "LESS_THAN", vor.outputs["Distance"], 0.16)
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    _set(nt, mix.inputs["Factor"], _math(nt, "MULTIPLY", dot, 0.8))
+    mix.inputs["A"].default_value = (0.018, 0.06, 0.026, 1)
+    mix.inputs["B"].default_value = (0.2, 0.3, 0.18, 1)
+    nt.links.new(mix.outputs["Result"], b.inputs["Base Color"])
+    return m
+
+
+def flag_material():
+    """The Lebanese flag: thin, slightly shiny polyester, printed."""
+    if _cached("Flag"):
+        return _cached("Flag")
+    m, nt, out = _new_material("Flag")
+    uv = nt.nodes.new("ShaderNodeTexCoord").outputs["UV"]
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(os.path.join(TEX, "lebanon-flag.png"), check_existing=True)
+    nt.links.new(uv, tex.inputs["Vector"])
+    b = principled(nt, (0.8, 0.8, 0.8), rough=0.45)
+    b.inputs["Sheen Weight"].default_value = 0.3
+    b.inputs["Sheen Roughness"].default_value = 0.3
+    b.inputs["Subsurface Weight"].default_value = 0.0
+    nt.links.new(tex.outputs["Color"], b.inputs["Base Color"])
     nt.links.new(b.outputs[0], out.inputs["Surface"])
     return m
 
@@ -571,6 +610,7 @@ def sim_collection(name, objects, thickness=0.004, friction=8.0):
         ob.collision.thickness_outer = thickness
         ob.collision.cloth_friction = friction
         ob.collision.damping = 0.6
+        ob.collision.use_culling = False       # two-sided: some garments' faces point inward
         col.objects.link(ob)
     return col
 
@@ -691,9 +731,12 @@ def build_head():
 
     black = thread("Thread")
     eye = plain("SafetyEye", (0.004, 0.004, 0.005), rough=0.05, coat=1.0)
+    iris = plain("EyeRing", (0.11, 0.085, 0.06), rough=0.12, coat=1.0)
     for s in (-1, 1):
-        ep, en = face_point(s * 0.04, 0.592, -0.0014)
-        obs.append(oriented("Eye", ep, (0.0125, 0.0055, 0.0108), en, eye, seg=32, rings=16))
+        ep, en = face_point(s * 0.04, 0.592, -0.0016)
+        obs.append(oriented("EyeRing", ep, (0.0128, 0.0052, 0.0112), en, iris, seg=32, rings=16))
+        ep, en = face_point(s * 0.04, 0.592, -0.0006)
+        obs.append(oriented("Eye", ep, (0.0092, 0.005, 0.0082), en, eye, seg=32, rings=16))
         # eyelashes: five stitches fanning up from the outer upper rim
         lashes = []
         for k in range(5):
@@ -705,34 +748,33 @@ def build_head():
             lashes.append([p0, (p0 + p1) / 2 + n0 * 0.0016, p1])
         obs.append(curves("Lashes", lashes, 0.0006, black, res=1))
         # thick satin-stitched brows, low at the nose, rising outward
-        path = [np.array([s * x, 0, z]) for x, z in ((0.016, 0.611), (0.03, 0.617), (0.047, 0.622), (0.066, 0.624))]
+        path = [np.array([s * x, 0, z]) for x, z in ((0.017, 0.612), (0.031, 0.618), (0.048, 0.62), (0.064, 0.617))]
         path = smooth_path(path, 60, 2)
         stitches = []
         for k, c in enumerate(path):
-            w = 0.0075 - 0.0028 * k / len(path)
+            w = 0.0062 - 0.0016 * k / len(path)
             slant = 0.004 * s
             a, _ = face_point(c[0] - slant / 2, c[2] - w, 0.0006)
             b, nb = face_point(c[0] + slant / 2, c[2] + w, 0.0006)
             m, nm = face_point(c[0], c[2], 0.0018)
             stitches.append([a, m, b])
         obs.append(curves("Brow", stitches, 0.001, black, res=1))
-    # red felt lips under the mustache, the line of the mouth stitched across them in a little smile
-    felt = fabric("FeltRed", (0.36, 0.018, 0.024), rough=0.85, sheen=0.3, sheen_rough=0.4, tint=(1, 0.5, 0.5),
-                  fibre=0.2, scale=1600)
-    lp, ln = face_point(0.0, 0.5155, -0.0008)
-    obs.append(subsurf(oriented("Lips", lp, (0.0135, 0.0027, 0.0052), ln, felt, seg=32, rings=16), 1))
-    dark = thread("MouthThread", (0.09, 0.004, 0.006))
-    obs.append(curves("Mouth", [[face_point(x, 0.5158 + 7 * x * x, 0.0021)[0] for x in np.linspace(-0.0125, 0.0125, 11)]],
-                      0.0007, dark, res=1))
+    # the nose and the mouth: small red stitches
+    red_thread = thread("RedThread", (0.42, 0.02, 0.025))
+    nose = [face_point(x, 0.5665 + 0.004 * (1 - (x / 0.0065) ** 2), 0.0012)[0] for x in np.linspace(-0.0065, 0.0065, 9)]
+    upper = [face_point(x, 0.5165 + 0.0016 * math.cos(x / 0.0085 * math.pi) - 0.001, 0.0012)[0]
+             for x in np.linspace(-0.0085, 0.0085, 13)]
+    lower = [face_point(x, 0.5155 - 0.0035 * (1 - (x / 0.0085) ** 2), 0.0012)[0] for x in np.linspace(-0.0085, 0.0085, 13)]
+    obs.append(curves("NoseMouth", [nose, upper, lower], 0.00085, red_thread, res=1))
 
     # the mustache: a compact pad of curly black yarn stitched flat just under the nose,
     # a little thinner in the middle, the ends drooping and finished with a small curl
     wool = yarn()
     loops = []
     for s in (-1, 1):
-        ctrl = np.array([(0.002, 0.539), (0.014, 0.542), (0.027, 0.542), (0.039, 0.537), (0.047, 0.53), (0.051, 0.523)])
+        ctrl = np.array([(0.002, 0.539), (0.016, 0.543), (0.031, 0.543), (0.044, 0.538), (0.053, 0.53), (0.057, 0.522)])
         path = smooth_path([(s * c[0], 0, c[1]) for c in ctrl], 80, 2)
-        for k in range(260):
+        for k in range(300):
             t = rng.uniform(0, 1) ** 0.9
             c = path[int(t * (len(path) - 1))]
             half = 0.0128 * (1 - 0.3 * t) * (0.82 + 0.18 * min(1.0, abs(c[0]) / 0.012))
@@ -748,7 +790,7 @@ def build_head():
     locks = []
     for k in range(1500):
         az = rng.uniform(math.radians(-48), math.radians(228))
-        z = rng.uniform(0.47, 0.648)
+        z = rng.uniform(0.47, 0.632)
         side = abs(math.cos(az))
         if math.sin(az) < -0.55 and z < 0.52:
             continue
@@ -759,62 +801,49 @@ def build_head():
         p = np.array([HR[0] * rad * math.cos(az), HC[1] + HR[1] * rad * math.sin(az), z])
         n = (p - HC) / HR ** 2
         n /= np.linalg.norm(n)
-        lift = rng.uniform(0.003, 0.007 + 0.012 * side * (1 - max(0.0, (z - 0.6) / 0.05)))
-        locks.append(curl(p + n * lift, n, rng.uniform(0.006, 0.0105), rng.uniform(1.2, 2.2), 0.0055, 22))
+        lift = rng.uniform(0.002, 0.004 + 0.005 * side * (1 - max(0.0, (z - 0.6) / 0.05)))
+        locks.append(curl(p + n * lift, n, rng.uniform(0.0045, 0.0075), rng.uniform(1.2, 2.2), 0.005, 22))
     obs.append(curves("Hair", locks, 0.0029, wool))
 
-    # the tarboush: soft red cotton gores, stuffed and puffed between the seams
-    red = fabric("ClothRed", (0.30, 0.006, 0.008), rough=0.9, sheen=0.2, sheen_rough=0.5, tint=(1, 0.3, 0.3),
-                 fibre=0.25, scale=1000)
-    prof = [(1.0, 0.626), (1.035, 0.645), (1.065, 0.668), (1.07, 0.692), (1.03, 0.716), (0.94, 0.739), (0.78, 0.757),
-            (0.55, 0.769), (0.28, 0.776), (0.0, 0.778)]
-    hat, _ = lathe("Tarboush", [(0.626 + (z - 0.626) * 0.84, 0.1115 * r, 0.1045 * r, HC[1]) for r, z in prof], red,
-                   seg=96, cap=True)
-    hat = remesh(hat, 0.0035, 6)
-    co = coords(hat)
-    az = np.arctan2(co[:, 1] - HC[1], co[:, 0])
-    rr = np.hypot(co[:, 0], co[:, 1] - HC[1])
-    gore = (az - math.radians(15)) % (math.pi / 3)
-    dist = np.minimum(gore, math.pi / 3 - gore) * rr
-    seam = np.exp(-(dist / 0.003) ** 2) * (co[:, 2] > 0.63)
-    seam = np.maximum(seam, np.exp(-((co[:, 2] - 0.628) / 0.003) ** 2))
-    vgroup(hat, "seam", seam)
-    smooth_shade(hat)
-    hat.data.materials.append(red)
-    cloth(hat, gravity=0.0, pressure=1.0, shrink_group="seam", shrink=0.035, tension=12, bending=0.05, mass=0.3,
-          damping=5)
-    obs.append(hat)
+    # the tarboush: a smooth red cotton dome
+    red = fabric("HatRed", (0.42, 0.012, 0.014), rough=0.62, sheen=0.25, sheen_rough=0.4, tint=(1, 0.45, 0.4),
+                 fibre=0.12, scale=1400)
+    prof = [(1.0, 0.616), (1.012, 0.64), (1.0, 0.66), (0.95, 0.679), (0.84, 0.696), (0.64, 0.709), (0.35, 0.716),
+            (0.0, 0.718)]
+    hat, _ = lathe("Tarboush", [(z, 0.112 * r, 0.104 * r, HC[1]) for r, z in prof], red, seg=96, cap=True)
+    obs.append(subsurf(wrinkles(smooth_shade(hat), 0.0012, 0.02), 2))
 
-    # the twisted gold lame band, knotted at his right side, and the black yarn pom-pom
-    lame = gold_lame()
-    strands = []
-    for ph in (0.0, math.pi):
-        pts = []
-        for a in np.linspace(0, 2 * math.pi, 361):
-            tw = a * 9 + ph
-            rx, ry = 0.1165 + 0.0052 * math.cos(tw), 0.1085 + 0.0052 * math.cos(tw)
-            pts.append((rx * math.cos(a), HC[1] + ry * math.sin(a), 0.637 + 0.0062 * math.sin(tw)))
-        strands.append(pts)
-    for pts in strands:
-        obs.append(subsurf(tube("HatBand", pts, [0.0066] * len(pts), lame, sides=14, caps=False, squash=0.8, n=len(pts)), 1))
-    ka = math.radians(196)
-    kp = np.array([0.1215 * math.cos(ka), HC[1] + 0.113 * math.sin(ka), 0.636])
-    obs.append(subsurf(oriented("BandKnot", kp, (0.014, 0.008, 0.012), -(kp - np.array([0, HC[1], 0.636])), lame), 1))
-    for k, (dx, dz) in enumerate(((-0.004, -0.035), (0.01, -0.03))):
-        out = (kp - np.array([0, HC[1], kp[2]]))
-        out /= np.linalg.norm(out)
-        tail = [kp, kp + out * 0.008 + np.array([dx * 0.4, 0, dz * 0.5]), kp + out * 0.012 + np.array([dx, 0, dz])]
-        obs.append(subsurf(tube("BandTail", tail, [0.006, 0.005, 0.004], lame, sides=10, squash=0.4), 1))
-    pom = []
-    for k in range(170):
-        d = rng.normal(size=3)
-        d[2] = abs(d[2]) * 1.6 + 0.4
+    # the band: a strip of gold lame wrapped flat round the base of the hat, crinkled, knotted at his left
+    lame = gold_lame("BandLame", (0.8, 0.62, 0.3))
+    secs = []
+    for k, z in enumerate(np.linspace(0.618, 0.646, 6)):
+        bulge = 0.0035 * math.sin(math.pi * k / 5) + 0.0006 * rng.normal()
+        secs.append((z, 0.1155 + bulge, 0.1075 + bulge, HC[1]))
+    band, _ = lathe("HatBand", secs, lame, seg=120)
+    obs.append(subsurf(wrinkles(wrinkles(band, 0.004, 0.006, 3), 0.0015, 0.0025), 1))
+    ka = math.radians(-14)
+    kp = np.array([0.118 * math.cos(ka), HC[1] + 0.11 * math.sin(ka), 0.632])
+    out = kp - np.array([0, HC[1], kp[2]])
+    out /= np.linalg.norm(out)
+    obs.append(subsurf(wrinkles(oriented("BandKnot", kp + out * 0.004, (0.011, 0.007, 0.012), -out, lame), 0.002, 0.004), 1))
+    for k, (dx, dz) in enumerate(((0.004, -0.06), (-0.006, -0.048))):
+        tail = [kp + out * 0.006, kp + out * 0.011 + np.array([0, dx * 0.5, dz * 0.45]),
+                kp + out * 0.013 + np.array([0, dx, dz])]
+        obs.append(subsurf(wrinkles(tube("BandTail", tail, [0.0055, 0.006, 0.005], lame, sides=12, squash=0.22), 0.0012, 0.004), 1))
+
+    # the tassel: a tuft of black yarn loops standing up from the top of the hat
+    tassel = []
+    for k in range(70):
+        d = rng.normal(size=3) * np.array([0.35, 0.35, 0.0])
+        d[2] = 1.0
         d /= np.linalg.norm(d)
-        p0 = np.array([0, HC[1], 0.752]) + d * 0.004
-        L = rng.uniform(0.022, 0.04)
-        bend = rng.normal(size=3) * 0.004
-        pom.append([p0 + d * L * t + bend * t * t + np.array([0, 0, -0.006 * t * t]) for t in np.linspace(0, 1, 7)])
-    obs.append(curves("PomPom", pom, 0.0019, wool))
+        side = np.cross(d, rng.normal(size=3))
+        side /= np.linalg.norm(side)
+        p0 = np.array([0, HC[1], 0.716]) + side * rng.uniform(0, 0.004)
+        L = rng.uniform(0.022, 0.038)
+        # up and back down: a loop of yarn, folded over
+        tassel.append([p0 + d * L * math.sin(t) + side * 0.003 * (1 - math.cos(t)) for t in np.linspace(0, math.pi, 12)])
+    obs.append(curves("Tassel", tassel, 0.0021, wool))
     return obs
 
 
@@ -1013,12 +1042,9 @@ def build_fares():
                    fibre=0.3, scale=900)
     jersey = fabric("JerseyBlack", (0.0055, 0.0053, 0.0053), rough=0.82, sheen=0.18, sheen_rough=0.4, fibre=0.12, scale=1500)
     skin = face_fabric()
-    green = satin("VestGreen", (0.016, 0.05, 0.022), rough=0.4, sheen=0.35, crease=0.25)
-    sash_mat = satin("SashCream", (0.5, 0.36, 0.16), rough=0.34, sheen=0.25, metal=0.55, crease=1.0, scale=26)
+    green = brocade()
+    sash_mat = gold_lame("SashLame", (0.74, 0.66, 0.46))
     braid = gold_braid()
-    red = fabric("ClothRed", (0.30, 0.006, 0.008), rough=0.9, sheen=0.2, sheen_rough=0.5, tint=(1, 0.3, 0.3),
-                 fibre=0.25, scale=1000)
-    ribbon = satin("RibbonWhite", (0.78, 0.76, 0.74), rough=0.22, sheen=0.5, crease=0.2)
     gold = plain("GoldButton", (0.8, 0.6, 0.3), rough=0.25, metal=1.0)
     parts = []
     add, extend = parts.append, parts.extend
@@ -1041,7 +1067,7 @@ def build_fares():
     add(place(smooth_shade(neck), M_UP))
 
     # ---------- legs: along the seat, bending over its front edge, hanging down in baggy sherwal
-    legs = []
+    legs, leg_lines = [], []
     Z = SEAT_Z
     for s in (-1, 1):
         ctrl = [(s * 0.066, 0.005, Z + 0.072), (s * 0.077, -0.1, Z + 0.07), (s * 0.086, -0.2, Z + 0.064),
@@ -1051,7 +1077,7 @@ def build_fares():
         t = np.linspace(0, 1, len(path))
         t_ankle = t[np.argmin(np.linalg.norm(path - np.array(ctrl[6]), axis=1))]
         radius = np.interp(t, [0, 0.35, t_ankle - 0.12, t_ankle, t_ankle + 0.06, 0.94, 1.0],
-                           [0.055, 0.052, 0.052, 0.038, 0.044, 0.042, 0.034])
+                           [0.062, 0.06, 0.06, 0.04, 0.044, 0.042, 0.034])
         T_, N_, B_ = frames_along(path)
         sides = 40
         ang = np.linspace(0, 2 * np.pi, sides, endpoint=False)
@@ -1069,16 +1095,16 @@ def build_fares():
         V.append(path[0] - T_[0] * 0.02)
         F += [(root_c, (a + 1) % sides, a) for a in range(sides)]
         legs.append(mesh_from("Leg", V, F, jersey))
+        leg_lines.append((s, path, radius, t, t_ankle))
 
     # ---------- head (head-local, placed on the leaning body)
     head_obs = build_head()
     for ob in head_obs:
         place(ob, M_HEAD)
-    hat = next(o for o in head_obs if o.name.startswith("Tarboush"))
 
-    # ---------- stuffed parts: the hat and the mittens
+    # ---------- stuffed mitten hands
     mittens = [mitten_slab("Mitten", skin), mitten_slab("Mitten", skin)]
-    simulate([hat] + mittens, 40)
+    simulate(mittens, 40)
     extend(head_obs)
     for mit, s in zip(mittens, (1, -1)):
         add(subsurf(rest_mitten(mit, s), 1))
@@ -1109,7 +1135,7 @@ def build_fares():
         vgroup(sl, "pin", pin)
         sleeves.append(sl)
 
-    # ---------- vest, sash
+    # ---------- the green brocade vest with gold cords and buttons, the crinkled lame sash
     vest, _ = lathe("Vest", [(z, rx + 0.005, ry + 0.005, 0.03) for z, rx, ry in torso_secs[3:9]], green, seg=72)
     add(place(subsurf(wrinkles(vest, 0.003, 0.03), 2), M_UP))
     trim = []
@@ -1135,52 +1161,123 @@ def build_fares():
     sash, _ = lathe("Sash", sash_secs, sash_mat, seg=96)
     add(place(subsurf(wrinkles(wrinkles(sash, 0.007, 0.012, 3), 0.003, 0.005), 2), M_UP))
 
-    # ---------- the long black robe: bodice pinned on the shoulders, skirt dropped onto the seat and legs
+    def ring_rows(rows, flare_back=0.55, gap=None, seg=150, corner=None):
+        """Cloth rows round the body (z, rx, ry), opening at the front if gap(z) is given."""
+        V = []
+        n_rows = len(rows)
+        for i, (z, rx, ry) in enumerate(rows):
+            g = gap(z) if gap else 0.0
+            a0, a1 = (-math.pi / 2 + g, 3 * math.pi / 2 - g) if gap else (-math.pi / 2, 3 * math.pi / 2)
+            ft = i / max(1, n_rows - 1)
+            for a in np.linspace(a0, a1, seg, endpoint=bool(gap)):
+                k = 1 - flare_back * max(0.0, math.sin(a)) * ft
+                dz = 0.0
+                if corner:                                   # pointed front corners on the jacket
+                    da = min(a - a0, a1 - a)
+                    w_ = max(0.0, 1 - da / 0.55) * ft
+                    k += corner[0] * w_
+                    dz = -corner[1] * w_
+                V.append((rx * k * math.cos(a), 0.03 + ry * k * math.sin(a), z + dz))
+        closed = not gap
+        F = []
+        for i in range(n_rows - 1):
+            for j in range(seg if closed else seg - 1):
+                j2 = (j + 1) % seg
+                F.append((i * seg + j, i * seg + j2, (i + 1) * seg + j2, (i + 1) * seg + j))
+        return V, F
+
+    # ---------- the baggy sherwal over his lap: black cloth from the waist, dropped over the seat and legs
+    rows = [(0.175 - 0.055 * t, 0.15 + 0.09 * t, 0.12 + 0.09 * t) for t in np.linspace(0, 1, 16)]
+    V, F = ring_rows(rows, flare_back=0.5, seg=140)
+    pants = mesh_from("Sherwal", V, F, jersey)
+    place(pants, M_UP)
+    pin = np.zeros(len(V))
+    pin[:140 * 2] = 1.0
+    vgroup(pants, "pin", pin)
+    col = sim_collection("SimLap", [floor, torso, seat] + legs, thickness=0.004, friction=40.0)
+    cloth(pants, pin="pin", colliders=col, tension=15, bending=0.6, mass=0.25, quality=8, self_collide=True,
+          distance=0.004, damping=2)
+    simulate([pants], SIM_FRAMES)
+    release(col)
+
+    # ---------- the short black jacket: open over the vest, ending at the hip in pointed front corners
     def gap(z):
         if z >= 0.2:
             return math.radians(30 - 8 * (0.44 - z) / 0.24)
-        return math.radians(22 - 12 * min(1.0, (0.2 - z) / 0.09))      # the front edges close over his lap
-    seg = 150
-    rows = []
+        return math.radians(22)
     bodice = [(0.452, 0.074, 0.066), (0.437, 0.118, 0.094), (0.41, 0.146, 0.112), (0.37, 0.15, 0.115), (0.32, 0.153, 0.117),
               (0.27, 0.156, 0.119), (0.235, 0.16, 0.124), (0.205, 0.165, 0.128)]
-    for z, rx, ry in bodice:
-        rows.append((z, rx, ry))
-    K = 30
-    for k in range(1, K + 1):
-        t = k / K
-        rows.append((0.205 - 0.09 * t, 0.165 + 0.25 * t, 0.128 + 0.25 * t))
-    V = []
-    for i, (z, rx, ry) in enumerate(rows):
-        g = gap(z)
-        flare_t = max(0.0, (i - len(bodice) + 1) / K)
-        for a in np.linspace(-math.pi / 2 + g, 3 * math.pi / 2 - g, seg):
-            # the back of the skirt stays close: he is sitting on it, against the chair back
-            back = max(0.0, math.sin(a))
-            k = 1 - 0.55 * back * flare_t
-            V.append((rx * k * math.cos(a), 0.03 + ry * k * math.sin(a), z))
-    F = [(i * seg + j, i * seg + j + 1, (i + 1) * seg + j + 1, (i + 1) * seg + j)
-         for i in range(len(rows) - 1) for j in range(seg - 1)]
-    robe = mesh_from("Robe", V, F, black)
-    place(robe, M_UP)
+    hem = [(0.205 - 0.075 * t, 0.165 + 0.05 * t, 0.128 + 0.05 * t) for t in np.linspace(0, 1, 13)[1:]]
+    Vb, _ = ring_rows(bodice, flare_back=0.0, gap=gap)
+    Vh, _ = ring_rows([bodice[-1]] + hem, flare_back=0.3, gap=gap, corner=(0.06, 0.07))
+    V = Vb + Vh[150:]
+    n_rows = len(bodice) + len(hem)
+    F = [(i * 150 + j, i * 150 + j + 1, (i + 1) * 150 + j + 1, (i + 1) * 150 + j)
+         for i in range(n_rows - 1) for j in range(149)]
+    jacket = mesh_from("Jacket", V, F, black)
+    place(jacket, M_UP)
     pin = np.zeros(len(V))
-    pin[: seg * len(bodice)] = 1.0
-    vgroup(robe, "pin", pin)
+    pin[: 150 * len(bodice)] = 1.0
+    vgroup(jacket, "pin", pin)
 
-    # second pass: robe and sleeves drape under gravity
-    col_body = sim_collection("SimBody", [floor, torso, seat] + legs, thickness=0.004, friction=40.0)
+    # second pass: the jacket and sleeves drape under gravity
+    col_body = sim_collection("SimBody", [floor, torso, seat, pants] + legs, thickness=0.004, friction=40.0)
     col_arms = sim_collection("SimArms", arms + [torso] + armrests, thickness=0.004)
-    cloth(robe, pin="pin", colliders=col_body, tension=20, bending=1.2, mass=0.25, quality=8, self_collide=True,
+    cloth(jacket, pin="pin", colliders=col_body, tension=20, bending=1.5, mass=0.25, quality=8, self_collide=True,
           distance=0.004, damping=2)
     for sl in sleeves:
         cloth(sl, pin="pin", colliders=col_arms, tension=20, bending=0.8, mass=0.2, quality=8, distance=0.004, damping=2)
-    simulate([robe] + sleeves, SIM_FRAMES)
+    simulate([jacket] + sleeves, SIM_FRAMES)
     release(col_body)
     release(col_arms)
+
+    # ---------- the Lebanese flag worn as a cape: round his neck, pinned at the throat, over his shoulders and back
+    nu, nv = 64, 34
+    z_top, z_bot = 0.458, 0.25
+    phis = np.linspace(math.radians(-86), math.radians(266), nu)
+    V, UV = [], []
+    for j in range(nv):
+        v = j / (nv - 1)
+        z = z_top - (z_top - z_bot) * v
+        rx0 = np.interp(z, [b_[0] for b_ in bodice[::-1]], [b_[1] for b_ in bodice[::-1]]) + 0.014
+        ry0 = np.interp(z, [b_[0] for b_ in bodice[::-1]], [b_[2] for b_ in bodice[::-1]]) + 0.014
+        rx_top, ry_top = bodice[0][1] + 0.014, bodice[0][2] + 0.014
+        for i, ph in enumerate(phis):
+            # down his back it hangs close; over the shoulders and in front it starts out spread like an
+            # umbrella above the sleeves, so it falls onto them rather than through them
+            sn = math.sin(ph)
+            q = min(1.0, max(0.0, (sn - 0.45) / 0.2))
+            w = q * q * (3 - 2 * q)
+            r_side = 1 + 2.3 * v
+            z_side = z_top - 0.11 * v
+            rx = w * rx0 + (1 - w) * rx_top * r_side
+            ry = w * ry0 + (1 - w) * ry_top * r_side
+            V.append((rx * math.cos(ph), 0.03 + ry * math.sin(ph), w * z + (1 - w) * z_side))
+            UV.append((i / (nu - 1), 1 - v))
+    # the front corners are gathered into the knot at his throat, so only their tops show
+    keep_v = [0.3 + 0.7 * min(1.0, max(0.0, (math.sin(ph) + 0.95) / 0.75)) for ph in phis]
+    F = [(j * nu + i, (j + 1) * nu + i, (j + 1) * nu + i + 1, j * nu + i + 1) for j in range(nv - 1) for i in range(nu - 1)
+         if (j + 1) / (nv - 1) <= max(keep_v[i], keep_v[i + 1]) + 1e-6]
+    used = sorted({k for f in F for k in f})
+    remap = {old: new for new, old in enumerate(used)}
+    V, UV = [V[k] for k in used], [UV[k] for k in used]
+    F = [tuple(remap[k] for k in f) for f in F]
+    cape = mesh_from("FlagCape", V, F, flag_material())
+    uvl = cape.data.uv_layers.new(name="UVMap")
+    loop_uv = np.array([UV[lp.vertex_index] for lp in cape.data.loops], np.float32)
+    uvl.data.foreach_set("uv", loop_uv.ravel())
+    place(cape, M_UP)
+    pin = np.zeros(len(V))
+    pin[[remap[i] for i in range(nu)]] = 1.0          # the top edge, round his neck
+    vgroup(cape, "pin", pin)
+    col = sim_collection("SimCape", [torso, jacket] + sleeves, thickness=0.005, friction=2.0)
+    cloth(cape, pin="pin", colliders=col, tension=12, bending=0.15, mass=0.08, quality=10, distance=0.005, damping=3)
+    simulate([cape], 45)
+    release(col)
     bpy.data.objects.remove(floor)
 
-    # gold braid along every edge of the robe and round the sleeve cuffs
-    for cl, which in ((robe, "all"), (sleeves[0], "cuff"), (sleeves[1], "cuff")):
+    # gold braid along every edge of the jacket and round the sleeve cuffs
+    for cl, which in ((jacket, "all"), (sleeves[0], "cuff"), (sleeves[1], "cuff")):
         cl.data.update()
         co = coords(cl)
         nrm = np.zeros(len(co) * 3, np.float32)
@@ -1188,9 +1285,9 @@ def build_fares():
         nrm = nrm.reshape(-1, 3).astype(float)
         nbr = defaultdict(list)
         for e in cl.data.edges:
-            a, b = e.vertices
-            nbr[a].append(b)
-            nbr[b].append(a)
+            a_, b_ = e.vertices
+            nbr[a_].append(b_)
+            nbr[b_].append(a_)
         for loop in boundary_loops(cl):
             if which == "cuff" and loop[0] < len(co) // 2:
                 continue
@@ -1211,38 +1308,52 @@ def build_fares():
             br = band("Braid", pts, nl, inward, 0.011, 0.0075, braid)
             br.matrix_world = cl.matrix_world.copy()
             add(subsurf(br, 1))
+    # gold stripes down the outside of the sherwal legs
+    for s, path, radius, t, t_ankle in leg_lines:
+        keep = (t > 0.25) & (t < t_ankle - 0.02)
+        T_ = np.gradient(path, axis=0)
+        T_ /= np.linalg.norm(T_, axis=1, keepdims=True)
+        out = np.array([s, 0.0, 0.0])[None, :] - (T_ @ np.array([s, 0.0, 0.0]))[:, None] * T_
+        out /= np.linalg.norm(out, axis=1, keepdims=True)
+        pts = path + out * (radius[:, None] + 0.004)
+        add(subsurf(band("LegStripe", pts[keep], out[keep], np.tile([0, 0, 1.0], (keep.sum(), 1)), 0.009, 0.004, braid), 1))
     for leg in legs:
         add(subsurf(wrinkles(leg, 0.0035, 0.022), 1))
-    for cl in [robe] + sleeves:
+    for cl, thick in ((jacket, 0.004), (sleeves[0], 0.004), (sleeves[1], 0.004), (pants, 0.003), (cape, 0.0015)):
         sol = cl.modifiers.new("thick", "SOLIDIFY")
-        sol.thickness = 0.004
+        sol.thickness = thick
         sol.offset = 0.0
         smooth_shade(cl)
-        add(subsurf(wrinkles(cl, 0.0025, 0.025), 1))
+        add(subsurf(wrinkles(cl, 0.002, 0.025), 1))
     for arm in arms:
         add(arm)
 
-    # ---------- the red scarf knotted at the throat, and a white satin bow on the chest
-    nk = []
-    for a in np.linspace(0, 2 * math.pi, 48):
-        nk.append((0.074 * math.cos(a), 0.03 + 0.066 * math.sin(a), 0.458 + 0.006 * math.sin(2 * a + 0.5)))
-    add(place(subsurf(wrinkles(tube("Scarf", nk, [0.021] * 48, red, sides=16, caps=False, squash=0.7, n=48), 0.004, 0.015), 1),
-              M_UP))
-    knot = np.array([-0.024, -0.05, 0.444])
-    add(place(subsurf(ellipsoid("ScarfKnot", knot, (0.022, 0.015, 0.019), red), 1), M_UP))
-    for tail in ([knot, knot + np.array([-0.03, -0.012, -0.03]), knot + np.array([-0.045, -0.012, -0.075])],
-                 [knot, knot + np.array([0.0, -0.016, -0.034]), knot + np.array([0.012, -0.014, -0.08])]):
-        add(place(subsurf(wrinkles(tube("ScarfTail", tail, [0.017, 0.016, 0.012], red, sides=14, squash=0.3), 0.003, 0.02), 1),
-                  M_UP))
-    bow_at = np.array([0.072, -0.083, 0.392])
-    for s in (-1, 1):
-        loop = [bow_at + np.array([s * 0.018 * (0.5 + 0.5 * math.cos(t)), -0.003 * math.sin(t), 0.011 * math.sin(t)])
-                for t in np.linspace(0, 2 * math.pi, 18)]
-        add(place(subsurf(tube("BowLoop", loop, [0.0055] * 18, ribbon, sides=10, caps=False, squash=0.25, n=36), 1), M_UP))
-        tail = [bow_at, bow_at + np.array([s * 0.008, -0.004, -0.03]), bow_at + np.array([s * 0.016, -0.006, -0.07]),
-                bow_at + np.array([s * 0.012, -0.004, -0.1])]
-        add(place(subsurf(tube("BowTail", tail, [0.005] * 4, ribbon, sides=10, squash=0.22), 1), M_UP))
-    add(place(ellipsoid("BowKnot", bow_at + np.array([0, -0.002, 0]), (0.005, 0.004, 0.006), ribbon, 16, 8), M_UP))
+    # ---------- the safety pin holding the flag at his throat
+    silver = plain("Silver", (0.8, 0.8, 0.82), rough=0.18, metal=1.0)
+    pin_at = np.array([0.0, 0.03 - 0.088, 0.447])
+    wire = [pin_at + np.array([-0.013 + 0.026 * u, -0.0015 * math.sin(u * math.pi), 0.0035 * math.cos(u * math.pi)])
+            for u in np.linspace(0, 1, 16)]
+    coil = [pin_at + np.array([0.014 + 0.002 * math.cos(t), -0.002 * math.sin(t), 0.002 * math.sin(t * 0.5)])
+            for t in np.linspace(0, 4 * math.pi, 20)]
+    add(place(curves("SafetyPin", [wire, coil], 0.0007, silver, res=1), M_UP))
+    add(place(bar("PinHead", [pin_at + np.array([-0.016, 0, 0.0035]), pin_at + np.array([-0.011, 0, 0.0035])],
+                  0.003, 0.004, silver, n=6), M_UP))
+
+    # ---------- the little charms on his jacket: a green evil-eye bead at his chest, a silver key at his waist
+    glass = plain("BeadGreen", (0.04, 0.3, 0.12), rough=0.05, coat=1.0)
+    eye_blue = plain("BeadEye", (0.02, 0.05, 0.25), rough=0.1, coat=1.0)
+    bead = np.array([-0.068, 0.03 - 0.122, 0.385])
+    add(place(ellipsoid("Bead", bead, (0.0058, 0.0058, 0.0058), glass, 24, 12), M_UP))
+    add(place(oriented("BeadEye", bead + np.array([0, -0.0052, 0]), (0.0024, 0.0008, 0.0024), np.array([0, -1.0, 0]),
+                       eye_blue, 16, 8), M_UP))
+    key = np.array([-0.07, 0.03 - 0.134, 0.255])
+    ring = [key + np.array([0.006 * math.cos(t), -0.0012 * math.sin(t), 0.006 * math.sin(t)]) for t in np.linspace(0, 2 * math.pi, 20)]
+    add(place(curves("KeyRing", [ring], 0.0011, silver, res=1), M_UP))
+    shaft = [key + np.array([0.0, -0.002, -0.006]), key + np.array([0.001, -0.002, -0.03])]
+    add(place(tube("KeyShaft", shaft, [0.0016, 0.0016], silver, sides=10, n=6), M_UP))
+    add(place(bar("KeyBit", [key + np.array([0.001, -0.002, -0.026]), key + np.array([0.007, -0.002, -0.026])],
+                  0.0018, 0.006, silver, n=6), M_UP))
+
     root = bpy.data.objects.new("Fares", None)
     link(root)
     for ob in parts:
@@ -1257,7 +1368,7 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, HERE)
     import lemsic_tree as T
-    view = next((a for a in sys.argv[1:] if a in ("front", "side", "cabin", "face")), "front")
+    view = next((a for a in sys.argv[1:] if a in ("front", "side", "cabin", "face", "back")), "front")
     scene = T.reset_scene()
     import time
     t0 = time.time()
@@ -1267,7 +1378,7 @@ if __name__ == "__main__":
     cam_data.lens = {"face": 85, "cabin": 50}.get(view, 50)
     cam = link(bpy.data.objects.new("Cam", cam_data))
     cam.location = {"front": (-0.45, -2.0, 1.0), "side": (-1.6, -1.0, 0.9), "cabin": (-1.0, -2.6, 1.35),
-                    "face": (-0.15, -0.95, 0.98)}[view]
+                    "face": (-0.15, -0.95, 0.98), "back": (0.9, 1.8, 1.3)}[view]
     aim = {"face": (0, -0.03, 0.92)}.get(view, (0, -0.05, 0.55))
     cam.rotation_euler = (Vector(aim) - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
