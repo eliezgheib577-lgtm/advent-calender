@@ -27,6 +27,12 @@ Open `site/index.html`. This is what students see:
    gift tag with a green tick is tied to the ornament. Their pictures stay there from day to
    day, and tapping one shows it big again.
 7. **The prize.** Students who hang all 24 pictures, one each day, see the prize message.
+8. **Christmas Eve (24 December).** Fares wears a red velvet Santa hat and a long white yarn beard
+   that spills over his chest (his own mustache stays), and through the window Santa's sleigh and
+   reindeer fly across a full moon every half minute or so, behind the frame and the frosted glass.
+   His Santa frames are rendered with `python tools/blender/cabin_rock.py --santa`
+   (`rock-santa-*`), and `python3 tools/make_window_mask.py` makes the glass mask after a new
+   room render. In test mode, pick 24 December to see it.
 
 ### Member IDs (the shared Excel sheet)
 
