@@ -41,7 +41,9 @@ SAMPLES = 24 if PREVIEW else 160
 for _a in ARGS:
     if _a.startswith("--samples="):
         SAMPLES = int(_a[10:])
-FRAMES_DIR = os.path.join(C.BUILD_DIR, "rock")
+# Christmas Eve: Fares in his Santa hat and beard (python tools/blender/cabin_rock.py --santa)
+NAME = "rock-santa" if FARES.SANTA else "rock"
+FRAMES_DIR = os.path.join(C.BUILD_DIR, NAME)
 
 
 def extent(scene, parts):
@@ -156,24 +158,25 @@ def main():
     for i, fr in enumerate(frames):
         r, c = divmod(i, cols)
         sheet[r * h:(r + 1) * h, c * w:(c + 1) * w] = fr
-    FIRE.write_jpeg(scene, np.clip(sheet, 0, 1), os.path.join(C.OUT_DIR, "rock-sprite.jpg"), quality=88)
+    FIRE.write_jpeg(scene, np.clip(sheet, 0, 1), os.path.join(C.OUT_DIR, NAME + "-sprite.jpg"), quality=88)
     img = bpy.data.images.new("mask", w, h, alpha=True)
     rgba = np.concatenate([np.ones((h, w, 3), np.float32), m[..., None]], -1)[::-1]
     img.pixels.foreach_set(np.ascontiguousarray(rgba, dtype=np.float32).ravel())
-    img.filepath_raw = os.path.join(C.OUT_DIR, "rock-mask.png")
+    img.filepath_raw = os.path.join(C.OUT_DIR, NAME + "-mask.png")
     img.file_format = "PNG"
     img.save()
     bpy.data.images.remove(img)
     info = {"frames": len(frames), "angles": [round(float(a), 2) for a in angles], "cols": cols, "rows": rows,
             "frameWidth": w, "frameHeight": h, "crop": crop, "hotspot": hotspot,
+            "sprite": NAME + "-sprite.jpg", "mask": NAME + "-mask.png",
             "note": "frames run from leaning furthest back to furthest forward; the middle one is at rest, as in "
                     "the room image. crop is where they go and hotspot is Fares and his chair at rest (fractions "
                     "of the room image, y from the top). rock-mask.png says where the frames replace the room."}
-    with open(os.path.join(C.OUT_DIR, "rock.json"), "w") as f:
+    with open(os.path.join(C.OUT_DIR, NAME + ".json"), "w") as f:
         json.dump(info, f)
-    with open(os.path.join(C.OUT_DIR, "rock.js"), "w") as f:
-        f.write("window.CABIN_ROCK = " + json.dumps(info) + ";\n")
-    print("wrote rock-sprite.jpg", sheet.shape, "in", round(time.time() - t0), "s")
+    with open(os.path.join(C.OUT_DIR, NAME + ".js"), "w") as f:
+        f.write(("window.CABIN_ROCK_SANTA = " if FARES.SANTA else "window.CABIN_ROCK = ") + json.dumps(info) + ";\n")
+    print("wrote", NAME + "-sprite.jpg", sheet.shape, "in", round(time.time() - t0), "s")
 
 
 if __name__ == "__main__":

@@ -696,6 +696,119 @@ def face_point(x, z, out=0.0):
     return p + n * out, n
 
 
+# Christmas Eve: a Santa hat in place of the tarboush, and a white yarn beard under his mustache
+SANTA = "--santa" in __import__("sys").argv
+SANTA_BEARD = next((a.split("=", 1)[1] for a in __import__("sys").argv if a.startswith("--beard=")), "under")
+
+
+def santa_hat(rng):
+    """A red velvet Santa hat with a plush white brim, flopping over to his left with a pom-pom."""
+    obs = []
+    velvet = fabric("SantaVelvet", (0.36, 0.008, 0.012), rough=0.7, sheen=0.55, sheen_rough=0.35, tint=(1, 0.5, 0.5),
+                    fibre=0.18, scale=1600)
+    fur = fabric("SantaFur", (0.82, 0.8, 0.76), rough=0.95, sheen=0.7, sheen_rough=0.6, fibre=0.5, scale=500, mottle=0.06)
+    # the cone, from round the head, up and over to one side
+    path = [(0, HC[1], 0.632), (0, HC[1] + 0.004, 0.70), (0.008, HC[1] + 0.014, 0.765), (0.03, HC[1] + 0.03, 0.81),
+            (0.066, HC[1] + 0.04, 0.825), (0.1, HC[1] + 0.044, 0.808), (0.122, HC[1] + 0.042, 0.775)]
+    cone = tube("SantaHat", path, [0.113, 0.098, 0.074, 0.05, 0.033, 0.022, 0.014], velvet, sides=48, n=60)
+    obs.append(subsurf(wrinkles(wrinkles(smooth_shade(cone), 0.004, 0.03), 0.0012, 0.008), 1))
+    # the plush brim round the head
+    secs = [(z, 0.121 + 0.006 * math.sin(math.pi * k / 6), 0.113 + 0.006 * math.sin(math.pi * k / 6), HC[1])
+            for k, z in enumerate(np.linspace(0.606, 0.656, 7))]
+    brim, _ = lathe("SantaBrim", secs, fur, seg=120)
+    obs.append(subsurf(wrinkles(wrinkles(brim, 0.006, 0.006, 3), 0.002, 0.002), 1))
+    # the pom-pom
+    obs.append(subsurf(wrinkles(wrinkles(ellipsoid("SantaPompom", np.array([0.127, HC[1] + 0.04, 0.758]), (0.024, 0.024, 0.024),
+                                                   fur, 40, 20), 0.006, 0.006, 3), 0.002, 0.002), 1))
+    return obs
+
+
+def santa_beard(rng):
+    """A beard of curly white yarn hanging from his cheeks and chin (and, for the full disguise,
+    a white mustache over his own)."""
+    white = yarn("YarnWhite", (0.78, 0.77, 0.74))
+    loops = []
+    for k in range(5200):
+        x = rng.uniform(-0.085, 0.085)
+        edge = 0.085 * math.sqrt(max(0.0, 1 - (x / 0.088) ** 2))
+        top = 0.528 - 0.03 * (1 - (abs(x) / 0.085) ** 2)                   # up the cheeks at the sides
+        bottom = 0.455 - 0.13 * max(0.0, 1 - (abs(x) / 0.078) ** 2)        # flowing down over his chest in the middle
+        if abs(x) > edge:
+            continue
+        z = rng.uniform(bottom, top)
+        if abs(x) < 0.03 and z > 0.512:                                     # keep the mouth clear
+            continue
+        if z < 0.462:                                                       # (below the chin: see chest_beard)
+            continue
+        if z >= 0.462:
+            p, n = face_point(x, z, 0.0)
+        else:                                                               # below the chin: hang down in front of the neck
+            p0, n0 = face_point(x * 0.9, 0.462, 0.0)
+            drop = 0.462 - z
+            ease = min(1.0, drop / 0.018) ** 0.6                              # comes forward quickly, over the collar
+            p = p0 + np.array([0, -0.03 * ease - 0.9 * drop, -drop])          # (and out over the cape and vest)
+            n = n0
+        depth = rng.uniform(0.003, 0.012)
+        loops.append(curl(p + n * depth, n, rng.uniform(0.0045, 0.0072), rng.uniform(1.2, 2.0), 0.004, 18))
+    if SANTA_BEARD == "full":
+        for s in (-1, 1):
+            ctrl = np.array([(0.002, 0.541), (0.018, 0.545), (0.034, 0.543), (0.048, 0.536), (0.058, 0.526)])
+            path = smooth_path([(s * c[0], 0, c[1]) for c in ctrl], 60, 2)
+            for k in range(260):
+                c = path[int(rng.uniform(0, 1) * (len(path) - 1))]
+                p, n = face_point(c[0], c[2] + rng.uniform(-0.011, 0.011), 0.0)
+                loops.append(curl(p + n * rng.uniform(0.007, 0.011), n, rng.uniform(0.0035, 0.0048), 1.6, 0.0035, 16))
+    return [curves("SantaBeard", loops, 0.0024, white)]
+
+
+def chest_beard(targets):
+    """The long part of Santa's beard: curly white yarn spilling from under his chin down over his
+    chest, widening and overflowing, laid on his clothes (found by looking at them from the front)."""
+    white = yarn("YarnWhite", (0.78, 0.77, 0.74))
+    own = np.random.default_rng(1224)
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    R3 = M_UP.to_3x3()
+    fwd = np.array(R3 @ Vector((0, -1, 0)))
+    up = np.array(R3 @ Vector((0, 0, 1)))
+    right = np.cross(fwd, up)
+    chin = np.array(M_HEAD @ Vector((0, HC[1] - 0.06, 0.47)))
+
+    def hit(origin):
+        best = None
+        for ob in targets:
+            inv = ob.matrix_world.inverted()
+            o = inv @ Vector(origin)
+            d = (inv.to_3x3() @ Vector(-fwd)).normalized()
+            ok, loc, nrm, _ = ob.ray_cast(o, d, distance=1.0, depsgraph=dg)
+            if ok:
+                w = np.array(ob.matrix_world @ loc)
+                dist = np.linalg.norm(w - origin)
+                if best is None or dist < best[0]:
+                    n = np.array(ob.matrix_world.to_3x3().inverted().transposed() @ nrm)
+                    n /= np.linalg.norm(n) + 1e-9
+                    best = (dist, w, n if n @ fwd > 0 else -n)
+        return best
+
+    loops = []
+    for k in range(5200):
+        t = own.uniform(0, 1) ** 0.85                                       # 0 under the chin, 1 at the bottom
+        drop = t * 0.23
+        half = 0.055 + 0.06 * math.sin(min(1.0, t / 0.6) * math.pi / 2)    # spreading out over his chest
+        half *= math.sqrt(max(0.0, 1 - max(0.0, (t - 0.75) / 0.25) ** 2))  # and rounded off at the bottom
+        if half <= 0.004:
+            continue
+        x = own.uniform(-1, 1) * half
+        h = hit(chin + right * x - up * drop + fwd * 0.5)
+        if h is None:
+            continue
+        _, pos, n = h
+        full = (1 - (x / half) ** 2) * (1 - 0.45 * t)                       # fullest in the middle, near the top
+        depth = own.uniform(0.003, 0.008 + 0.03 * full)
+        loops.append(curl(pos + n * depth, n, own.uniform(0.0048, 0.0078), own.uniform(1.2, 2.0), 0.0042, 18))
+    return curves("SantaBeardLong", loops, 0.0025, white)
+
+
 def build_head():
     """The head, face, hair, mustache and hat, head-local (upright). Returns objects."""
     obs = []
@@ -844,6 +957,14 @@ def build_head():
         # up and back down: a loop of yarn, folded over
         tassel.append([p0 + d * L * math.sin(t) + side * 0.003 * (1 - math.cos(t)) for t in np.linspace(0, math.pi, 12)])
     obs.append(curves("Tassel", tassel, 0.0021, wool))
+    if SANTA:
+        # (the tarboush is built and then taken off, so everything else about him stays exactly the same)
+        hat_names = ("Tarboush", "HatBand", "BandKnot", "BandTail", "Tassel")
+        for ob in [o for o in obs if o.name.startswith(hat_names)]:
+            obs.remove(ob)
+            bpy.data.objects.remove(ob, do_unlink=True)
+        own = np.random.default_rng(2412)
+        obs += santa_hat(own) + santa_beard(own)
     return obs
 
 
@@ -1418,6 +1539,13 @@ def build_fares():
     add(place(tube("KeyShaft", shaft, [0.0016, 0.0016], silver, sides=10, n=6), M_UP))
     add(place(bar("KeyBit", [key + np.array([0.001, -0.002, -0.026]), key + np.array([0.007, -0.002, -0.026])],
                   0.0018, 0.006, silver, n=6), M_UP))
+
+    if SANTA:                                       # Christmas Eve: the long white beard, over his clothes
+        for ob in [o for o in parts if o.name.startswith("Bead")]:             # (his evil-eye charm goes under it)
+            parts.remove(ob)
+            bpy.data.objects.remove(ob, do_unlink=True)
+        add(chest_beard([o for o in bpy.data.objects if o.type == "MESH"
+                         and o.name.startswith(("Vest", "Jacket", "FlagCape", "Sash", "Torso", "Neck", "Braid"))]))
 
     root = bpy.data.objects.new("Fares", None)
     link(root)
