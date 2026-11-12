@@ -48,7 +48,7 @@ ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
 RES = (640, 360) if PREVIEW else (1920, 1080)
 SAMPLES = 64 if PREVIEW else 640
-CLIPBOARD = None                      # where the "How it works" clipboard hangs: None, "window" or "emblem"
+CLIPBOARD = "emblem"                  # where the "How it works" clipboard hangs: "emblem" (under the emblem picture), "window" or None
 WALL = "grid4x6"                     # the picture wall: "grid4x6" (4 across, 6 down), "grid" (6 across, 4 down) or "slope"
 for _a in ARGS:
     if _a.startswith("--res="):
