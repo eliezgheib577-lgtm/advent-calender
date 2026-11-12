@@ -48,6 +48,7 @@ ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 PREVIEW = "--preview" in ARGS
 RES = (640, 360) if PREVIEW else (1920, 1080)
 SAMPLES = 64 if PREVIEW else 640
+CLIPBOARD = None                      # where the "How it works" clipboard hangs: None, "window" or "emblem"
 WALL = "grid4x6"                     # the picture wall: "grid4x6" (4 across, 6 down), "grid" (6 across, 4 down) or "slope"
 for _a in ARGS:
     if _a.startswith("--res="):
@@ -58,6 +59,8 @@ for _a in ARGS:
         TREE_STYLE = _a[7:]
     if _a.startswith("--wall="):                     # try another picture-wall layout
         WALL = _a[7:]
+    if _a.startswith("--clipboard="):                # hang the instructions clipboard ("window" or "emblem")
+        CLIPBOARD = _a[12:] or None
     if _a.startswith("--out="):                      # write somewhere else (a preview), not into the site
         OUT_DIR = BUILD_DIR = os.path.abspath(_a[6:])
 
@@ -347,6 +350,7 @@ def build_room():
 
     emblem_frame()
     picture_wall()
+    clipboard()
 
 
 def framed(cx, cz, w_img, h_img, mat_w, mould, print_mat, depth=0.035, y=BACK_Y - 0.06):
@@ -458,6 +462,60 @@ def picture_wall():
         plate = box("GalleryPlate", (0.078 * G_SCALE, 0.006, 0.028 * G_SCALE),
                     (cx, G_Y - 0.003, cz - H / 2 - 0.036 * G_SCALE), brass)
         plate.modifiers["bevel"].width = 0.003
+
+
+# ---------------------------------------------------------------- the "How it works" clipboard
+CLIPBOARD_AT = {"window": (2.95, 2.98), "emblem": (1.62, 1.70)}      # (x, z) of its centre on the back wall
+CLIPBOARD_SIZE = (0.30, 0.40)
+SHEET = os.path.join(HERE, "textures", "clipboard-sheet.png")
+
+
+def clipboard():
+    """A hardboard clipboard hanging from a nail on the log wall, its sheet of instructions held by a
+    steel clip. The page pins its "How it works" card here."""
+    if not CLIPBOARD:
+        return
+    cx, cz = CLIPBOARD_AT[CLIPBOARD]
+    W, H = CLIPBOARD_SIZE
+    y = BACK_Y - 0.055
+    tilt = math.radians(-1.5)
+    board_mat = simple_material("Hardboard", (0.26, 0.13, 0.055), rough=0.55)
+    steel = simple_material("ClipSteel", (0.62, 0.62, 0.64), rough=0.25, metal=1.0)
+    paper = print_material("ClipSheet", image=SHEET)
+    paper.node_tree.nodes["Principled BSDF"].inputs["Coat Weight"].default_value = 0.0    # (no glass here)
+    paper.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 0.8
+    parts = []
+    board = box("ClipBoard", (W, 0.006, H), (cx, y, cz), board_mat)
+    board.modifiers["bevel"].width = 0.012
+    board.modifiers["bevel"].segments = 4
+    parts.append(board)
+    # the sheet, a little smaller than the board, with a second sheet peeking out underneath
+    for k, (dx, dz, ang) in enumerate(((0.004, -0.006, 1.2), (0.0, -0.012, 0.0))):
+        bpy.ops.mesh.primitive_plane_add(size=1, location=(cx + dx, y - 0.0035 - 0.0006 * k, cz + dz),
+                                         rotation=(math.radians(90), math.radians(ang), 0))
+        sheet = bpy.context.active_object
+        sheet.name = "ClipSheet"
+        sheet.scale = (W - 0.03, H - 0.06, 1)
+        sheet.data.materials.append(paper)
+        parts.append(sheet)
+    # the clip: a base plate, a rolled hinge and a curved lever
+    top = cz + H / 2
+    parts.append(box("ClipPlate", (0.12, 0.004, 0.05), (cx, y - 0.006, top - 0.03), steel))
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.0055, depth=0.115, location=(cx, y - 0.011, top - 0.012),
+                                        rotation=(0, math.radians(90), 0))
+    parts.append(bpy.context.active_object)
+    bpy.context.active_object.data.materials.append(steel)
+    lever = box("ClipLever", (0.10, 0.004, 0.045), (cx, y - 0.016, top - 0.034), steel)
+    lever.rotation_euler = (math.radians(-14), 0, 0)
+    parts.append(lever)
+    # the nail it hangs from
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.006, depth=0.012, location=(cx, y - 0.01, top + 0.012),
+                                        rotation=(math.radians(90), 0, 0))
+    parts.append(bpy.context.active_object)
+    bpy.context.active_object.data.materials.append(simple_material("NailIron", (0.08, 0.08, 0.08), rough=0.4, metal=1.0))
+    for ob in parts:
+        ob.rotation_euler.y += tilt
+        ob.location = Vector((cx, 0, top)) + Matrix.Rotation(tilt, 3, "Y") @ (ob.location - Vector((cx, 0, top)))
 
 
 # ---------------------------------------------------------------- fireplace
@@ -883,6 +941,12 @@ def scene_info(scene, spots):
                     (WINDOW_X[1], BACK_Y + 0.1, WINDOW_Z[1]), (WINDOW_X[0], BACK_Y + 0.1, WINDOW_Z[1]))],
         "ornaments": [],
     }
+    if CLIPBOARD:
+        cx, cz = CLIPBOARD_AT[CLIPBOARD]
+        W_, H_ = CLIPBOARD_SIZE
+        a = project(scene, cam, (cx - W_ / 2, BACK_Y - 0.06, cz + H_ / 2))
+        b = project(scene, cam, (cx + W_ / 2, BACK_Y - 0.06, cz - H_ / 2))
+        info["clipboard"] = [a[0], a[1], b[0], b[1]]
     info["gallery"] = []
     W_, H_ = gallery_frame_size()
     for day, cx, cz in gallery_slots():
