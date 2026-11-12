@@ -1036,7 +1036,8 @@
   // ---------------------------------------------------------------- how it works: shown the first time, then pinned
   // to the clipboard on the wall, where a click brings it back
   const howto = $('howto'), clipBtn = $('clipBtn');
-  const HOWTO_SEEN = 'lemsic-howto-seen';
+  // remembered for each person (member, guest or tester), so everyone sees it once, even on a shared device
+  const howtoKey = () => `lemsic-howto-seen-${member ? member.key.slice(0, 16) : 'nobody'}`;
   if (S.clipboard) {
     const [x0, y0, x1, y1] = S.clipboard;
     Object.assign(clipBtn.style, { left: x0 * 100 + '%', top: y0 * 100 + '%', width: (x1 - x0) * 100 + '%', height: (y1 - y0) * 100 + '%' });
@@ -1058,7 +1059,7 @@
     }
   }
   async function pinHowto() {
-    store.set(HOWTO_SEEN, true);
+    if (member) store.set(howtoKey(), true);
     if (canFly()) {
       scrollTo((S.clipboard[0] + S.clipboard[2]) / 2);        // phones: bring the clipboard into view first
       await wait(60);
@@ -1080,7 +1081,15 @@
   function arrived() {
     scene = 'inside';
     if (S.clipboard) clipBtn.hidden = false;
-    if (!store.get(HOWTO_SEEN)) setTimeout(() => { if (scene === 'inside' && !pop.open) openHowto(false); }, 900);
+    // guests see it every time they come in; members (and testers) the first time they come in, unless they've
+    // clearly been before (pictures already on their wall, e.g. synced from another device); after that it just
+    // stays on the clipboard
+    if (member && member.guest) {
+      setTimeout(() => { if (scene === 'inside' && !pop.open) openHowto(false); }, 900);
+    } else if (member && !store.get(howtoKey())) {
+      if (!testMode && Object.keys(loadWall()).length) store.set(howtoKey(), true);
+      else setTimeout(() => { if (scene === 'inside' && !pop.open) openHowto(false); }, 900);
+    }
     $('switchBtn').hidden = false;
     scrollTo(0.5);
   }

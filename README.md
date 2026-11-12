@@ -16,7 +16,8 @@ Open `site/index.html`. This is what students see:
 3. **How it works.** The first time someone comes in, a sheet of instructions on a clipboard
    shows the five steps, each with a picture (`site/assets/howto/`). "Got it, pin it to the
    wall" flies it onto the clipboard hanging under the LeMSIC emblem picture; tapping the
-   clipboard brings it back.
+   clipboard brings it back. Members see it the first time they come in (remembered for each
+   person, so a shared phone shows it to each of them once); guests see it every time.
 4. **The tree.** In the cabin, by the live fire, the tree's lights come up softly. Today's
    ornament has a little paper gift tag saying "Today"; it's the only one they can open.
 5. **The picture.** Tapping the ornament opens it: a picture pops out and lands in front of
