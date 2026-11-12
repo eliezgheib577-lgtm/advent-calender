@@ -93,6 +93,55 @@
   .fares:hover::before, .fares:focus-visible::before { opacity: 1; }
   .fares:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 
+  /* the clipboard on the wall: "How it works" */
+  .clipbtn { position: absolute; border: 0; padding: 0; background: transparent; cursor: pointer; border-radius: 4px; }
+  .clipbtn::before {
+    content: attr(data-label); position: absolute; left: 50%; top: -6px; transform: translate(-50%, -100%);
+    white-space: nowrap; padding: 3px 10px; border-radius: 999px; pointer-events: none;
+    background: var(--card); border: 1px solid var(--ember-dim); color: var(--snow); font: 500 clamp(11px, 1vw, 14px) var(--body);
+    opacity: 0; transition: opacity .25s;
+  }
+  .clipbtn:hover::before, .clipbtn:focus-visible::before { opacity: 1; }
+  .clipbtn:hover, .clipbtn:focus-visible { box-shadow: 0 0 0 2px rgba(255, 236, 200, 0.6), 0 0 22px rgba(255, 210, 140, 0.4); outline: none; }
+
+  /* How it works: a sheet of instructions on a clipboard, shown the first time someone comes in */
+  dialog.howto { border: 0; padding: 0; background: transparent; color: #2a1e14; overflow: visible;
+                 width: min(540px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+  dialog.howto::backdrop { background: rgba(8, 6, 4, 0.55); }
+  .board {
+    position: relative; padding: 30px 14px 14px; border-radius: 16px;
+    background: radial-gradient(120% 90% at 30% 10%, #6b3a1c, #4a250f 70%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 220, 180, 0.08);
+  }
+  .clip {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 128px; height: 40px;
+    border-radius: 8px 8px 14px 14px; background: linear-gradient(#e2e3e7, #9a9ca2 60%, #7c7e84);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+  .clip::after { content: ""; position: absolute; left: 50%; top: 9px; width: 16px; height: 16px; margin-left: -8px;
+                 border-radius: 50%; background: #4a250f; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.6); }
+  .sheet {
+    max-height: calc(100dvh - 80px); overflow: auto; border-radius: 3px; padding: 22px 22px 18px;
+    background: linear-gradient(#f4eddf, #ece2cd); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  }
+  .howto-emblem { display: block; width: 54px; height: 54px; margin: 0 auto 4px; border-radius: 50%; object-fit: cover; }
+  .sheet h2 { margin: 0 0 12px; text-align: center; font: 700 1.75rem/1.1 var(--display); color: #2a1e14; }
+  .steps { list-style: none; counter-reset: step; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
+  .steps li { counter-increment: step; display: grid; grid-template-columns: 24px 96px minmax(0, 1fr); gap: 10px; align-items: center; }
+  .steps li::before { content: counter(step); text-align: center; font: 700 1.45rem/1 var(--display); color: #9a4614; }
+  .steps img { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; display: block;
+               box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); background: #2a1e14; }
+  .steps p { margin: 0; font-size: .95rem; line-height: 1.35; }
+  .steps b { font-weight: 700; }
+  .howto-more { margin: 0 0 14px; text-align: center; font-size: .88rem; color: #6a5240; }
+  #howtoPin { width: 100%; }
+  @media (max-width: 480px) {
+    .sheet { padding: 18px 14px 14px; }
+    .steps li { grid-template-columns: 20px 74px minmax(0, 1fr); gap: 8px; }
+    .steps img { width: 74px; height: 54px; }
+    .steps p { font-size: .9rem; }
+  }
+
   /* ornaments you can open */
   .ornaments { position: absolute; inset: 0; pointer-events: none; }
   .orn {
@@ -346,6 +395,8 @@
         <canvas id="snow" class="snow"></canvas>
         <canvas id="fire" class="fire"></canvas>
         <canvas id="rock" class="rock"></canvas>
+        <button class="clipbtn" id="clipBtn" type="button" data-label="How it works" hidden
+                aria-label="How it works: the instructions on the clipboard"></button>
         <button class="fares" id="faresBtn" type="button" data-label="Give Fares a push" hidden
                 aria-label="Fares, the LeMSIC mascot, in his rocking chair. Give him a push."></button>
         <div class="wall" id="wall" role="group" aria-label="Your picture wall: one frame for each day"></div>
@@ -409,6 +460,31 @@
       <button class="x" type="button" id="wallClose" aria-label="Close the picture wall">✕</button>
     </div>
     <div class="wallgrid" id="wallGrid"></div>
+  </dialog>
+
+  <dialog id="howto" class="howto" aria-labelledby="howtoTitle">
+    <div class="board">
+      <span class="clip" aria-hidden="true"></span>
+      <div class="sheet">
+        <img class="howto-emblem" src="assets/lemsic-emblem.png" alt="">
+        <h2 id="howtoTitle">How it works</h2>
+        <ol class="steps">
+          <li><img src="assets/howto/step-1.jpg" alt="An ornament on the tree with a paper tag saying Today">
+            <p><b>Find today's ornament.</b> It has a little gift tag saying "Today". A new one opens every midnight, Lebanon time.</p></li>
+          <li><img src="assets/howto/step-2.jpg" alt="A picture popping out of an ornament, with its caption">
+            <p><b>Tap it.</b> A picture pops out, with a caption.</p></li>
+          <li><img src="assets/howto/step-3.jpg" alt="Pictures hanging in their numbered frames on the wall">
+            <p><b>Hang it on your wall.</b> It goes into its numbered frame, and a green tick is tied to the ornament.</p></li>
+          <li><img src="assets/howto/step-4.jpg" alt="Ornaments with green ticks for the days already hung">
+            <p><b>Come back every day.</b> Each ornament opens only on its own day, from 1 to 24 December.</p></li>
+          <li><img src="assets/howto/step-5.jpg" alt="The picture wall with every frame filled">
+            <p><b>Hang all 24</b> to win the LeMSIC prize.</p></li>
+        </ol>
+        <p class="howto-more">Tap your wall to see all your pictures, give Fares a push, or turn on the fire sound.
+          This sheet stays on the clipboard under the LeMSIC picture.</p>
+        <button class="primary" type="button" id="howtoPin">Got it, pin it to the wall</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="popout" class="popout" aria-label="What came out of the ornament">
@@ -957,8 +1033,54 @@
     arrived();
   }
 
+  // ---------------------------------------------------------------- how it works: shown the first time, then pinned
+  // to the clipboard on the wall, where a click brings it back
+  const howto = $('howto'), clipBtn = $('clipBtn');
+  const HOWTO_SEEN = 'lemsic-howto-seen';
+  if (S.clipboard) {
+    const [x0, y0, x1, y1] = S.clipboard;
+    Object.assign(clipBtn.style, { left: x0 * 100 + '%', top: y0 * 100 + '%', width: (x1 - x0) * 100 + '%', height: (y1 - y0) * 100 + '%' });
+  }
+  function toClip(card) {
+    const from = card.getBoundingClientRect(), to = clipBtn.getBoundingClientRect();
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2), dy = to.top + to.height / 2 - (from.top + from.height / 2);
+    return `translate(${dx}px, ${dy}px) scale(${to.width / from.width}) rotate(-2deg)`;
+  }
+  const canFly = () => !!S.clipboard && !reduceMotion && scene === 'inside' && !clipBtn.hidden;
+  async function openHowto(fromClip) {
+    if (howto.open) return;
+    howto.showModal();
+    howto.querySelector('.sheet').scrollTop = 0;
+    if (fromClip && canFly()) {
+      const card = howto.querySelector('.board');
+      await card.animate([{ transform: toClip(card), opacity: 0.4 }, { transform: 'none', opacity: 1 }],
+                         { duration: 650, easing: 'cubic-bezier(.2, .7, .3, 1)' }).finished;
+    }
+  }
+  async function pinHowto() {
+    store.set(HOWTO_SEEN, true);
+    if (canFly()) {
+      scrollTo((S.clipboard[0] + S.clipboard[2]) / 2);        // phones: bring the clipboard into view first
+      await wait(60);
+      const card = howto.querySelector('.board');
+      await card.animate([{ transform: 'none', opacity: 1 }, { transform: toClip(card), opacity: 0.85, offset: 0.88 },
+                          { transform: toClip(card), opacity: 0 }],
+                         { duration: 900, easing: 'cubic-bezier(.45, .05, .3, 1)', fill: 'forwards' }).finished
+        .then((a) => { howto.close(); a.cancel(); }, () => howto.close());
+      clipBtn.animate([{ boxShadow: '0 0 0 2px rgba(255, 236, 200, 0.9), 0 0 26px rgba(255, 210, 140, 0.7)' },
+                       { boxShadow: '0 0 0 0 rgba(255, 236, 200, 0), 0 0 0 rgba(255, 210, 140, 0)' }], { duration: 1200 });
+    } else {
+      howto.close();
+    }
+  }
+  $('howtoPin').addEventListener('click', pinHowto);
+  howto.addEventListener('cancel', (e) => { e.preventDefault(); pinHowto(); });   // Escape pins it too
+  clipBtn.addEventListener('click', () => openHowto(true));
+
   function arrived() {
     scene = 'inside';
+    if (S.clipboard) clipBtn.hidden = false;
+    if (!store.get(HOWTO_SEEN)) setTimeout(() => { if (scene === 'inside' && !pop.open) openHowto(false); }, 900);
     $('switchBtn').hidden = false;
     scrollTo(0.5);
   }
@@ -1002,6 +1124,7 @@
     today = calendarDay();
     $('testPanel').hidden = true;
     $('switchBtn').hidden = true;
+    clipBtn.hidden = true;
     if (rocker) rocker.stop();
     $('status').textContent = '1–24 December';
     $('lemsicId').value = '';

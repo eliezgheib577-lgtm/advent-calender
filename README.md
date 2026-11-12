@@ -13,15 +13,19 @@ Open `site/index.html`. This is what students see:
    also counts down the days, hours, minutes and seconds to midnight on 1 December (Lebanon time).
 2. **The door opens.** It swings open with warm light spilling onto the snow, and they're
    carried inside.
-3. **The tree.** In the cabin, by the live fire, the tree's lights come up softly. Today's
+3. **How it works.** The first time someone comes in, a sheet of instructions on a clipboard
+   shows the five steps, each with a picture (`site/assets/howto/`). "Got it, pin it to the
+   wall" flies it onto the clipboard hanging under the LeMSIC emblem picture; tapping the
+   clipboard brings it back.
+4. **The tree.** In the cabin, by the live fire, the tree's lights come up softly. Today's
    ornament has a little paper gift tag saying "Today"; it's the only one they can open.
-4. **The picture.** Tapping the ornament opens it: a picture pops out and lands in front of
+5. **The picture.** Tapping the ornament opens it: a picture pops out and lands in front of
    them like a photo print, with a caption written underneath. You choose both.
-5. **Hang it on the wall.** The print flies into its numbered frame on the picture wall,
+6. **Hang it on the wall.** The print flies into its numbered frame on the picture wall,
    24 frames like the LeMSIC emblem's (4 across, 6 down) on the log wall left of the tree, and a
    gift tag with a green tick is tied to the ornament. Their pictures stay there from day to
    day, and tapping one shows it big again.
-6. **The prize.** Students who hang all 24 pictures, one each day, see the prize message.
+7. **The prize.** Students who hang all 24 pictures, one each day, see the prize message.
 
 ### Member IDs (the shared Excel sheet)
 
