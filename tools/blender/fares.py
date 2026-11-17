@@ -48,7 +48,8 @@ PIVOT = Vector((0.0, 0.03, 0.07))
 NECK = Vector((0.0, 0.03, 0.455))
 TILT = math.radians(9)           # head tips forward a little, so he looks out into the room
 ROLL = math.radians(4)
-# Fares doing something in his chair (previews: python tools/blender/fares.py front --activity=sleep)
+# Fares doing something in his chair (previews: python tools/blender/fares.py activity --activity=sleep):
+# sleep, read, present, cocoa or knit
 ACTIVITY = next((a.split("=", 1)[1] for a in __import__("sys").argv if a.startswith("--activity=")), "")
 if ACTIVITY == "sleep":
     TILT, ROLL = math.radians(16), math.radians(15)        # dozing off, his head tipped to one side
@@ -835,6 +836,51 @@ def ray_hit(targets, origin, direction):
     return None if best is None else (best[1], best[2])
 
 
+BOOK_AT = np.array([0.0, -0.24, 0.665])           # the storybook he holds up (its spine's middle)
+PRESENT_AT = np.array([0.0, -0.19, 0.47])         # the bottom of the present on his lap
+
+
+def book_matrix():
+    """The open book: pages facing him, tipped up, its top away from him."""
+    return (Matrix.Translation(Vector(BOOK_AT)) @ Matrix.Rotation(math.pi, 4, "Z")
+            @ Matrix.Rotation(math.radians(55), 4, "X"))
+
+
+def present_matrix():
+    return (Matrix.Translation(Vector(PRESENT_AT)) @ Matrix.Rotation(math.radians(8), 4, "Z")
+            @ Matrix.Rotation(-LEAN * 0.5, 4, "X"))
+
+
+def hold_pose(s):
+    """When he holds something, where his hand on side s goes: (elbow, wrist, along, back, thumb), else None.
+    along points from the wrist to the tip of the mitten, back out of the back of his hand, thumb where his thumb points."""
+    if ACTIVITY == "read":
+        M = book_matrix()
+        R3 = M.to_3x3()
+        grip = np.array(M @ Vector((-s * 0.121, -0.025, 0.004)))          # (the book's x runs the other way)
+        along = np.array(R3 @ Vector((0, 1, 0)))                          # fingers up the side of the book
+        back = np.array([s * 1.0, 0, 0])
+        thumb = np.array(R3 @ Vector((0, 0, 1)))                          # thumbs over the pages
+        elbow = np.array([s * 0.2, 0.0, ARM_Z + 0.04])
+    elif ACTIVITY == "present":
+        M = present_matrix()
+        R3 = M.to_3x3()
+        grip = np.array(M @ Vector((s * 0.097, 0.0, 0.06)))
+        along = np.array(R3 @ Vector((0, -1, 0.3)))                       # fingers forward along its sides
+        back = np.array(R3 @ Vector((s * 1.0, 0, 0)))
+        thumb = np.array([0, 0, 1.0])                                     # thumbs on top
+        elbow = np.array([s * 0.2, 0.0, ARM_Z + 0.03])
+    else:
+        return None
+    along /= np.linalg.norm(along)
+    back = back - (back @ along) * along
+    back /= np.linalg.norm(back)
+    t = np.cross(along, back)
+    thumb = t if t @ thumb > 0 else -t
+    wrist = grip - along * 0.04 + back * 0.004
+    return elbow, wrist, along, back, thumb
+
+
 def plaid_material(name="BlanketPlaid"):
     """Brushed flannel in a red and black buffalo check, with a soft nap."""
     if _cached(name):
@@ -938,12 +984,11 @@ def activity_props(kind, body):
             obs.append(z)
 
     elif kind == "read":
-        # a storybook open on his lap, tipped up towards him (pages up, its top away from him)
+        # a storybook held up in both hands, open towards him
         red = plain("BookCover", (0.28, 0.02, 0.025), rough=0.5)
         paper = plain("BookPages", (0.86, 0.82, 0.72), rough=0.8)
         gold = plain("BookGold", (0.8, 0.58, 0.25), rough=0.3, metal=1.0)
-        M = (Matrix.Translation(Vector(lap + np.array([0, -0.02, 0.05]))) @ Matrix.Rotation(math.pi, 4, "Z")
-             @ Matrix.Rotation(math.radians(30), 4, "X"))
+        M = book_matrix()
         def slab(name, size, center, mat, hinge=0.0):
             bpy.ops.mesh.primitive_cube_add(size=1)
             b = bpy.context.active_object
@@ -962,41 +1007,12 @@ def activity_props(kind, body):
         mark.matrix_world = M
         obs += [spine, mark]
 
-    elif kind == "doctor":
-        # Doctor Fares: a stethoscope round his neck, its ends hanging down his chest
-        rubber = plain("StethTube", (0.03, 0.09, 0.32), rough=0.3, coat=0.3)                  # LeMSIC blue
-        clothes = [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith(
-            ("Vest", "Sash", "Jacket", "FlagCape", "Torso", "Neck", "Braid", "Sherwal", "Leg", "Sleeve"))]
-        steel = plain("StethSteel", (0.75, 0.75, 0.78), rough=0.18, metal=1.0)
-        ahead = np.array(M_UP.to_3x3() @ Vector((0, 1, 0)))
-        def front(x, z, lift=0.007):
-            h = ray_hit(clothes, M_UP @ Vector((x, -0.6, z)), ahead)
-            return h[0] + h[1] * lift
-        left = [front(-0.062, z) for z in (0.42, 0.37, 0.32, 0.28)]
-        right = [front(0.062, z) for z in (0.42, 0.37, 0.335)]
-        neck = [np.array(M_UP @ Vector((0.078 * math.sin(a), 0.03 + 0.078 * math.cos(a), 0.47)))
-                for a in np.linspace(math.radians(-110), math.radians(110), 11)]
-        path = left[::-1] + neck + right
-        obs.append(tube("Stethoscope", path, [0.005] * len(path), rubber, sides=14, n=110))
-        y = right[-1]
-        tip_mat = plain("StethTipBlack", (0.03, 0.03, 0.03), rough=0.4)
-        for sx in (-1, 1):                                                  # the two ear tubes and their tips
-            end = front(0.062 + sx * 0.02, 0.27, 0.01)
-            obs.append(tube("StethEar", [y, (y + end) / 2 + np.array([sx * 0.004, 0, 0]), end], [0.0022] * 3, steel,
-                            sides=10, n=14))
-            obs.append(ellipsoid("StethTip", end, (0.005, 0.005, 0.006), tip_mat, 16, 8))
-        c, n = ray_hit(clothes, M_UP @ Vector((-0.062, -0.6, 0.255)), ahead)
-        obs.append(oriented("StethChest", c + n * 0.007, (0.023, 0.023, 0.0065), n, steel, seg=40, rings=12))
-        obs.append(oriented("StethDiaphragm", c + n * 0.0135, (0.0195, 0.0195, 0.0012), n,
-                            plain("StethPlastic", (0.85, 0.85, 0.82), rough=0.4), seg=40, rings=8))
-
     elif kind == "present":
-        # a present wrapped in LeMSIC blue with a gold ribbon, sitting on his lap
+        # a present wrapped in LeMSIC blue with a gold ribbon, held on his lap in both hands
         blue = plain("PresentBlue", (0.03, 0.09, 0.32), rough=0.35, coat=0.4)
         gold = plain("RibbonGold", (0.85, 0.6, 0.22), rough=0.25, metal=0.8)
-        base = lap + np.array([0, 0, 0.002])
         size = np.array([0.17, 0.13, 0.11])
-        M = Matrix.Translation(Vector(base)) @ Matrix.Rotation(math.radians(14), 4, "Z") @ Matrix.Rotation(-LEAN * 0.5, 4, "X")
+        M = present_matrix()
         def boxed(name, sz, mat, z0=0.0):
             bpy.ops.mesh.primitive_cube_add(size=1)
             b = bpy.context.active_object
@@ -1458,7 +1474,7 @@ def build_rocking_chair():
 HANDS = next((a.split("=", 1)[1] for a in __import__("sys").argv if a.startswith("--hands=")), "stuffed")
 
 
-def stuffed_mitten(name, mat, s):
+def stuffed_mitten(name, mat, s, pose=None):
     """A stuffed cloth mitten like the doll's: two cream panels sewn round the edge and filled, so it is
     domed and soft, with the thumb sticking out on the inner side. It comes out of the cuff and rests
     palm-down on the end of the armrest."""
@@ -1494,15 +1510,20 @@ def stuffed_mitten(name, mat, s):
     co[:, 1] *= 1 - 0.25 * pinch
     co[:, 0] *= 1 - 0.12 * pinch
     # lay it palm-down: along the forearm (forward, dipping to rest on the armrest), thumb towards the body
-    tilt = math.radians(9)
-    along = np.array([0.0, -math.cos(tilt), -math.sin(tilt)])
-    up = np.array([0.0, -math.sin(tilt), math.cos(tilt)])
-    wrist = np.array([s * 0.228, -0.106, ARM_Z + 0.032])
-    world = wrist[None] + (s * co[:, 0])[:, None] * np.array([1.0, 0, 0])[None] + co[:, 2:3] * along[None] \
-        + (co[:, 1] + 0.0)[:, None] * up[None]
+    # (or, holding something, as hold_pose says)
+    if pose:
+        _, wrist, along, up, thumb = pose
+        across = -np.asarray(thumb)                       # (the thumb is on the outline's -x side)
+    else:
+        tilt = math.radians(9)
+        along = np.array([0.0, -math.cos(tilt), -math.sin(tilt)])
+        up = np.array([0.0, -math.sin(tilt), math.cos(tilt)])
+        wrist = np.array([s * 0.228, -0.106, ARM_Z + 0.032])
+        across = np.array([s * 1.0, 0, 0])
+    world = wrist[None] + co[:, 0:1] * across[None] + co[:, 2:3] * along[None] + co[:, 1:2] * up[None]
     ob.data.vertices.foreach_set("co", world.astype(np.float32).ravel())
     ob.data.update()
-    if s < 0:
+    if np.linalg.det(np.stack([across, up, along], 1)) < 0:
         ob.data.flip_normals()
     ob.data.materials.append(mat)
     smooth_shade(ob)
@@ -1597,7 +1618,7 @@ def build_fares():
     extend(head_obs)
     if HANDS == "stuffed":
         for s in (1, -1):
-            add(subsurf(stuffed_mitten("Mitten", skin, s), 1))
+            add(subsurf(stuffed_mitten("Mitten", skin, s, hold_pose(s)), 1))
     else:
         mittens = [mitten_slab("Mitten", skin), mitten_slab("Mitten", skin)]
         simulate(mittens, 40)
@@ -1608,7 +1629,9 @@ def build_fares():
     arms, sleeves = [], []
     for s in (1, -1):
         sh = np.array(M_UP @ Vector((s * 0.132, 0.035, 0.405)))
-        if HANDS == "stuffed":         # forearms lying on the armrests, so the hands come straight out of the cuffs
+        if hold_pose(s) is not None:   # holding something in front of him
+            el, wr = hold_pose(s)[0], hold_pose(s)[1]
+        elif HANDS == "stuffed":       # forearms lying on the armrests, so the hands come straight out of the cuffs
             el = np.array([s * 0.217, 0.03, ARM_Z + 0.050])
             wr = np.array([s * 0.227, -0.118, ARM_Z + 0.043])
         else:
