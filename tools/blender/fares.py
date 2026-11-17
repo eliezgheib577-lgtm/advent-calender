@@ -26,7 +26,7 @@ from collections import defaultdict
 import numpy as np
 import bpy
 import bmesh
-from mathutils import Matrix, Vector
+from mathutils import Euler, Matrix, Vector
 
 from lemsic_tree import link, new_material, principled
 
@@ -948,11 +948,9 @@ def activity_props(kind, body):
             bpy.ops.mesh.primitive_cube_add(size=1)
             b = bpy.context.active_object
             b.name = name
-            b.scale = size
-            b.location = center
             b.data.materials.append(mat)
             bev = b.modifiers.new("bevel", "BEVEL"); bev.width = 0.002; bev.segments = 2
-            b.matrix_world = M @ Matrix.Rotation(hinge, 4, "Y") @ b.matrix_world
+            b.matrix_world = M @ Matrix.Rotation(hinge, 4, "Y") @ Matrix.LocRotScale(Vector(center), None, Vector(size))
             return b
         for side in (-1, 1):
             obs.append(slab("BookCover", (0.118, 0.168, 0.004), (side * 0.059, 0, 0), red, side * math.radians(-12)))
@@ -966,7 +964,9 @@ def activity_props(kind, body):
 
     elif kind == "doctor":
         # Doctor Fares: a stethoscope round his neck, its ends hanging down his chest
-        rubber = plain("StethTube", (0.02, 0.02, 0.022), rough=0.35)
+        rubber = plain("StethTube", (0.03, 0.09, 0.32), rough=0.3, coat=0.3)                  # LeMSIC blue
+        clothes = [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith(
+            ("Vest", "Sash", "Jacket", "FlagCape", "Torso", "Neck", "Braid", "Sherwal", "Leg", "Sleeve"))]
         steel = plain("StethSteel", (0.75, 0.75, 0.78), rough=0.18, metal=1.0)
         ahead = np.array(M_UP.to_3x3() @ Vector((0, 1, 0)))
         def front(x, z, lift=0.007):
@@ -977,7 +977,7 @@ def activity_props(kind, body):
         neck = [np.array(M_UP @ Vector((0.078 * math.sin(a), 0.03 + 0.078 * math.cos(a), 0.47)))
                 for a in np.linspace(math.radians(-110), math.radians(110), 11)]
         path = left[::-1] + neck + right
-        obs.append(tube("Stethoscope", path, [0.0042] * len(path), rubber, sides=14, n=110))
+        obs.append(tube("Stethoscope", path, [0.005] * len(path), rubber, sides=14, n=110))
         y = right[-1]
         tip_mat = plain("StethTipBlack", (0.03, 0.03, 0.03), rough=0.4)
         for sx in (-1, 1):                                                  # the two ear tubes and their tips
@@ -986,8 +986,8 @@ def activity_props(kind, body):
                             sides=10, n=14))
             obs.append(ellipsoid("StethTip", end, (0.005, 0.005, 0.006), tip_mat, 16, 8))
         c, n = ray_hit(clothes, M_UP @ Vector((-0.062, -0.6, 0.255)), ahead)
-        obs.append(oriented("StethChest", c + n * 0.006, (0.019, 0.019, 0.0055), n, steel, seg=40, rings=12))
-        obs.append(oriented("StethDiaphragm", c + n * 0.0118, (0.016, 0.016, 0.0012), n,
+        obs.append(oriented("StethChest", c + n * 0.007, (0.023, 0.023, 0.0065), n, steel, seg=40, rings=12))
+        obs.append(oriented("StethDiaphragm", c + n * 0.0135, (0.0195, 0.0195, 0.0012), n,
                             plain("StethPlastic", (0.85, 0.85, 0.82), rough=0.4), seg=40, rings=8))
 
     elif kind == "present":
@@ -1001,22 +1001,20 @@ def activity_props(kind, body):
             bpy.ops.mesh.primitive_cube_add(size=1)
             b = bpy.context.active_object
             b.name = name
-            b.scale = sz
-            b.location = (0, 0, sz[2] / 2 + z0)
             b.data.materials.append(mat)
             bev = b.modifiers.new("bevel", "BEVEL"); bev.width = 0.004; bev.segments = 2
-            b.matrix_world = M @ b.matrix_world
+            b.matrix_world = M @ Matrix.LocRotScale(Vector((0, 0, sz[2] / 2 + z0)), None, Vector(sz))
             return b
         obs.append(boxed("Present", size, blue))
         obs.append(boxed("Ribbon", (size[0] * 1.01, 0.024, size[2] * 1.01), gold, -0.0005))
         obs.append(boxed("Ribbon", (0.024, size[1] * 1.01, size[2] * 1.01), gold, -0.0005))
         for sd in (-1, 1):
-            bpy.ops.mesh.primitive_torus_add(major_radius=0.03, minor_radius=0.008, location=(sd * 0.022, 0, size[2] + 0.018),
-                                             rotation=(math.radians(90), math.radians(sd * 32), 0))
+            bpy.ops.mesh.primitive_torus_add(major_radius=0.03, minor_radius=0.008)
             loop = bpy.context.active_object
-            loop.scale = (1, 0.65, 1)
             loop.data.materials.append(gold)
-            loop.matrix_world = M @ loop.matrix_world
+            loop.matrix_world = M @ Matrix.LocRotScale(Vector((sd * 0.022, 0, size[2] + 0.018)),
+                                                       Euler((math.radians(90), math.radians(sd * 32), 0)).to_quaternion(),
+                                                       Vector((1, 0.65, 1)))
             obs.append(loop)
 
     elif kind == "cocoa":
@@ -1056,10 +1054,12 @@ def activity_props(kind, body):
         stripes = _cached("ScarfKnit")
         if not stripes:
             stripes, nt, out = _new_material("ScarfKnit")
-            uv = nt.nodes.new("ShaderNodeTexCoord").outputs["UV"]
-            sep = nt.nodes.new("ShaderNodeSeparateXYZ"); nt.links.new(uv, sep.inputs[0])
-            mul = nt.nodes.new("ShaderNodeMath"); mul.operation = "MULTIPLY"; mul.inputs[1].default_value = 9.0
-            nt.links.new(sep.outputs["X"], mul.inputs[0])
+            gen = nt.nodes.new("ShaderNodeTexCoord").outputs["Generated"]
+            sep = nt.nodes.new("ShaderNodeSeparateXYZ"); nt.links.new(gen, sep.inputs[0])
+            along = nt.nodes.new("ShaderNodeMath"); along.operation = "SUBTRACT"          # across his lap, then down
+            nt.links.new(sep.outputs["X"], along.inputs[0]); nt.links.new(sep.outputs["Z"], along.inputs[1])
+            mul = nt.nodes.new("ShaderNodeMath"); mul.operation = "MULTIPLY"; mul.inputs[1].default_value = 6.0
+            nt.links.new(along.outputs[0], mul.inputs[0])
             pp = nt.nodes.new("ShaderNodeMath"); pp.operation = "PINGPONG"; pp.inputs[1].default_value = 1.0
             nt.links.new(mul.outputs[0], pp.inputs[0])
             ramp = nt.nodes.new("ShaderNodeValToRGB"); ramp.color_ramp.interpolation = "CONSTANT"
@@ -1084,7 +1084,7 @@ def activity_props(kind, body):
         tip = pts[-1]
         for k in range(1, 6):
             pts.append(tip + np.array([0.004 * k, -0.012 * k, -0.035 * k]))
-        sc = tube("Scarf", pts, [0.055] * len(pts), stripes, sides=16, n=60, squash=0.18)
+        sc = tube("Scarf", pts, [0.07] * len(pts), stripes, sides=16, n=60, squash=0.16)
         obs.append(subsurf(smooth_shade(sc), 1))
         needle = plain("NeedleWood", (0.35, 0.2, 0.08), rough=0.4)
         start = pts[0]
