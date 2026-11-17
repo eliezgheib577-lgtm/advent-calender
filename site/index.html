@@ -81,6 +81,30 @@
   @supports (mix-blend-mode: plus-lighter) { canvas.fire { mix-blend-mode: plus-lighter; } }
   canvas.snow { pointer-events: none; }
   canvas.rock { pointer-events: none; opacity: 0; }
+  /* when Fares is asleep: Zzz floating up from his head, one after another (not while he rocks) */
+  .zzz { position: absolute; width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity .3s ease; }
+  .zzz[hidden] { display: none; }
+  .zzz.on { opacity: 1; transition-duration: 1.2s; }
+  .zzz span {
+    position: absolute; left: 0; bottom: 0; font: 700 1em/1 var(--display); color: #f6eddc; opacity: 0;
+    text-shadow: 0 0 .25em rgba(255, 232, 190, .6), 0 0 .08em rgba(40, 20, 5, .9), 0 .05em .14em rgba(0, 0, 0, .6);
+    animation: zzz-float 4.2s linear infinite;
+  }
+  .zzz span:nth-child(2) { animation-delay: 1.4s; }
+  .zzz span:nth-child(3) { animation-delay: 2.8s; }
+  @keyframes zzz-float {
+    0% { transform: translate(-.15em, .75em) scale(.45) rotate(-10deg); opacity: 0; }
+    12% { opacity: 1; }
+    35% { transform: translate(.3em, -.05em) scale(.65) rotate(5deg); }
+    65% { transform: translate(.5em, -.85em) scale(.85) rotate(-6deg); opacity: .9; }
+    100% { transform: translate(1em, -1.7em) scale(1.05) rotate(8deg); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .zzz span { animation: none; opacity: .9; }
+    .zzz span:nth-child(1) { transform: translate(.1em, -.2em) scale(.5); }
+    .zzz span:nth-child(2) { transform: translate(.6em, -1.1em) scale(.75); }
+    .zzz span:nth-child(3) { transform: translate(1.2em, -2.3em) scale(1); }
+  }
 
   /* Fares in his rocking chair: click him to give the chair a push */
   .fares { position: absolute; border: 0; padding: 0; background: transparent; cursor: pointer; border-radius: 40% 40% 12% 12%; }
@@ -358,6 +382,9 @@
   }
   .testpanel select:focus-visible, .testpanel button:focus-visible { outline: 2px solid #8fb8f2; outline-offset: 1px; }
   .orn.testable { box-shadow: 0 0 0 1.5px rgba(160, 200, 255, 0.6); }
+  .testpanel .practice { cursor: pointer; }
+  .testpanel .practice input { accent-color: #8fb8f2; width: 15px; height: 15px; margin: 0; cursor: pointer; }
+  .testpanel button[hidden] { display: none; }
 
   .toast {
     position: fixed; left: 50%; bottom: calc(var(--bar) + 18px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px);
@@ -396,6 +423,7 @@
         <canvas id="snow" class="snow"></canvas>
         <canvas id="fire" class="fire"></canvas>
         <canvas id="rock" class="rock"></canvas>
+        <div class="zzz" id="zzz" aria-hidden="true" hidden><span>z</span><span>z</span><span>Z</span></div>
         <button class="clipbtn" id="clipBtn" type="button" data-label="How it works" hidden
                 aria-label="How it works: the instructions on the clipboard"></button>
         <button class="fares" id="faresBtn" type="button" data-label="Give Fares a push" hidden
@@ -414,6 +442,9 @@
       <option value="0">30 November (before it starts)</option>
     </select>
     <button type="button" id="testClear">Empty the wall</button>
+    <label class="practice" title="Like a real member: the wall is kept in this browser and each picture is sent to the progress sheet under the ID TEST">
+      <input type="checkbox" id="testPractice"> Practice run</label>
+    <button type="button" id="testSheetClear" hidden>Remove TEST from the sheet</button>
   </div>
 
   <div class="bar">
@@ -506,11 +537,23 @@
 <script src="assets/cabin/fire.js"></script>
 <script src="assets/cabin/rock.js"></script>
 <script src="assets/cabin/rock-santa.js"></script>
+<script src="assets/cabin/rock-read.js"></script>
+<script src="assets/cabin/rock-cocoa.js"></script>
+<script src="assets/cabin/rock-sleep.js"></script>
+<script src="assets/cabin/rock-present.js"></script>
 <script>
 (() => {
   const C = window.ADVENT_CONFIG, M = window.LEMSIC_MEMBERS, P = window.ADVENT_PICTURES || {};
   const DOOR = window.CABIN_DOOR, S = window.CABIN_SCENE, F = window.CABIN_FIRE, R = window.CABIN_ROCK;
-  const RS = window.CABIN_ROCK_SANTA;          // Fares in his Santa hat and beard, for Christmas Eve
+  // what Fares is doing in his chair: his Santa hat and beard on Christmas Eve, and other days reading, drinking
+  // coffee, asleep under a blanket or holding a present (each rendered rocking, like the plain one)
+  const FARES_SETS = Object.assign({ santa: window.CABIN_ROCK_SANTA }, window.CABIN_ROCK_SETS || {});
+  const FARES_TURNS = ['read', 'cocoa', 'sleep', 'present', null];
+  function faresToday() {
+    if (today.day === 24) return 'santa';
+    if (today.day >= 1 && today.day <= 23) return FARES_TURNS[(today.day - 1) % FARES_TURNS.length];
+    return null;
+  }
   const $ = (id) => document.getElementById(id);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const stage = $('stage'), wrap = $('sceneWrap');
@@ -588,36 +631,42 @@
   countdownTimer = setInterval(tickCountdown, 1000);
 
   let testMode = false;         // organisers: nothing is saved or sent
+  // ... unless it's a practice run: then test mode behaves like a member on the day it pretends to be (the wall is
+  // kept in this browser and each picture goes to the progress sheet under the ID TEST), to try the whole thing out
+  let practice = false;
+  const PRACTICE = 'lemsic-advent-practice';
   let testDay = null;           // in test mode: the day to pretend it is (0 before, 25 after), or null for every day open
-  const openAll = () => testMode && testDay === null;
+  const openAll = () => testMode && !practice && testDay === null;
   let today = calendarDay();
 
   // ---------------------------------------------------------------- members and the pictures on their wall
   let member = null;            // { id, key }
   let testWall = {};
   const wallKey = () => `lemsic-advent-${C.year}-${member.key.slice(0, 16)}`;
-  const loadWall = () => (testMode ? testWall : (store.get(wallKey()) || {}));
+  const loadWall = () => (testMode && !practice ? testWall : (store.get(wallKey()) || {}));
   function hangOnWall(day) {
     const at = new Date().toISOString();
-    if (testMode) {
+    if (testMode && !practice) {
       testWall[day] = { at, test: true };
       return testWall;
     }
     const all = loadWall();
-    all[day] = { at, preview: today.preview || undefined };
+    all[day] = { at, preview: (today.preview && !practice) || undefined };
     store.set(wallKey(), all);
-    if (PROGRESS && !today.preview && !member.guest) {
+    if (PROGRESS && ((!today.preview && !member.guest) || practice)) {
+      const sent = { id: member.id, name: member.name || '', day, at };
+      if (practice) Object.assign(sent, { test: true, today: today.day });     // (the day it pretends to be)
       fetch(PROGRESS, {
         method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ id: member.id, name: member.name || '', day, at }),
+        body: JSON.stringify(sent),
       }).catch(() => { /* kept locally; the sheet will miss this one */ });
     }
     return all;
   }
   // the progress sheet remembers each member's wall, so it follows them to another phone or computer
   const PROGRESS = C.progressEndpoint || C.answersEndpoint || '';
-  async function syncWall() {
-    if (!PROGRESS || !member || member.guest || testMode || today.preview) return;
+  async function syncWall(report = false) {
+    if (!PROGRESS || !member || member.guest || (testMode ? !practice : today.preview)) return;
     try {
       const res = await fetch(`${PROGRESS}?id=${encodeURIComponent(member.id)}`);
       const data = await res.json();
@@ -628,6 +677,8 @@
         if (d >= 1 && d <= 24 && !all[d]) { all[d] = { at: 'from the progress sheet' }; added += 1; }
       }
       if (added) { store.set(wallKey(), all); renderTree(); }
+      if (practice && (added || report)) toast(added ? `The sheet had ${added} more ${added === 1 ? 'picture' : 'pictures'} for TEST: back on the wall.`
+        : `Checked the sheet: TEST has ${data.days.length} of 24 there.`);
     } catch (e) { /* offline or not set up: the wall in this browser stands */ }
   }
   const isCode = (id, code) => !!code && !!id && id === normalise(String(code));
@@ -765,12 +816,21 @@
     const canvas = $('rock'), ctx = canvas.getContext('2d'), btn = $('faresBtn');
     const at = (el, b) => Object.assign(el.style, {
       left: b.x0 * 100 + '%', top: b.y0 * 100 + '%', width: (b.x1 - b.x0) * 100 + '%', height: (b.y1 - b.y0) * 100 + '%' });
-    let info = R, santa = false;
+    let info = R, dressed = null;
     at(canvas, info.crop);
     at(btn, info.hotspot);
     btn.hidden = false;
     let sheet = new Image(), mask = new Image(), ready = 0;
-    const watch = () => { sheet.onload = mask.onload = () => { ready += 1; if (ready === 2 && santa && state === 'still') draw(); }; };
+    const watch = () => { sheet.onload = mask.onload = () => { ready += 1; if (ready === 2 && dressed && state === 'still') draw(); zzz(); }; };
+    // his Zzz when he's asleep: drawn by the page (not in his frames), only while he's still
+    const zzzEl = $('zzz');
+    function zzz() {
+      const z = dressed && info.zzz;
+      zzzEl.hidden = !z;
+      if (!z) return;
+      Object.assign(zzzEl.style, { left: z.x * 100 + '%', top: z.y * 100 + '%', fontSize: Math.max(14, H * z.size * 1.6).toFixed(1) + 'px' });
+      zzzEl.classList.toggle('on', state === 'still' && ready === 2);
+    }
     watch();
     let mid = (info.frames - 1) / 2;
     const files = (i) => ['assets/cabin/' + (i.sprite || 'rock-sprite.jpg'), 'assets/cabin/' + (i.mask || 'rock-mask.png')];
@@ -796,19 +856,19 @@
     btn.addEventListener('click', () => {
       if (ready < 2) return;
       const kick = reduceMotion ? 1.2 : 3.6;
-      if (state !== 'rocking') { state = 'rocking'; speed -= kick; }         // the first push sends him back
+      if (state !== 'rocking') { state = 'rocking'; speed -= kick; zzz(); }  // the first push sends him back
       else speed += (speed <= 0 ? -1 : 1) * kick * 0.6;                     // pushing again adds to the swing
     });
     return {
       canvas,
       get info() { return info; },
       load() { if (!sheet.src) [sheet.src, mask.src] = files(info); },
-      // Christmas Eve: Fares in his Santa hat and beard, shown all the time (his frames over the room image)
-      santa(on) {
-        on = !!(on && RS);
-        if (on === santa) return;
-        santa = on;
-        info = on ? RS : R;
+      // Fares doing something (or dressed as Santa): his frames shown over the room image all the time
+      dress(name) {
+        if (!name || !FARES_SETS[name]) name = null;
+        if (name === dressed) return;
+        dressed = name;
+        info = name ? FARES_SETS[name] : R;
         mid = (info.frames - 1) / 2;
         at(canvas, info.crop);
         at(btn, info.hotspot);
@@ -817,12 +877,13 @@
         resize();
         this.stop();
       },
-      redraw() { if (santa && state === 'still' && ready === 2) draw(); },     // (resizing clears the canvas)
+      redraw() { if (dressed && state === 'still' && ready === 2) draw(); zzz(); },   // (resizing clears the canvas)
       stop() {
         state = 'still'; angle = speed = 0;
-        opacity = santa ? 1 : 0;
+        opacity = dressed ? 1 : 0;
         canvas.style.opacity = String(opacity);
-        if (santa && ready === 2) draw();
+        if (dressed && ready === 2) draw();
+        zzz();
       },
       update(dt) {
         if (state === 'still') return;
@@ -837,7 +898,7 @@
           opacity = Math.min(1, opacity + dt / 0.12);
           if (Math.hypot(angle, speed / Math.sqrt(STIFF)) < 0.025) { angle = 0; speed = 0; state = 'settling'; }
         } else {
-          if (santa) { this.stop(); return; }                                   // (Santa stays in front of the room)
+          if (dressed) { this.stop(); return; }                                 // (his frames stay in front of the room)
           opacity -= dt / 0.35;                                                 // back to the room image at rest
           if (opacity <= 0) { this.stop(); return; }
         }
@@ -1086,12 +1147,15 @@
       testDay = h && +h[1] <= 25 ? +h[1] : null;
       $('testDate').value = testDay === null ? '' : String(testDay);
       today = calendarDay();
-      member = { id: 'TEST', key: 'test-mode' };
+      member = { id: 'TEST', key: 'test-mode', name: 'Test run' };
+      const was = store.get(PRACTICE);                               // a practice run carries on where it was
+      if (was && was.on) setPractice(true, h ? testDay : was.day);
       input.removeAttribute('aria-invalid');
       err.textContent = '';
       $('testPanel').hidden = false;
       login.close();
       await goInside();
+      if (practice) syncWall();
       return;
     }
     btn.disabled = true;
@@ -1224,14 +1288,53 @@
     o.textContent = d === 25 ? '25 December (after it ends)' : `${d} December`;
     $('testDate').appendChild(o);
   }
+  function setPractice(on, day) {
+    practice = on;
+    $('testPractice').checked = on;
+    $('testSheetClear').hidden = !on;
+    $('testDate').options[0].disabled = on;                          // (a practice run is always on one day)
+    if (on) {
+      testDay = day >= 0 && day <= 25 ? day : 1;
+      $('testDate').value = String(testDay);
+    }
+    $('testClear').textContent = on ? 'Empty the wall in this browser' : 'Empty the wall';
+    store.set(PRACTICE, on ? { on: true, day: testDay } : null);
+    today = calendarDay();
+  }
+  $('testPractice').addEventListener('change', (e) => {
+    setPractice(e.target.checked, testDay === null ? 1 : testDay);
+    renderTree();
+    toast(practice ? `Practice run: it's ${dateLabel(today.day)}. Pictures stay on the wall and go to the sheet as TEST.`
+      : 'Practice run off: nothing is saved or sent.');
+    if (practice) syncWall(true);
+  });
+  $('testSheetClear').addEventListener('click', () => {
+    if (!confirm('Remove every TEST row from the progress sheet, and empty the practice wall in this browser?')) return;
+    if (PROGRESS) {
+      fetch(PROGRESS, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ id: 'TEST', test: true, clear: true }) }).catch(() => {});
+    }
+    store.set(wallKey(), {});
+    renderTree();
+    toast('Asked the sheet to remove the TEST rows. The practice wall is empty.');
+  });
   $('testDate').addEventListener('change', (e) => {
     testDay = e.target.value === '' ? null : +e.target.value;
+    if (practice) store.set(PRACTICE, { on: true, day: testDay });
     today = calendarDay();
     renderTree();
+    if (practice) setTimeout(syncWall, 600);                      // (like coming back the next day)
     toast(testDay === null ? 'Every ornament opens.' : testDay === 0 ? 'Pretending it is 30 November.'
       : testDay === 25 ? 'Pretending it is 25 December.' : `Pretending it is ${dateLabel(testDay)}.`);
   });
   $('testClear').addEventListener('click', () => {
+    if (practice) {                                              // like opening the calendar on another phone
+      store.set(wallKey(), {});
+      renderTree();
+      toast('The wall in this browser is empty. Asking the sheet for what TEST has hung…');
+      setTimeout(() => syncWall(true), 900);
+      return;
+    }
     testWall = {};
     renderTree();
     toast('The test wall is empty again.');
@@ -1251,6 +1354,7 @@
     scene = 'outside';
     member = null;
     testMode = false;
+    practice = false;
     testDay = null;
     testWall = {};
     today = calendarDay();
@@ -1269,7 +1373,7 @@
   function dateLabel(d) { return `${d} December`; }
   const ornButtons = {};
   function renderTree() {
-    if (rocker) rocker.santa(today.day === 24);
+    if (rocker) rocker.dress(faresToday());
     const wall = loadWall();
     const layer = $('ornaments');
     layer.textContent = '';
@@ -1298,7 +1402,7 @@
     if (openAll()) status = 'Every ornament opens. Nothing is saved.';
     else if (today.day === 0) status = 'The calendar opens on 1 December. Come back then!';
     else if (today.day === 25) status = `Merry Christmas! You hung ${n} of 24 pictures on your wall.`;
-    else status = `${today.preview && !testMode ? 'Preview · ' : ''}Day ${today.day}: find today's ornament on the tree.`;
+    else status = `${today.preview && !testMode ? 'Preview · ' : ''}${practice ? 'Practice run · ' : ''}Day ${today.day}: find today's ornament on the tree.`;
     $('status').textContent = status;
     renderWall();
   }
@@ -1332,7 +1436,8 @@
     img.src = item.picture;
     img.alt = item.alt;
     $('popCaption').textContent = item.caption;
-    const note = `Day ${day} · ${dateLabel(day)}${hung ? ' · on your wall' : ''}${testMode ? ' · test, nothing is saved' : ''}`;
+    const note = `Day ${day} · ${dateLabel(day)}${hung ? ' · on your wall' : ''}`
+      + `${testMode ? (practice ? ' · practice run, sent to the sheet as TEST' : ' · test, nothing is saved') : ''}`;
     const back = wallView.open ? 'Back to the wall' : 'Back to the tree';
     $('popInfo').innerHTML = `<p>${esc(note)}</p>`
       + (hung ? `<button class="primary" type="button" id="popClose">${back}</button>`
@@ -1450,7 +1555,7 @@
   function openWallView() {
     const wall = loadWall();
     const n = Object.keys(wall).length;
-    $('wallCount').textContent = testMode ? `${n} of 24 · test mode` : `${n} of 24 pictures hung`;
+    $('wallCount').textContent = testMode ? `${n} of 24 · ${practice ? 'practice run' : 'test mode'}` : `${n} of 24 pictures hung`;
     const grid = $('wallGrid');
     grid.textContent = '';
     for (let day = 1; day <= 24; day++) {
