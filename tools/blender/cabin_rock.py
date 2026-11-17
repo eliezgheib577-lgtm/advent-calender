@@ -42,7 +42,7 @@ for _a in ARGS:
     if _a.startswith("--samples="):
         SAMPLES = int(_a[10:])
 # Christmas Eve: Fares in his Santa hat and beard (python tools/blender/cabin_rock.py --santa)
-NAME = "rock-santa" if FARES.SANTA else "rock"
+NAME = "rock-santa" if FARES.SANTA else ("rock-" + FARES.ACTIVITY if FARES.ACTIVITY else "rock")
 FRAMES_DIR = os.path.join(C.BUILD_DIR, NAME)
 
 
@@ -61,7 +61,7 @@ def build():
     root = bpy.data.objects["Fares"]
     bpy.context.view_layer.update()
     rest = root.matrix_world.copy()
-    parts = [o for o in root.children_recursive if o.type in {"MESH", "CURVE"}]
+    parts = [o for o in root.children_recursive if o.type in {"MESH", "CURVE", "FONT"}]
 
     # the clickable area: Fares and his chair at rest; the crop: everything they sweep through
     hx0, hx1, hy0, hy1 = extent(scene, parts)
@@ -175,7 +175,11 @@ def main():
     with open(os.path.join(C.OUT_DIR, NAME + ".json"), "w") as f:
         json.dump(info, f)
     with open(os.path.join(C.OUT_DIR, NAME + ".js"), "w") as f:
-        f.write(("window.CABIN_ROCK_SANTA = " if FARES.SANTA else "window.CABIN_ROCK = ") + json.dumps(info) + ";\n")
+        if FARES.ACTIVITY:              # what Fares is doing, by name, in one list the page reads
+            f.write(f"(window.CABIN_ROCK_SETS = window.CABIN_ROCK_SETS || {{}})[{json.dumps(FARES.ACTIVITY)}] = "
+                    + json.dumps(info) + ";\n")
+        else:
+            f.write(("window.CABIN_ROCK_SANTA = " if FARES.SANTA else "window.CABIN_ROCK = ") + json.dumps(info) + ";\n")
     print("wrote", NAME + "-sprite.jpg", sheet.shape, "in", round(time.time() - t0), "s")
 
 

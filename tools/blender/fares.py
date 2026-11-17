@@ -838,6 +838,7 @@ def ray_hit(targets, origin, direction):
 
 BOOK_AT = np.array([0.0, -0.24, 0.665])           # the storybook he holds up (its spine's middle)
 PRESENT_AT = np.array([0.0, -0.19, 0.47])         # the bottom of the present on his lap
+MUG_AT = np.array([0.0, -0.215, 0.565])           # the bottom of the mug of cocoa he holds
 
 
 def book_matrix():
@@ -870,6 +871,12 @@ def hold_pose(s):
         back = np.array(R3 @ Vector((s * 1.0, 0, 0)))
         thumb = np.array([0, 0, 1.0])                                     # thumbs on top
         elbow = np.array([s * 0.2, 0.0, ARM_Z + 0.03])
+    elif ACTIVITY == "cocoa":
+        grip = MUG_AT + np.array([s * 0.05, 0.004, 0.045])
+        along = np.array([0.0, -1.0, 0.25])                               # fingers round the front of the mug
+        back = np.array([s * 1.0, 0, 0])
+        thumb = np.array([0, 0, 1.0])
+        elbow = np.array([s * 0.2, 0.0, ARM_Z + 0.04])
     else:
         return None
     along /= np.linalg.norm(along)
@@ -1034,35 +1041,34 @@ def activity_props(kind, body):
             obs.append(loop)
 
     elif kind == "cocoa":
-        # a mug of hot cocoa with marshmallows, on a little stool beside his chair
-        wood_m = wood()
-        st = Vector((0.36, -0.08, 0.0))
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.12, depth=0.035, location=(st.x, st.y, 0.44))
-        obs.append(bpy.context.active_object); obs[-1].data.materials.append(wood_m)
-        for a in (0.4, 2.5, 4.6):
-            p0 = (st.x + 0.075 * math.cos(a), st.y + 0.075 * math.sin(a))
-            obs.append(tube("StoolLeg", [(p0[0], p0[1], 0.43), (p0[0] * 1.0 + 0.02 * math.cos(a), p0[1] + 0.02 * math.sin(a), 0.0)],
-                            [0.013, 0.015], wood_m, sides=12, n=4))
+        # a mug of hot cocoa with marshmallows, held in both hands
         mug_mat = plain("MugRed", (0.42, 0.02, 0.025), rough=0.15, coat=1.0)
         cocoa_m = plain("Cocoa", (0.08, 0.035, 0.015), rough=0.25)
         white = plain("Marshmallow", (0.92, 0.9, 0.86), rough=0.8)
-        mz = 0.4575
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.04, depth=0.09, location=(st.x - 0.02, st.y - 0.02, mz + 0.045), vertices=48)
-        mug = bpy.context.active_object; mug.data.materials.append(mug_mat)
-        sol = mug.modifiers.new("hollow", "SOLIDIFY"); sol.thickness = 0.005
+        mx, my, mz = MUG_AT
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.042, depth=0.095, location=(mx, my, mz + 0.0475), vertices=48)
+        mug = bpy.context.active_object
+        mug.data.materials.append(mug_mat)
+        sol = mug.modifiers.new("hollow", "SOLIDIFY")
+        sol.thickness = 0.005
         obs.append(subsurf(smooth_shade(mug), 1))
-        bpy.ops.mesh.primitive_torus_add(major_radius=0.024, minor_radius=0.006, location=(st.x - 0.065, st.y - 0.02, mz + 0.05),
-                                         rotation=(math.radians(90), 0, 0))
-        obs.append(bpy.context.active_object); obs[-1].data.materials.append(mug_mat)
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.037, depth=0.004, location=(st.x - 0.02, st.y - 0.02, mz + 0.078))
-        obs.append(bpy.context.active_object); obs[-1].data.materials.append(cocoa_m)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.024, minor_radius=0.006, location=(mx + 0.002, my - 0.064, mz + 0.05),
+                                         rotation=(0, math.radians(90), 0))
+        obs.append(bpy.context.active_object)
+        obs[-1].data.materials.append(mug_mat)
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.039, depth=0.004, location=(mx, my, mz + 0.082))
+        obs.append(bpy.context.active_object)
+        obs[-1].data.materials.append(cocoa_m)
         for k in range(6):
-            a = own.uniform(0, 2 * math.pi); r = own.uniform(0, 0.022)
-            bpy.ops.mesh.primitive_cylinder_add(radius=0.0085, depth=0.012,
-                                                location=(st.x - 0.02 + r * math.cos(a), st.y - 0.02 + r * math.sin(a), mz + 0.083),
+            a = own.uniform(0, 2 * math.pi)
+            r = own.uniform(0, 0.024)
+            bpy.ops.mesh.primitive_cylinder_add(radius=0.009, depth=0.013, location=(mx + r * math.cos(a), my + r * math.sin(a), mz + 0.088),
                                                 rotation=(own.uniform(-0.4, 0.4), own.uniform(-0.4, 0.4), 0))
-            m_ = bpy.context.active_object; m_.data.materials.append(white)
-            bev = m_.modifiers.new("bevel", "BEVEL"); bev.width = 0.003; bev.segments = 2
+            m_ = bpy.context.active_object
+            m_.data.materials.append(white)
+            bev = m_.modifiers.new("bevel", "BEVEL")
+            bev.width = 0.003
+            bev.segments = 2
             obs.append(m_)
 
     elif kind == "knit":
@@ -1109,11 +1115,12 @@ def activity_props(kind, body):
             b_ = a + np.array([0.19, -0.05 * sd, 0.07])
             obs.append(tube("Needle", [a, b_], [0.0035, 0.0028], needle, sides=10, n=4))
             obs.append(ellipsoid("NeedleKnob", b_, (0.0065, 0.0065, 0.0065), needle, 12, 6))
-        ball_c = np.array([-0.32, -0.42, 0.055])
+        hb = ray_hit([body["pants"]] + body["legs"], M_UP @ Vector((0.085, -0.27, 0.5)), (0, 0, -1))
+        ball_c = hb[0] + np.array([0, 0, 0.05])                               # sitting on his knee
         ball = ellipsoid("YarnBall", ball_c, (0.055, 0.055, 0.052), yarn("YarnRed", (0.42, 0.02, 0.02)), 40, 20)
         obs.append(subsurf(wrinkles(wrinkles(ball, 0.006, 0.008, 3), 0.002, 0.003), 1))
-        obs.append(curves("YarnStrand", [[ball_c + np.array([0.03, 0.03, 0.04]), ball_c + np.array([0.12, 0.12, 0.05]),
-                                          (ball_c + start) / 2 + np.array([0.05, 0, -0.12]), start]],
+        obs.append(curves("YarnStrand", [[ball_c + np.array([-0.03, 0.02, 0.03]), (ball_c + start) / 2 + np.array([0, 0, 0.04]),
+                                          start]],
                           0.0018, yarn("YarnRed", (0.42, 0.02, 0.02)), res=12))
     bpy.context.view_layer.update()        # (so their places are set before they're attached to him)
     return obs
