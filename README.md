@@ -34,6 +34,15 @@ Open `site/index.html`. This is what students see:
    His Santa frames are rendered with `python tools/blender/cabin_rock.py --santa`
    (`rock-santa-*`), and `python3 tools/make_window_mask.py` makes the glass mask after a new
    room render. In test mode, pick 24 December to see it.
+9. **What Fares is doing.** On the other days he takes turns: reading a storybook (1, 6, 11, 16,
+   21 December), holding a mug of coffee with a rakweh on a little stool beside his chair (2, 7,
+   12, 17, 22), asleep under a red and black blanket with Zzz above him (3, 8, 13, 18, 23),
+   holding a present (4, 9, 14, 19), and plain in his chair (5, 10, 15, 20). Clicking him still
+   makes him rock. Each is a set of rocking frames rendered with
+   `python tools/blender/cabin_rock.py --activity=read` (`cocoa`, `sleep`, `present`), written
+   as `rock-<activity>-*`; the stool and the rakweh stay put on the floor while he rocks. His
+   Zzz aren't in the frames: the page draws them floating up from his head (`zzz` in
+   `rock-sleep.json`) while he's still, and they go while he rocks.
 
 ### Member IDs (the shared Excel sheet)
 
@@ -100,7 +109,14 @@ the door. Nothing is saved or sent. A small panel at the top right lets you pret
 date from 30 November to 25 December, so you can see exactly what students see that day (only
 that day's ornament opens), or choose "any day" to open every ornament. *Empty the wall*
 clears the test wall, and *Exit the Cabin* leaves test mode. Adding `#day-7` to the page
-address starts the test on that day. Anyone who reads `config.js` can see the code, so it only
+address starts the test on that day.
+
+**Practice run:** tick *Practice run* on the test panel and test mode behaves like a member
+on the day it pretends to be: only that day's ornament opens, the pictures stay on the wall from
+day to day and after a reload (in this browser), and each one goes to the progress sheet under
+the ID `TEST` (name "Test run"), so you can watch the Log and Progress tabs fill in. *Empty the
+wall in this browser* clears it here and then asks the sheet, the way a member's wall comes back
+on another phone. *Remove TEST from the sheet* takes every TEST row out of the sheet again. Anyone who reads `config.js` can see the code, so it only
 guards the surprise; set it to `""` to switch test mode off.
 
 **Trying a single day without test mode:** set `previewDay` in `config.js` (and back to `null`

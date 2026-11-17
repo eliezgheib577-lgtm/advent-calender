@@ -89,7 +89,14 @@ def build():
     scene.cycles.samples = SAMPLES
     crop = {"x0": round(float(x0), 5), "x1": round(float(x1), 5), "y0": round(float(y0), 5), "y1": round(float(y1), 5)}
     hotspot = {"x0": round(float(hx0), 5), "x1": round(float(hx1), 5), "y0": round(float(hy0), 5), "y1": round(float(hy1), 5)}
-    return scene, root, rest, crop, hotspot, still, still_box
+    # where the website draws his Zzz while he sleeps (fractions of the room image, y from the top), and how big
+    zzz = None
+    anchor = next((o for o in root.children_recursive if o.name.startswith("ZzzAnchor")), None)
+    if anchor:
+        p = world_to_camera_view(scene, scene.camera, anchor.matrix_world.translation)
+        q = world_to_camera_view(scene, scene.camera, anchor.matrix_world.translation + Vector((0, 0, 0.1)))
+        zzz = {"x": round(p.x, 5), "y": round(1 - p.y, 5), "size": round(abs(q.y - p.y), 5)}
+    return scene, root, rest, crop, hotspot, still, still_box, zzz
 
 
 def read_linear(path):
@@ -123,7 +130,7 @@ def dilate(m, r):
 def main():
     os.makedirs(FRAMES_DIR, exist_ok=True)
     t0 = time.time()
-    scene, root, rest, crop, hotspot, still, still_box = build()
+    scene, root, rest, crop, hotspot, still, still_box, zzz = build()
     print(f"scene built in {time.time() - t0:.0f}s, crop {crop}", flush=True)
     angles = np.linspace(-MAX_ANGLE, MAX_ANGLE, STEPS)
     frames = []
@@ -187,6 +194,8 @@ def main():
             "note": "frames run from leaning furthest back to furthest forward; the middle one is at rest, as in "
                     "the room image. crop is where they go and hotspot is Fares and his chair at rest (fractions "
                     "of the room image, y from the top). rock-mask.png says where the frames replace the room."}
+    if zzz:
+        info["zzz"] = zzz               # (x, y: where his Zzz start; size: how tall 10 cm is there)
     with open(os.path.join(C.OUT_DIR, NAME + ".json"), "w") as f:
         json.dump(info, f)
     with open(os.path.join(C.OUT_DIR, NAME + ".js"), "w") as f:

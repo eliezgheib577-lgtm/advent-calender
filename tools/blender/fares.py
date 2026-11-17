@@ -1056,26 +1056,32 @@ def activity_props(kind, body):
         sol = bl.modifiers.new("thick", "SOLIDIFY")
         sol.thickness = 0.006
         obs.append(subsurf(smooth_shade(bl), 1))
-        # Zzz, floating up from him
-        fpath = os.path.join(os.path.dirname(os.path.dirname(HERE)), "build", "fonts", "AlegreyaSC-Bold.ttf")
-        if not os.path.exists(fpath):
-            fpath = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        cream = plain("Zzz", (0.95, 0.93, 0.88), rough=0.5)
-        cream.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1.0, 0.95, 0.85, 1)
-        cream.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 0.6
+        # where his Zzz come from: the website draws them floating up from here while he sleeps (they're not in
+        # the rocking frames, so they don't swing with him); --zzz puts letters in the render too, for a still
         top = np.array(M_HEAD @ Vector((0, HC[1], 0.72)))
-        for k, (dx, dz, size) in enumerate(((0.1, 0.02, 0.05), (0.16, 0.09, 0.065), (0.23, 0.17, 0.085))):
-            cu = bpy.data.curves.new(f"Zzz{k}", "FONT")
-            cu.body = "Z"
-            cu.align_x, cu.align_y = "CENTER", "CENTER"
-            cu.size = size
-            cu.extrude = 0.004
-            cu.font = bpy.data.fonts.load(fpath, check_existing=True)
-            cu.materials.append(cream)
-            z = link(bpy.data.objects.new(f"Zzz{k}", cu))
-            z.location = top + np.array([dx, -0.02, dz])
-            z.rotation_euler = (math.radians(90), math.radians(-12 + 10 * k), 0)
-            obs.append(z)
+        anchor = link(bpy.data.objects.new("ZzzAnchor", None))
+        anchor.empty_display_size = 0.03
+        anchor.matrix_world = Matrix.Translation(Vector(top + np.array([0.06, -0.02, 0.0])))
+        obs.append(anchor)
+        if "--zzz" in __import__("sys").argv:
+            fpath = os.path.join(os.path.dirname(os.path.dirname(HERE)), "build", "fonts", "AlegreyaSC-Bold.ttf")
+            if not os.path.exists(fpath):
+                fpath = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            cream = plain("Zzz", (0.95, 0.93, 0.88), rough=0.5)
+            cream.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1.0, 0.95, 0.85, 1)
+            cream.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 0.6
+            for k, (dx, dz, size) in enumerate(((0.1, 0.02, 0.05), (0.16, 0.09, 0.065), (0.23, 0.17, 0.085))):
+                cu = bpy.data.curves.new(f"Zzz{k}", "FONT")
+                cu.body = "Z"
+                cu.align_x, cu.align_y = "CENTER", "CENTER"
+                cu.size = size
+                cu.extrude = 0.004
+                cu.font = bpy.data.fonts.load(fpath, check_existing=True)
+                cu.materials.append(cream)
+                z = link(bpy.data.objects.new(f"Zzz{k}", cu))
+                z.location = top + np.array([dx, -0.02, dz])
+                z.rotation_euler = (math.radians(90), math.radians(-12 + 10 * k), 0)
+                obs.append(z)
 
     elif kind == "read":
         # a storybook held up in both hands, open towards him
