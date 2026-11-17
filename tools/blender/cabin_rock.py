@@ -62,9 +62,12 @@ def build():
     bpy.context.view_layer.update()
     rest = root.matrix_world.copy()
     parts = [o for o in root.children_recursive if o.type in {"MESH", "CURVE", "FONT"}]
+    # things beside him that stay put when he rocks (e.g. the stool with the coffee), where they are at rest
+    still = {o: o.matrix_world.copy() for o in parts if o.get("still")}
+    still_box = extent(scene, list(still)) if still else None
 
     # the clickable area: Fares and his chair at rest; the crop: everything they sweep through
-    hx0, hx1, hy0, hy1 = extent(scene, parts)
+    hx0, hx1, hy0, hy1 = extent(scene, [o for o in parts if o not in still])
     boxes = [(hx0, hx1, hy0, hy1)]
     for a in (-MAX_ANGLE, MAX_ANGLE):
         root.matrix_world = rest @ FARES.rock_matrix(math.radians(a))
@@ -86,7 +89,7 @@ def build():
     scene.cycles.samples = SAMPLES
     crop = {"x0": round(float(x0), 5), "x1": round(float(x1), 5), "y0": round(float(y0), 5), "y1": round(float(y1), 5)}
     hotspot = {"x0": round(float(hx0), 5), "x1": round(float(hx1), 5), "y0": round(float(hy0), 5), "y1": round(float(hy1), 5)}
-    return scene, root, rest, crop, hotspot
+    return scene, root, rest, crop, hotspot, still, still_box
 
 
 def read_linear(path):
@@ -120,13 +123,17 @@ def dilate(m, r):
 def main():
     os.makedirs(FRAMES_DIR, exist_ok=True)
     t0 = time.time()
-    scene, root, rest, crop, hotspot = build()
+    scene, root, rest, crop, hotspot, still, still_box = build()
     print(f"scene built in {time.time() - t0:.0f}s, crop {crop}", flush=True)
     angles = np.linspace(-MAX_ANGLE, MAX_ANGLE, STEPS)
     frames = []
     t0 = time.time()
     for i, a in enumerate(angles):
         root.matrix_world = rest @ FARES.rock_matrix(math.radians(a))
+        if still:
+            bpy.context.view_layer.update()
+            for ob, m0 in still.items():                    # (they stay where they were)
+                ob.matrix_world = m0
         exr = os.path.join(FRAMES_DIR, f"r{i:02d}.exr")
         settings = scene.render.image_settings          # (saving the tone-mapped frame changes these)
         settings.media_type = "IMAGE"
@@ -145,7 +152,15 @@ def main():
     diff = np.max([np.abs(f - still).max(axis=2) for f in frames], axis=0)
     diff = C.blur(diff[..., None], 1.5)[..., 0]
     k = max(1, round(frames[0].shape[1] / 60))
-    m = dilate((diff > 0.035).astype(np.float32), 3 * k)
+    moved = (diff > 0.035).astype(np.float32)
+    if still_box:                                           # and wherever the things that stay put are
+        h0, w0 = moved.shape
+        bx0 = int((still_box[0] - crop["x0"]) / (crop["x1"] - crop["x0"]) * w0)
+        bx1 = int(math.ceil((still_box[1] - crop["x0"]) / (crop["x1"] - crop["x0"]) * w0))
+        by0 = int((still_box[2] - crop["y0"]) / (crop["y1"] - crop["y0"]) * h0)
+        by1 = int(math.ceil((still_box[3] - crop["y0"]) / (crop["y1"] - crop["y0"]) * h0))
+        moved[max(0, by0):min(h0, by1), max(0, bx0):min(w0, bx1)] = 1.0
+    m = dilate(moved, 3 * k)
     m = np.clip(C.blur(m[..., None], 2.0 * k)[..., 0] * 1.4, 0, 1)
     h, w = m.shape
     edge = np.minimum.reduce([np.arange(w)[None, :].repeat(h, 0), np.arange(w)[::-1][None, :].repeat(h, 0),

@@ -1070,6 +1070,60 @@ def activity_props(kind, body):
             bev.width = 0.003
             bev.segments = 2
             obs.append(m_)
+        # Lebanese coffee: a rakweh on a little wooden stool beside his chair (marked "still": they stay put
+        # on the floor when he rocks)
+        still = []
+        wood_m = wood()
+        sx, sy = 0.40, -0.06
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.12, depth=0.035, location=(sx, sy, 0.44), vertices=48)
+        seat_ = bpy.context.active_object
+        seat_.name = "StoolSeat"
+        seat_.data.materials.append(wood_m)
+        bev = seat_.modifiers.new("bevel", "BEVEL")
+        bev.width = 0.006
+        bev.segments = 3
+        still.append(seat_)
+        for a in (0.4, 2.5, 4.6):
+            p0 = (sx + 0.075 * math.cos(a), sy + 0.075 * math.sin(a))
+            still.append(tube("StoolLeg", [(p0[0], p0[1], 0.43), (p0[0] + 0.022 * math.cos(a), p0[1] + 0.022 * math.sin(a), 0.0)],
+                              [0.013, 0.016], wood_m, sides=12, n=4))
+        steel = plain("RakwehSteel", (0.82, 0.8, 0.78), rough=0.2, metal=1.0)
+        top = 0.4575
+        cx_, cy_ = sx + 0.015, sy - 0.02
+        k_ = 1.45                                                          # (a big pot: it has to read from across the room)
+        prof = [(z * k_, r * k_) for z, r in ((0.0, 0.03), (0.006, 0.036), (0.022, 0.041), (0.038, 0.039), (0.052, 0.033),
+                                              (0.061, 0.031), (0.067, 0.033), (0.072, 0.036))]
+        rk, _ = lathe("Rakweh", [(top + z, r, r, 0.0) for z, r in prof], steel, seg=64)
+        co = coords(rk)
+        spout = math.atan2(-0.45, -1.0)                                    # its lip points at Fares, the handle away
+        ang = np.arctan2(co[:, 1], co[:, 0])
+        near = np.clip(np.cos(ang - spout), 0, 1) ** 8
+        hi = np.clip((co[:, 2] - (top + 0.058 * k_)) / (0.014 * k_), 0, 1)
+        radial = co[:, :2] / np.linalg.norm(co[:, :2], axis=1, keepdims=True)
+        co[:, :2] += radial * (0.018 * near * hi)[:, None]
+        co[:, 2] += 0.006 * near * hi
+        rk.data.vertices.foreach_set("co", co.astype(np.float32).ravel())
+        rk.data.update()
+        sol = rk.modifiers.new("wall", "SOLIDIFY")
+        sol.thickness = 0.0025
+        rk = subsurf(smooth_shade(rk), 1)
+        rk.matrix_world = Matrix.Translation((cx_, cy_, 0.0))
+        still.append(rk)
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.03 * k_, depth=0.003, location=(cx_, cy_, top + 0.0015), vertices=48)
+        still.append(bpy.context.active_object)
+        still[-1].data.materials.append(steel)
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.032 * k_, depth=0.002, location=(cx_, cy_, top + 0.054 * k_), vertices=48)
+        still.append(bpy.context.active_object)
+        still[-1].data.materials.append(plain("CoffeeCrema", (0.2, 0.11, 0.05), rough=0.4))
+        back_dir = np.array([math.cos(spout + math.pi), math.sin(spout + math.pi), 0.0])
+        h0 = np.array([cx_, cy_, top + 0.064 * k_]) + back_dir * 0.032 * k_
+        handle = tube("RakwehHandle", [h0, h0 + back_dir * 0.08 + np.array([0, 0, 0.04]),
+                                       h0 + back_dir * 0.18 + np.array([0, 0, 0.095])],
+                      [0.008, 0.0075, 0.0085], steel, sides=12, n=16, squash=0.35)
+        still.append(handle)
+        for ob in still:
+            ob["still"] = True
+        obs += still
 
     elif kind == "knit":
         # a half-knitted scarf in red and white stripes across his lap, needles in it, a ball of yarn below
