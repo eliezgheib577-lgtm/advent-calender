@@ -839,6 +839,17 @@ def ray_hit(targets, origin, direction):
 BOOK_AT = np.array([0.0, -0.24, 0.665])           # the storybook he holds up (its spine's middle)
 PRESENT_AT = np.array([0.0, -0.19, 0.47])         # the bottom of the present on his lap
 MUG_AT = np.array([0.0, -0.215, 0.565])           # the bottom of the mug of cocoa he holds
+KNIT_GRIP = np.array([0.085, -0.235, 0.585])      # where his hand on side +1 holds its knitting needle (mirrored for -1)
+KNIT_TIP = np.array([-0.045, -0.315, 0.64])       # and where that needle's tip is: the two cross in front of him
+
+
+def knit_needle(s):
+    """The knitting needle in his hand on side s: (knob end, where he holds it, tip, unit direction to the tip)."""
+    off = np.array([0.0, 0.014, 0.004]) if s < 0 else np.zeros(3)      # (one passes just behind the other)
+    flip = np.array([s, 1.0, 1.0])
+    g, t = KNIT_GRIP * flip + off, KNIT_TIP * flip + off
+    d = (t - g) / np.linalg.norm(t - g)
+    return g - d * 0.06, g, t, d
 
 
 def book_matrix():
@@ -871,6 +882,13 @@ def hold_pose(s):
         back = np.array(R3 @ Vector((s * 1.0, 0, 0)))
         thumb = np.array([0, 0, 1.0])                                     # thumbs on top
         elbow = np.array([s * 0.2, 0.0, ARM_Z + 0.03])
+    elif ACTIVITY == "knit":
+        _, grip, _, d = knit_needle(s)
+        elbow = np.array([s * 0.2, 0.0, ARM_Z + 0.03])
+        along = grip - elbow + np.array([0.0, 0.0, -0.04])               # his hands on top of the needles, palms down,
+        back = np.array([s * 0.15, 0.0, 1.0])                             # thumbs pointing in towards each other
+        thumb = np.array([-s * 1.0, 0.0, 0.0])
+        grip = grip + np.array([0.0, 0.0, 0.011])                         # (the needle under his palm)
     elif ACTIVITY == "cocoa":
         grip = MUG_AT + np.array([s * 0.05, 0.004, 0.045])
         along = np.array([0.0, -1.0, 0.25])                               # fingers round the front of the mug
@@ -886,6 +904,75 @@ def hold_pose(s):
     thumb = t if t @ thumb > 0 else -t
     wrist = grip - along * 0.04 + back * 0.004
     return elbow, wrist, along, back, thumb
+
+
+def knit_tile(n=128):
+    """One knitted stitch (stockinette: a V of two slanted legs), as a height map that tiles."""
+    img = bpy.data.images.get("KnitTile")
+    if img:
+        return img
+    y, x = (np.mgrid[0:n, 0:n] + 0.5) / n                   # (image rows run bottom to top)
+    h = np.zeros((n, n))
+    for ox in (-1, 0, 1):
+        for oy in (-1, 0, 1):
+            for side in (-1, 1):
+                ax = np.array([side * 0.42, 1.0]) / np.hypot(0.42, 1.0)
+                dx, dy = x - (0.5 + side * 0.21 + ox), y - (0.55 + oy)
+                a, b = dx * ax[0] + dy * ax[1], -dx * ax[1] + dy * ax[0]
+                e = (a / 0.6) ** 2 + (b / 0.2) ** 2
+                ply = 0.88 + 0.12 * np.cos(a * 38 + b * 20)            # (the twist of the plies)
+                h = np.maximum(h, np.sqrt(np.clip(1 - e, 0, 1)) * ply)
+    img = bpy.data.images.new("KnitTile", n, n, alpha=False, float_buffer=True)
+    img.colorspace_settings.name = "Non-Color"
+    px = np.ones((n, n, 4), np.float32)
+    px[..., :3] = h[..., None]
+    img.pixels.foreach_set(px.ravel())
+    img.pack()
+    return img
+
+
+def knit_material(name, colors, cols, rows, band):
+    """Knitted fabric on the mesh's UVs: cols x rows stitches, stripes of band rows across it (u: across, v: up)."""
+    if _cached(name):
+        return _cached(name)
+    m, nt, out = _new_material(name)
+    uv = nt.nodes.new("ShaderNodeTexCoord").outputs["UV"]
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (cols, rows, 1.0)
+    nt.links.new(uv, mp.inputs["Vector"])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = knit_tile()
+    tex.interpolation = "Cubic"
+    nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
+    h = tex.outputs["Color"]
+    # the stripes, a whole number of rows each
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ"); nt.links.new(uv, sep.inputs[0])
+    row = nt.nodes.new("ShaderNodeMath"); row.operation = "MULTIPLY"; row.inputs[1].default_value = rows
+    nt.links.new(sep.outputs["Y"], row.inputs[0])
+    fl = nt.nodes.new("ShaderNodeMath"); fl.operation = "FLOOR"; nt.links.new(row.outputs[0], fl.inputs[0])
+    per = nt.nodes.new("ShaderNodeMath"); per.operation = "DIVIDE"; per.inputs[1].default_value = band
+    nt.links.new(fl.outputs[0], per.inputs[0])
+    pp = nt.nodes.new("ShaderNodeMath"); pp.operation = "PINGPONG"; pp.inputs[1].default_value = 1.0
+    nt.links.new(per.outputs[0], pp.inputs[0])
+    ramp = nt.nodes.new("ShaderNodeValToRGB"); ramp.color_ramp.interpolation = "CONSTANT"
+    ramp.color_ramp.elements[0].color = (*colors[0], 1)
+    ramp.color_ramp.elements[1].position = 0.7
+    ramp.color_ramp.elements[1].color = (*colors[1], 1)
+    nt.links.new(pp.outputs[0], ramp.inputs["Fac"])
+    # darker in the gaps between the stitches
+    shade = nt.nodes.new("ShaderNodeValToRGB")
+    shade.color_ramp.elements[0].color = (0.28, 0.28, 0.28, 1)
+    shade.color_ramp.elements[1].position = 0.8
+    nt.links.new(h, shade.inputs["Fac"])
+    mul = nt.nodes.new("ShaderNodeVectorMath"); mul.operation = "MULTIPLY"
+    nt.links.new(ramp.outputs["Color"], mul.inputs[0]); nt.links.new(shade.outputs["Color"], mul.inputs[1])
+    b = principled(nt, colors[0], rough=0.9)
+    b.inputs["Sheen Weight"].default_value = 0.7
+    b.inputs["Sheen Roughness"].default_value = 0.45
+    nt.links.new(mul.outputs[0], b.inputs["Base Color"])
+    nt.links.new(_bump(nt, h, 1.0, 0.0012), b.inputs["Normal"])
+    nt.links.new(b.outputs[0], out.inputs["Surface"])
+    return m
 
 
 def plaid_material(name="BlanketPlaid"):
@@ -1126,56 +1213,93 @@ def activity_props(kind, body):
         obs += still
 
     elif kind == "knit":
-        # a half-knitted scarf in red and white stripes across his lap, needles in it, a ball of yarn below
-        stripes = _cached("ScarfKnit")
-        if not stripes:
-            stripes, nt, out = _new_material("ScarfKnit")
-            gen = nt.nodes.new("ShaderNodeTexCoord").outputs["Generated"]
-            sep = nt.nodes.new("ShaderNodeSeparateXYZ"); nt.links.new(gen, sep.inputs[0])
-            along = nt.nodes.new("ShaderNodeMath"); along.operation = "SUBTRACT"          # across his lap, then down
-            nt.links.new(sep.outputs["X"], along.inputs[0]); nt.links.new(sep.outputs["Z"], along.inputs[1])
-            mul = nt.nodes.new("ShaderNodeMath"); mul.operation = "MULTIPLY"; mul.inputs[1].default_value = 6.0
-            nt.links.new(along.outputs[0], mul.inputs[0])
-            pp = nt.nodes.new("ShaderNodeMath"); pp.operation = "PINGPONG"; pp.inputs[1].default_value = 1.0
-            nt.links.new(mul.outputs[0], pp.inputs[0])
-            ramp = nt.nodes.new("ShaderNodeValToRGB"); ramp.color_ramp.interpolation = "CONSTANT"
-            ramp.color_ramp.elements[0].color = (0.42, 0.02, 0.02, 1)
-            ramp.color_ramp.elements[1].position = 0.5
-            ramp.color_ramp.elements[1].color = (0.82, 0.8, 0.76, 1)
-            nt.links.new(pp.outputs[0], ramp.inputs["Fac"])
-            b = principled(nt, (0.4, 0.02, 0.02), rough=0.95)
-            b.inputs["Sheen Weight"].default_value = 0.5
-            nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
-            knit = _noise(nt, nt.nodes.new("ShaderNodeTexCoord").outputs["Object"], 600.0, 3.0, 0.5)
-            nt.links.new(_bump(nt, knit.outputs["Fac"], 0.35, 0.0006), b.inputs["Normal"])
-            nt.links.new(b.outputs[0], out.inputs["Surface"])
-        # the scarf: a strip laid across his lap and hanging down between his knees
-        pts = []
-        for t in np.linspace(0, 1, 16):
-            x = -0.13 + 0.17 * t
-            ylocal = -0.12 - 0.17 * t
-            h = ray_hit([body["pants"]] + body["legs"], M_UP @ Vector((x, ylocal, 0.45)), (0, 0, -1))
-            if h:
-                pts.append(h[0] + np.array([0, 0, 0.012]))
-        tip = pts[-1]
-        for k in range(1, 6):
-            pts.append(tip + np.array([0.004 * k, -0.012 * k, -0.035 * k]))
-        sc = tube("Scarf", pts, [0.07] * len(pts), stripes, sides=16, n=60, squash=0.16)
-        obs.append(subsurf(smooth_shade(sc), 1))
-        needle = plain("NeedleWood", (0.35, 0.2, 0.08), rough=0.4)
-        start = pts[0]
-        for sd in (-1, 1):
-            a = start + np.array([-0.02, 0.02 * sd, 0.012])
-            b_ = a + np.array([0.19, -0.05 * sd, 0.07])
-            obs.append(tube("Needle", [a, b_], [0.0035, 0.0028], needle, sides=10, n=4))
-            obs.append(ellipsoid("NeedleKnob", b_, (0.0065, 0.0065, 0.0065), needle, 12, 6))
-        hb = ray_hit([body["pants"]] + body["legs"], M_UP @ Vector((0.085, -0.27, 0.5)), (0, 0, -1))
-        ball_c = hb[0] + np.array([0, 0, 0.05])                               # sitting on his knee
-        ball = ellipsoid("YarnBall", ball_c, (0.055, 0.055, 0.052), yarn("YarnRed", (0.42, 0.02, 0.02)), 40, 20)
-        obs.append(subsurf(wrinkles(wrinkles(ball, 0.006, 0.008, 3), 0.002, 0.003), 1))
-        obs.append(curves("YarnStrand", [[ball_c + np.array([-0.03, 0.02, 0.03]), (ball_c + start) / 2 + np.array([0, 0, 0.04]),
-                                          start]],
-                          0.0018, yarn("YarnRed", (0.42, 0.02, 0.02)), res=12))
+        # knitting a striped scarf: a needle in each hand, their tips crossed in front of him; the scarf hangs from
+        # the needle in his left hand by a row of stitches and lies down over his lap; the yarn runs from the other
+        # needle to a ball on his knee
+        red, cream = (0.42, 0.02, 0.025), (0.86, 0.82, 0.74)
+        wool_r, wool_c = yarn("KnitRed", red), yarn("KnitCream", cream)
+        needle_m = plain("NeedleWood", (0.55, 0.36, 0.16), rough=0.35)
+        for sd in (1, -1):
+            knob, _, tip, d = knit_needle(sd)
+            obs.append(tube("Needle", [knob, tip - d * 0.018, tip], [0.0038, 0.0036, 0.0012], needle_m, sides=12, n=8))
+            obs.append(ellipsoid("NeedleKnob", knob, (0.0075, 0.0075, 0.0075), needle_m, 14, 7))
+        _, g, tip, d = knit_needle(1)
+        length = np.linalg.norm(tip - g)
+        t0, t1 = 0.3, 0.88                                                    # the stitches on it
+        cols, rows, drop, long_ = 13, 38, 0.045, 0.29
+        # the knitted piece: dropped from the needle, then lying forward over his lap, and let settle
+        bpy.ops.mesh.primitive_grid_add(x_subdivisions=26, y_subdivisions=60, size=1, calc_uvs=True)
+        kn = bpy.context.active_object
+        kn.name = "Knitting"
+        co = coords(kn)
+        u, v = co[:, 0] + 0.5, co[:, 1] + 0.5                                # v: 1 at the needle, 0 at the cast-on edge
+        top = g[None, :] + d[None, :] * (length * (t0 + (t1 - t0) * u))[:, None] + np.array([0, 0, -0.008])
+        sd_ = (1 - v) * long_
+        fwd = np.array([0.3, -1.0, -0.25]) / np.linalg.norm([0.3, 1.0, 0.25])      # over his left thigh
+        hang = np.where(sd_[:, None] < drop, np.stack([0 * sd_, -0.15 * sd_, -sd_], 1),
+                        np.array([0.0, -0.15 * drop, -drop]) + (sd_ - drop)[:, None] * fwd)
+        world = top + hang
+        legs = [body["pants"]] + body["legs"]
+        for i, p_ in enumerate(world):                                        # (starting clear of his legs)
+            h_ = ray_hit(legs, (p_[0], p_[1], 1.2), (0, 0, -1))
+            if h_ and p_[2] < h_[0][2] + 0.015:
+                world[i, 2] = h_[0][2] + 0.015
+        kn.data.vertices.foreach_set("co", world.astype(np.float32).ravel())
+        kn.data.update()
+        vgroup(kn, "pin", (v > 0.985).astype(float))
+        col = sim_collection("SimKnit", clothes + [body["seat"]], thickness=0.004, friction=10.0)
+        cloth(kn, pin="pin", colliders=col, tension=5.0, bending=0.15, mass=0.25, quality=10, distance=0.003)
+        simulate([kn], 80)
+        release(col)
+        kn.data.materials.append(knit_material("ScarfKnit", (red, cream), cols, rows, 8))
+        sol = kn.modifiers.new("thick", "SOLIDIFY")
+        sol.thickness = 0.005
+        obs.append(subsurf(smooth_shade(kn), 1))
+        # the row of stitches round the needle (and the few just knitted onto the other one)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.0064, minor_radius=0.0024, major_segments=18, minor_segments=8)
+        loop = bpy.context.active_object
+        loop.name = "Stitch"
+        loop.data.materials.append(wool_r)
+        z_ = Vector((0, 0, 1))
+        def stitch(at, axis, k):
+            ob = loop.copy()
+            link(ob)
+            rot = z_.rotation_difference(Vector(axis)) @ Matrix.Rotation(0.12 * (-1) ** k, 4, "X").to_quaternion()
+            ob.matrix_world = Matrix.LocRotScale(Vector(at) + Vector((0, 0, -0.003)), rot, None)
+            obs.append(ob)
+        for k in range(cols):
+            stitch(g + d * length * (t0 + (t1 - t0) * (k + 0.5) / cols), d, k)
+        _, g2, tip2, d2 = knit_needle(-1)
+        l2 = np.linalg.norm(tip2 - g2)
+        for k in range(3):
+            stitch(g2 + d2 * l2 * (0.6 + 0.055 * k), d2, k)
+        bpy.data.objects.remove(loop)
+        # the balls of yarn on his right knee, and the yarn from the needle to the red one
+        hb = ray_hit(legs, M_UP @ Vector((-0.1, -0.36, 0.5)), (0, 0, -1))
+        rest_ = hb[0] if hb else lap + np.array([-0.1, -0.15, 0.0])
+        balls = []
+        for name, mat, off, r_ in (("YarnBall", wool_r, (0.0, 0.0), 0.042), ("YarnBall", wool_c, (-0.045, 0.05), 0.034)):
+            hb2 = ray_hit(legs, (rest_[0] + off[0], rest_[1] + off[1], 1.2), (0, 0, -1))
+            c_ = (hb2[0] if hb2 else rest_ + np.array([off[0], off[1], 0])) + np.array([0, 0, r_ * 0.85])
+            ball = ellipsoid(name, c_, (r_, r_, r_ * 0.94), mat, 40, 20)
+            obs.append(subsurf(wrinkles(ball, 0.002, 0.003, 2), 1))
+            wound = []                                                        # the yarn wound round it
+            for _ in range(26):
+                ax_ = own.normal(size=3); ax_ /= np.linalg.norm(ax_)
+                e1 = np.cross(ax_, [0.3, 0.5, 0.8]); e1 /= np.linalg.norm(e1)
+                e2 = np.cross(ax_, e1)
+                ang = np.linspace(0, 2 * np.pi, 49)
+                ring = c_ + r_ * 1.02 * (np.cos(ang)[:, None] * e1 + np.sin(ang)[:, None] * e2) * np.array([1, 1, 0.94])
+                wound.append(list(ring))
+            obs.append(curves(name + "Wound", wound, 0.0021, mat, res=3))
+            balls.append((c_, r_))
+        (bc, br) = balls[0]
+        a_ = g2 + d2 * l2 * 0.6 + np.array([0, 0, -0.006])
+        b_ = bc + np.array([0.012, 0.01, br * 0.9])
+        ctrl = (a_ + b_) / 2 + np.array([0.0, -0.015, -0.05])                 # (hanging in a soft curve)
+        tt = np.linspace(0, 1, 24)[:, None]
+        path = (1 - tt) ** 2 * a_ + 2 * (1 - tt) * tt * ctrl + tt ** 2 * b_
+        obs.append(curves("KnitYarn", [list(path)], 0.0017, wool_r, res=6))
     bpy.context.view_layer.update()        # (so their places are set before they're attached to him)
     return obs
 
