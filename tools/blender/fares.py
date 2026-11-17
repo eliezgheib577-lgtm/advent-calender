@@ -48,6 +48,12 @@ PIVOT = Vector((0.0, 0.03, 0.07))
 NECK = Vector((0.0, 0.03, 0.455))
 TILT = math.radians(9)           # head tips forward a little, so he looks out into the room
 ROLL = math.radians(4)
+# Fares doing something in his chair (previews: python tools/blender/fares.py front --activity=sleep)
+ACTIVITY = next((a.split("=", 1)[1] for a in __import__("sys").argv if a.startswith("--activity=")), "")
+if ACTIVITY == "sleep":
+    TILT, ROLL = math.radians(16), math.radians(15)        # dozing off, his head tipped to one side
+elif ACTIVITY == "read":
+    TILT = math.radians(23)                                # looking down at his book
 HC = np.array([0.0, 0.02, 0.578])  # head centre and radii, head-local (upright)
 HR = np.array([0.115, 0.104, 0.122])
 
@@ -809,6 +815,294 @@ def chest_beard(targets):
     return curves("SantaBeardLong", loops, 0.0025, white)
 
 
+def ray_hit(targets, origin, direction):
+    """The nearest point where a ray meets any of the targets: (point, normal facing the ray), or None."""
+    dg = bpy.context.evaluated_depsgraph_get()
+    origin, direction = np.asarray(origin, float), np.asarray(direction, float)
+    direction = direction / np.linalg.norm(direction)
+    best = None
+    for ob in targets:
+        inv = ob.matrix_world.inverted()
+        ok, loc, nrm, _ = ob.ray_cast(inv @ Vector(origin), (inv.to_3x3() @ Vector(direction)).normalized(),
+                                      distance=3.0, depsgraph=dg)
+        if ok:
+            w = np.array(ob.matrix_world @ loc)
+            d = np.linalg.norm(w - origin)
+            if best is None or d < best[0]:
+                n = np.array(ob.matrix_world.to_3x3().inverted().transposed() @ nrm)
+                n /= np.linalg.norm(n) + 1e-9
+                best = (d, w, n if n @ direction < 0 else -n)
+    return None if best is None else (best[1], best[2])
+
+
+def plaid_material(name="BlanketPlaid"):
+    """Brushed flannel in a red and black buffalo check, with a soft nap."""
+    if _cached(name):
+        return _cached(name)
+    m, nt, out = _new_material(name)
+    uv = nt.nodes.new("ShaderNodeTexCoord").outputs["UV"]
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(uv, sep.inputs[0])
+    checks = []
+    for axis in ("X", "Y"):
+        mul = nt.nodes.new("ShaderNodeMath"); mul.operation = "MULTIPLY"; mul.inputs[1].default_value = 7.0
+        nt.links.new(sep.outputs[axis], mul.inputs[0])
+        mod = nt.nodes.new("ShaderNodeMath"); mod.operation = "PINGPONG"; mod.inputs[1].default_value = 1.0
+        nt.links.new(mul.outputs[0], mod.inputs[0])
+        stp = nt.nodes.new("ShaderNodeMath"); stp.operation = "GREATER_THAN"; stp.inputs[1].default_value = 0.5
+        nt.links.new(mod.outputs[0], stp.inputs[0])
+        checks.append(stp)
+    both = nt.nodes.new("ShaderNodeMath"); both.operation = "ADD"
+    nt.links.new(checks[0].outputs[0], both.inputs[0]); nt.links.new(checks[1].outputs[0], both.inputs[1])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.interpolation = "CONSTANT"
+    ramp.color_ramp.elements[0].position = 0.0
+    ramp.color_ramp.elements[0].color = (0.30, 0.012, 0.014, 1)          # red
+    ramp.color_ramp.elements[1].position = 0.6
+    ramp.color_ramp.elements[1].color = (0.012, 0.008, 0.008, 1)         # black where the stripes cross
+    mid = ramp.color_ramp.elements.new(0.3)
+    mid.color = (0.11, 0.008, 0.01, 1)                                   # dark red where one stripe runs
+    half = nt.nodes.new("ShaderNodeMath"); half.operation = "MULTIPLY"; half.inputs[1].default_value = 0.5
+    nt.links.new(both.outputs[0], half.inputs[0])
+    nt.links.new(half.outputs[0], ramp.inputs["Fac"])
+    b = principled(nt, (0.3, 0.02, 0.02), rough=0.9)
+    b.inputs["Sheen Weight"].default_value = 0.6
+    b.inputs["Sheen Roughness"].default_value = 0.5
+    nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
+    fine = _noise(nt, nt.nodes.new("ShaderNodeTexCoord").outputs["Object"], 900.0, 4.0, 0.5)
+    nt.links.new(_bump(nt, fine.outputs["Fac"], 0.15, 0.0003), b.inputs["Normal"])
+    nt.links.new(b.outputs[0], out.inputs["Surface"])
+    return m
+
+
+def activity_props(kind, body):
+    """What Fares is doing in his chair: the props for one activity, in place on him."""
+    own = np.random.default_rng(1225)
+    obs = []
+    clothes = [body["torso"], body["jacket"], body["cape"], body["pants"]] + body["legs"] + body["sleeves"]
+    mittens = [o for o in bpy.data.objects if o.name.startswith("Mitten")]
+    lap = ray_hit([body["pants"]] + body["legs"], M_UP @ Vector((0, -0.17, 0.5)), (0, 0, -1))[0]
+
+    if kind == "sleep":
+        # a red and black flannel blanket pulled up to his chest, draped over his lap, arms and the armrests
+        bpy.ops.mesh.primitive_grid_add(x_subdivisions=56, y_subdivisions=44, size=1)
+        bl = bpy.context.active_object
+        bl.name = "Blanket"
+        co = coords(bl)
+        u = co[:, 0] + 0.5                                   # 0..1 across him
+        v = co[:, 1] + 0.5                                   # 0 at his tummy .. 1 past his knees
+        # pulled up to his chest, and the rest dropped from just above his hands, so it settles over his lap,
+        # his arms and the armrests in soft folds
+        x = (u - 0.5) * 0.84
+        up = np.clip(v / 0.2, 0, 1)
+        chest = np.array([M_UP @ Vector((xx, -0.118 - 0.012 * t, 0.37 - 0.15 * t)) for xx, t in zip(x, up)])
+        knee = np.stack([x, np.full(len(u), -0.64), np.full(len(u), 0.645)], 1)
+        f = np.clip((v - 0.2) / 0.8, 0, 1)[:, None]
+        world = chest * (1 - f) + knee * f
+        world[:, 2] += own.normal(0, 0.0025, len(u)) * (v > 0.2)
+        bl.data.vertices.foreach_set("co", world.astype(np.float32).ravel())
+        bl.data.update()
+        vgroup(bl, "pin", ((v < 0.025) & (np.abs(x) < 0.15)).astype(float))      # held only across his chest
+        bpy.ops.mesh.primitive_plane_add(size=3, location=(0, 0, 0))
+        ground = bpy.context.active_object
+        cuffs = [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith("Braid")]
+        col = sim_collection("SimBlanket", clothes + mittens + cuffs + [ground, body["seat"]] + body["armrests"],
+                             thickness=0.009, friction=12.0)
+        cloth(bl, pin="pin", colliders=col, tension=6.0, bending=0.3, mass=0.3, quality=12, distance=0.006)
+        simulate([bl], 100)
+        release(col)
+        bpy.data.objects.remove(ground)
+        bl.data.materials.append(plaid_material())
+        sol = bl.modifiers.new("thick", "SOLIDIFY")
+        sol.thickness = 0.006
+        obs.append(subsurf(smooth_shade(bl), 1))
+        # Zzz, floating up from him
+        fpath = os.path.join(os.path.dirname(os.path.dirname(HERE)), "build", "fonts", "AlegreyaSC-Bold.ttf")
+        if not os.path.exists(fpath):
+            fpath = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        cream = plain("Zzz", (0.95, 0.93, 0.88), rough=0.5)
+        cream.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1.0, 0.95, 0.85, 1)
+        cream.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 0.6
+        top = np.array(M_HEAD @ Vector((0, HC[1], 0.72)))
+        for k, (dx, dz, size) in enumerate(((0.1, 0.02, 0.05), (0.16, 0.09, 0.065), (0.23, 0.17, 0.085))):
+            cu = bpy.data.curves.new(f"Zzz{k}", "FONT")
+            cu.body = "Z"
+            cu.align_x, cu.align_y = "CENTER", "CENTER"
+            cu.size = size
+            cu.extrude = 0.004
+            cu.font = bpy.data.fonts.load(fpath, check_existing=True)
+            cu.materials.append(cream)
+            z = link(bpy.data.objects.new(f"Zzz{k}", cu))
+            z.location = top + np.array([dx, -0.02, dz])
+            z.rotation_euler = (math.radians(90), math.radians(-12 + 10 * k), 0)
+            obs.append(z)
+
+    elif kind == "read":
+        # a storybook open on his lap, tipped up towards him (pages up, its top away from him)
+        red = plain("BookCover", (0.28, 0.02, 0.025), rough=0.5)
+        paper = plain("BookPages", (0.86, 0.82, 0.72), rough=0.8)
+        gold = plain("BookGold", (0.8, 0.58, 0.25), rough=0.3, metal=1.0)
+        M = (Matrix.Translation(Vector(lap + np.array([0, -0.02, 0.05]))) @ Matrix.Rotation(math.pi, 4, "Z")
+             @ Matrix.Rotation(math.radians(30), 4, "X"))
+        def slab(name, size, center, mat, hinge=0.0):
+            bpy.ops.mesh.primitive_cube_add(size=1)
+            b = bpy.context.active_object
+            b.name = name
+            b.scale = size
+            b.location = center
+            b.data.materials.append(mat)
+            bev = b.modifiers.new("bevel", "BEVEL"); bev.width = 0.002; bev.segments = 2
+            b.matrix_world = M @ Matrix.Rotation(hinge, 4, "Y") @ b.matrix_world
+            return b
+        for side in (-1, 1):
+            obs.append(slab("BookCover", (0.118, 0.168, 0.004), (side * 0.059, 0, 0), red, side * math.radians(-12)))
+            obs.append(slab("BookPages", (0.108, 0.158, 0.014), (side * 0.056, 0, 0.009), paper, side * math.radians(-12)))
+        spine = tube("BookSpine", [(0, -0.084, -0.002), (0, 0.084, -0.002)], [0.007, 0.007], red, sides=16, n=6)
+        spine.matrix_world = M
+        mark = tube("Bookmark", [(0.004, 0.07, 0.017), (0.006, 0.086, 0.0), (0.008, 0.094, -0.05)], [0.0025] * 3, gold,
+                    sides=8, n=12, squash=0.25)
+        mark.matrix_world = M
+        obs += [spine, mark]
+
+    elif kind == "doctor":
+        # Doctor Fares: a stethoscope round his neck, its ends hanging down his chest
+        rubber = plain("StethTube", (0.02, 0.02, 0.022), rough=0.35)
+        steel = plain("StethSteel", (0.75, 0.75, 0.78), rough=0.18, metal=1.0)
+        ahead = np.array(M_UP.to_3x3() @ Vector((0, 1, 0)))
+        def front(x, z, lift=0.007):
+            h = ray_hit(clothes, M_UP @ Vector((x, -0.6, z)), ahead)
+            return h[0] + h[1] * lift
+        left = [front(-0.062, z) for z in (0.42, 0.37, 0.32, 0.28)]
+        right = [front(0.062, z) for z in (0.42, 0.37, 0.335)]
+        neck = [np.array(M_UP @ Vector((0.078 * math.sin(a), 0.03 + 0.078 * math.cos(a), 0.47)))
+                for a in np.linspace(math.radians(-110), math.radians(110), 11)]
+        path = left[::-1] + neck + right
+        obs.append(tube("Stethoscope", path, [0.0042] * len(path), rubber, sides=14, n=110))
+        y = right[-1]
+        tip_mat = plain("StethTipBlack", (0.03, 0.03, 0.03), rough=0.4)
+        for sx in (-1, 1):                                                  # the two ear tubes and their tips
+            end = front(0.062 + sx * 0.02, 0.27, 0.01)
+            obs.append(tube("StethEar", [y, (y + end) / 2 + np.array([sx * 0.004, 0, 0]), end], [0.0022] * 3, steel,
+                            sides=10, n=14))
+            obs.append(ellipsoid("StethTip", end, (0.005, 0.005, 0.006), tip_mat, 16, 8))
+        c, n = ray_hit(clothes, M_UP @ Vector((-0.062, -0.6, 0.255)), ahead)
+        obs.append(oriented("StethChest", c + n * 0.006, (0.019, 0.019, 0.0055), n, steel, seg=40, rings=12))
+        obs.append(oriented("StethDiaphragm", c + n * 0.0118, (0.016, 0.016, 0.0012), n,
+                            plain("StethPlastic", (0.85, 0.85, 0.82), rough=0.4), seg=40, rings=8))
+
+    elif kind == "present":
+        # a present wrapped in LeMSIC blue with a gold ribbon, sitting on his lap
+        blue = plain("PresentBlue", (0.03, 0.09, 0.32), rough=0.35, coat=0.4)
+        gold = plain("RibbonGold", (0.85, 0.6, 0.22), rough=0.25, metal=0.8)
+        base = lap + np.array([0, 0, 0.002])
+        size = np.array([0.17, 0.13, 0.11])
+        M = Matrix.Translation(Vector(base)) @ Matrix.Rotation(math.radians(14), 4, "Z") @ Matrix.Rotation(-LEAN * 0.5, 4, "X")
+        def boxed(name, sz, mat, z0=0.0):
+            bpy.ops.mesh.primitive_cube_add(size=1)
+            b = bpy.context.active_object
+            b.name = name
+            b.scale = sz
+            b.location = (0, 0, sz[2] / 2 + z0)
+            b.data.materials.append(mat)
+            bev = b.modifiers.new("bevel", "BEVEL"); bev.width = 0.004; bev.segments = 2
+            b.matrix_world = M @ b.matrix_world
+            return b
+        obs.append(boxed("Present", size, blue))
+        obs.append(boxed("Ribbon", (size[0] * 1.01, 0.024, size[2] * 1.01), gold, -0.0005))
+        obs.append(boxed("Ribbon", (0.024, size[1] * 1.01, size[2] * 1.01), gold, -0.0005))
+        for sd in (-1, 1):
+            bpy.ops.mesh.primitive_torus_add(major_radius=0.03, minor_radius=0.008, location=(sd * 0.022, 0, size[2] + 0.018),
+                                             rotation=(math.radians(90), math.radians(sd * 32), 0))
+            loop = bpy.context.active_object
+            loop.scale = (1, 0.65, 1)
+            loop.data.materials.append(gold)
+            loop.matrix_world = M @ loop.matrix_world
+            obs.append(loop)
+
+    elif kind == "cocoa":
+        # a mug of hot cocoa with marshmallows, on a little stool beside his chair
+        wood_m = wood()
+        st = Vector((0.36, -0.08, 0.0))
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.12, depth=0.035, location=(st.x, st.y, 0.44))
+        obs.append(bpy.context.active_object); obs[-1].data.materials.append(wood_m)
+        for a in (0.4, 2.5, 4.6):
+            p0 = (st.x + 0.075 * math.cos(a), st.y + 0.075 * math.sin(a))
+            obs.append(tube("StoolLeg", [(p0[0], p0[1], 0.43), (p0[0] * 1.0 + 0.02 * math.cos(a), p0[1] + 0.02 * math.sin(a), 0.0)],
+                            [0.013, 0.015], wood_m, sides=12, n=4))
+        mug_mat = plain("MugRed", (0.42, 0.02, 0.025), rough=0.15, coat=1.0)
+        cocoa_m = plain("Cocoa", (0.08, 0.035, 0.015), rough=0.25)
+        white = plain("Marshmallow", (0.92, 0.9, 0.86), rough=0.8)
+        mz = 0.4575
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.04, depth=0.09, location=(st.x - 0.02, st.y - 0.02, mz + 0.045), vertices=48)
+        mug = bpy.context.active_object; mug.data.materials.append(mug_mat)
+        sol = mug.modifiers.new("hollow", "SOLIDIFY"); sol.thickness = 0.005
+        obs.append(subsurf(smooth_shade(mug), 1))
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.024, minor_radius=0.006, location=(st.x - 0.065, st.y - 0.02, mz + 0.05),
+                                         rotation=(math.radians(90), 0, 0))
+        obs.append(bpy.context.active_object); obs[-1].data.materials.append(mug_mat)
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.037, depth=0.004, location=(st.x - 0.02, st.y - 0.02, mz + 0.078))
+        obs.append(bpy.context.active_object); obs[-1].data.materials.append(cocoa_m)
+        for k in range(6):
+            a = own.uniform(0, 2 * math.pi); r = own.uniform(0, 0.022)
+            bpy.ops.mesh.primitive_cylinder_add(radius=0.0085, depth=0.012,
+                                                location=(st.x - 0.02 + r * math.cos(a), st.y - 0.02 + r * math.sin(a), mz + 0.083),
+                                                rotation=(own.uniform(-0.4, 0.4), own.uniform(-0.4, 0.4), 0))
+            m_ = bpy.context.active_object; m_.data.materials.append(white)
+            bev = m_.modifiers.new("bevel", "BEVEL"); bev.width = 0.003; bev.segments = 2
+            obs.append(m_)
+
+    elif kind == "knit":
+        # a half-knitted scarf in red and white stripes across his lap, needles in it, a ball of yarn below
+        stripes = _cached("ScarfKnit")
+        if not stripes:
+            stripes, nt, out = _new_material("ScarfKnit")
+            uv = nt.nodes.new("ShaderNodeTexCoord").outputs["UV"]
+            sep = nt.nodes.new("ShaderNodeSeparateXYZ"); nt.links.new(uv, sep.inputs[0])
+            mul = nt.nodes.new("ShaderNodeMath"); mul.operation = "MULTIPLY"; mul.inputs[1].default_value = 9.0
+            nt.links.new(sep.outputs["X"], mul.inputs[0])
+            pp = nt.nodes.new("ShaderNodeMath"); pp.operation = "PINGPONG"; pp.inputs[1].default_value = 1.0
+            nt.links.new(mul.outputs[0], pp.inputs[0])
+            ramp = nt.nodes.new("ShaderNodeValToRGB"); ramp.color_ramp.interpolation = "CONSTANT"
+            ramp.color_ramp.elements[0].color = (0.42, 0.02, 0.02, 1)
+            ramp.color_ramp.elements[1].position = 0.5
+            ramp.color_ramp.elements[1].color = (0.82, 0.8, 0.76, 1)
+            nt.links.new(pp.outputs[0], ramp.inputs["Fac"])
+            b = principled(nt, (0.4, 0.02, 0.02), rough=0.95)
+            b.inputs["Sheen Weight"].default_value = 0.5
+            nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
+            knit = _noise(nt, nt.nodes.new("ShaderNodeTexCoord").outputs["Object"], 600.0, 3.0, 0.5)
+            nt.links.new(_bump(nt, knit.outputs["Fac"], 0.35, 0.0006), b.inputs["Normal"])
+            nt.links.new(b.outputs[0], out.inputs["Surface"])
+        # the scarf: a strip laid across his lap and hanging down between his knees
+        pts = []
+        for t in np.linspace(0, 1, 16):
+            x = -0.13 + 0.17 * t
+            ylocal = -0.12 - 0.17 * t
+            h = ray_hit([body["pants"]] + body["legs"], M_UP @ Vector((x, ylocal, 0.45)), (0, 0, -1))
+            if h:
+                pts.append(h[0] + np.array([0, 0, 0.012]))
+        tip = pts[-1]
+        for k in range(1, 6):
+            pts.append(tip + np.array([0.004 * k, -0.012 * k, -0.035 * k]))
+        sc = tube("Scarf", pts, [0.055] * len(pts), stripes, sides=16, n=60, squash=0.18)
+        obs.append(subsurf(smooth_shade(sc), 1))
+        needle = plain("NeedleWood", (0.35, 0.2, 0.08), rough=0.4)
+        start = pts[0]
+        for sd in (-1, 1):
+            a = start + np.array([-0.02, 0.02 * sd, 0.012])
+            b_ = a + np.array([0.19, -0.05 * sd, 0.07])
+            obs.append(tube("Needle", [a, b_], [0.0035, 0.0028], needle, sides=10, n=4))
+            obs.append(ellipsoid("NeedleKnob", b_, (0.0065, 0.0065, 0.0065), needle, 12, 6))
+        ball_c = np.array([-0.32, -0.42, 0.055])
+        ball = ellipsoid("YarnBall", ball_c, (0.055, 0.055, 0.052), yarn("YarnRed", (0.42, 0.02, 0.02)), 40, 20)
+        obs.append(subsurf(wrinkles(wrinkles(ball, 0.006, 0.008, 3), 0.002, 0.003), 1))
+        obs.append(curves("YarnStrand", [[ball_c + np.array([0.03, 0.03, 0.04]), ball_c + np.array([0.12, 0.12, 0.05]),
+                                          (ball_c + start) / 2 + np.array([0.05, 0, -0.12]), start]],
+                          0.0018, yarn("YarnRed", (0.42, 0.02, 0.02)), res=12))
+    bpy.context.view_layer.update()        # (so their places are set before they're attached to him)
+    return obs
+
+
 def build_head():
     """The head, face, hair, mustache and hat, head-local (upright). Returns objects."""
     obs = []
@@ -957,6 +1251,26 @@ def build_head():
         # up and back down: a loop of yarn, folded over
         tassel.append([p0 + d * L * math.sin(t) + side * 0.003 * (1 - math.cos(t)) for t in np.linspace(0, math.pi, 12)])
     obs.append(curves("Tassel", tassel, 0.0021, wool))
+    if ACTIVITY == "sleep":
+        # his eyes closed: the safety eyes swapped for two stitched curves with their lashes pointing down
+        for ob in [o for o in obs if o.name.startswith(("Eye", "SafetyEye", "Lashes"))]:
+            obs.remove(ob)
+            bpy.data.objects.remove(ob, do_unlink=True)
+        lids, lashes = [], []
+        for s in (-1, 1):
+            arc = []
+            for t in np.linspace(0, 1, 14):
+                x = s * (0.027 + 0.026 * t)
+                arc.append(face_point(x, 0.5905 - 0.0048 * math.sin(math.pi * t), 0.0012)[0])
+            lids.append(arc)
+            for t in (0.3, 0.5, 0.7, 0.88):
+                x = s * (0.027 + 0.026 * t)
+                z = 0.5905 - 0.0048 * math.sin(math.pi * t)
+                p0, n0 = face_point(x, z, 0.0012)
+                p1, _ = face_point(x + s * 0.002, z - 0.0062, 0.001)
+                lashes.append([p0, (p0 + p1) / 2 + n0 * 0.001, p1])
+        obs.append(curves("ClosedEyes", lids, 0.0011, thread("Thread"), res=1))
+        obs.append(curves("Lashes", lashes, 0.0006, thread("Thread"), res=1))
     if SANTA:
         # (the tarboush is built and then taken off, so everything else about him stays exactly the same)
         hat_names = ("Tarboush", "HatBand", "BandKnot", "BandTail", "Tassel")
@@ -1547,6 +1861,10 @@ def build_fares():
         add(chest_beard([o for o in bpy.data.objects if o.type == "MESH"
                          and o.name.startswith(("Vest", "Jacket", "FlagCape", "Sash", "Torso", "Neck", "Braid"))]))
 
+    if ACTIVITY:
+        extend(activity_props(ACTIVITY, dict(torso=torso, legs=legs, pants=pants, jacket=jacket, sleeves=sleeves,
+                                             cape=cape, seat=seat, armrests=armrests)))
+
     root = bpy.data.objects.new("Fares", None)
     link(root)
     for ob in parts:
@@ -1561,18 +1879,18 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, HERE)
     import lemsic_tree as T
-    view = next((a for a in sys.argv[1:] if a in ("front", "side", "cabin", "face", "back", "hands")), "front")
+    view = next((a for a in sys.argv[1:] if a in ("front", "side", "cabin", "face", "back", "hands", "activity")), "front")
     scene = T.reset_scene()
     import time
     t0 = time.time()
     build_fares()
     print("built in %.0fs" % (time.time() - t0))
     cam_data = bpy.data.cameras.new("Cam")
-    cam_data.lens = {"face": 85, "cabin": 50, "hands": 60}.get(view, 50)
+    cam_data.lens = {"face": 85, "cabin": 50, "hands": 60, "activity": 45}.get(view, 50)
     cam = link(bpy.data.objects.new("Cam", cam_data))
     cam.location = {"front": (-0.45, -2.0, 1.0), "side": (-1.6, -1.0, 0.9), "cabin": (-1.0, -2.6, 1.35),
-                    "face": (-0.15, -0.95, 0.98), "back": (0.9, 1.8, 1.3), "hands": (-0.25, -1.25, 0.95)}[view]
-    aim = {"face": (0, -0.03, 0.92), "hands": (0, -0.12, 0.6)}.get(view, (0, -0.05, 0.55))
+                    "face": (-0.15, -0.95, 0.98), "back": (0.9, 1.8, 1.3), "hands": (-0.25, -1.25, 0.95), "activity": (-0.55, -2.15, 1.15)}[view]
+    aim = {"face": (0, -0.03, 0.92), "hands": (0, -0.12, 0.6), "activity": (0.02, -0.08, 0.68)}.get(view, (0, -0.05, 0.55))
     cam.rotation_euler = (Vector(aim) - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
     # firelight from the left, tree lights behind right, a dim cool fill from the window
