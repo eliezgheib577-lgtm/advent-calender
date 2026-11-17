@@ -118,10 +118,15 @@ Connect a Google Sheet and it fills in by itself: `backend/progress-sheet.gs` ha
 5-minute setup at the top (make a sheet, paste the script, deploy it as a web app, put its
 URL in `site/config.js` as `progressEndpoint`). Then:
 
-- the **Progress** tab has one row per member: ID, name, how many of the 24 pictures they've
-  hung, which days, when they were last in, and **All 24: Yes** once they're done;
+- the **Progress** tab has one row per member: name, LeMSIC ID, then the days **1 to 24** with a
+  ✓ under each day whose picture they hung on its day, and at the end **All 24**, which says
+  Yes once all 24 are filled in. Then the whole row turns green;
 - the **Log** tab has one row per picture hung, and whether it was on its own day;
 - a member's wall follows them to another phone or computer.
+
+After updating the script (Deploy > Manage deployments > edit > New version), a Progress tab
+in an older layout is rebuilt from the Log the next time a picture comes in, or straight away
+by running `rebuildProgress` from the Apps Script editor.
 
 Add a **Members** tab (IDs in column A, names in column B) and only those IDs are recorded.
 Without the sheet, each student's wall is kept only in their own browser. Guests (`0000`)

@@ -18,11 +18,15 @@
  *      Execute as: Me.  Who has access: Anyone.  Deploy, allow access, and copy the
  *      web app URL (it ends in /exec).
  *   4. Put that URL in site/config.js as progressEndpoint.
- *   (After changing this script later: Deploy > Manage deployments > edit > New version.)
+ *   (After changing this script later: Deploy > Manage deployments > edit > New version.
+ *   If the Progress tab was made by an older version, it is rebuilt in the new layout from the
+ *   Log the next time a picture comes in; to do it straight away, choose rebuildProgress in
+ *   the editor's toolbar and press Run.)
  *
  * Tabs it fills in:
- *   Progress  one row per member: ID, name, how many of the 24 they've hung, which days,
- *             when they were last in, and "Yes" once all 24 are on their wall.
+ *   Progress  one row per member: name, LeMSIC ID, then the days 1 to 24 (a tick under each
+ *             day whose picture they hung on its day), and at the end "All 24": Yes once all
+ *             24 are filled in, and then the whole row turns green.
  *   Log       one row per picture hung: when, ID, name, day, and whether it was on its day.
  *
  * Practice runs: in the website's test mode, ticking "Practice run" makes it behave like a member on
@@ -32,6 +36,10 @@
  */
 const TZ = 'Asia/Beirut';
 const TEST_ID = 'TEST';
+const DAYS = 24;
+const TICK = '✓';
+const PROGRESS_HEAD = ['Name', 'LeMSIC ID'].concat(Array.from({ length: DAYS }, (_, i) => i + 1), ['All 24']);
+const COMPLETE = '#b7e1cd';                      // the green of a row with all 24
 
 // the website sends one picture hung: {id, name, day, at}
 function doPost(e) {
@@ -56,7 +64,7 @@ function doPost(e) {
       : Number(Utilities.formatDate(now, TZ, 'M')) === 12 && Number(Utilities.formatDate(now, TZ, 'd')) === day;
     const log = sheet(ss, 'Log', ['Received', 'LeMSIC ID', 'Name', 'Day', 'On its day']);
     log.appendRow([now, id, name, day, onTime ? 'Yes' : 'No']);
-    const days = updateProgress(ss, log, id, name, now);
+    const days = updateProgress(ss, log, id, name);
     return reply({ ok: true, onTime: onTime, count: days.length });
   } finally {
     lock.releaseLock();
@@ -72,28 +80,80 @@ function doGet(e) {
 }
 
 function daysFor(log, id) {
-  const days = {};
-  log.getDataRange().getValues().slice(1).forEach((r) => {
-    if (normalise(r[1]) === id && r[4] === 'Yes') days[Number(r[3])] = true;
-  });
-  return Object.keys(days).map(Number).sort((a, b) => a - b);
+  return everyonesDays(log)[id] || [];
 }
 
-function updateProgress(ss, log, id, name, now) {
+// from the Log: each member's days hung on their day ({id: [days]}), and their names ({id: name})
+function everyonesDays(log, names) {
+  const days = {};
+  log.getDataRange().getValues().slice(1).forEach((r) => {
+    const id = normalise(r[1]);
+    if (!id) return;
+    if (names) names[id] = String(r[2] || names[id] || '');
+    days[id] = days[id] || {};
+    if (r[4] === 'Yes') days[id][Number(r[3])] = true;
+  });
+  const out = {};
+  Object.keys(days).forEach((id) => { out[id] = Object.keys(days[id]).map(Number).sort((a, b) => a - b); });
+  return out;
+}
+
+// one member's row on the Progress tab (row: its row number, for the All 24 check)
+function progressRow(row, id, name, days) {
+  const ticks = [];
+  for (let d = 1; d <= DAYS; d++) ticks.push(days.indexOf(d) >= 0 ? TICK : '');
+  return [name, id].concat(ticks, [`=IF(COUNTA(C${row}:Z${row})=${DAYS},"Yes","")`]);
+}
+
+function updateProgress(ss, log, id, name) {
   const days = daysFor(log, id);
-  const progress = sheet(ss, 'Progress', ['LeMSIC ID', 'Name', 'Pictures hung (of 24)', 'Days', 'Last in', 'All 24']);
-  const ids = progress.getDataRange().getValues().map((r) => normalise(r[0]));
-  const row = ids.indexOf(id);
-  const values = [id, name, days.length, days.join(', '), now, days.length >= 24 ? 'Yes' : ''];
-  if (row === -1) progress.appendRow(values);
-  else progress.getRange(row + 1, 1, 1, values.length).setValues([values]);
+  let tab = ss.getSheetByName('Progress');
+  const head = tab && tab.getLastRow() ? tab.getRange(1, 1, 1, PROGRESS_HEAD.length).getValues()[0].join('|') : '';
+  if (head !== PROGRESS_HEAD.join('|')) {
+    rebuildProgress();                               // (new, or made by an older version of this script)
+    return days;
+  }
+  const ids = tab.getRange(1, 2, tab.getLastRow(), 1).getValues().map((r) => normalise(r[0]));
+  const row = ids.indexOf(id) >= 0 ? ids.indexOf(id) + 1 : tab.getLastRow() + 1;
+  if (row > tab.getMaxRows()) tab.insertRowsAfter(tab.getMaxRows(), 100);
+  tab.getRange(row, 1, 1, PROGRESS_HEAD.length).setValues([progressRow(row, id, name, days)]);
   return days;
+}
+
+// the Progress tab made again from the Log: name, ID, a tick for each of the days 1 to 24, and All 24;
+// a row with all 24 filled in turns green
+function rebuildProgress() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const log = sheet(ss, 'Log', ['Received', 'LeMSIC ID', 'Name', 'Day', 'On its day']);
+  const known = memberNames(ss) || {};
+  const names = {};
+  const days = everyonesDays(log, names);
+  const tab = ss.getSheetByName('Progress') || ss.insertSheet('Progress');
+  tab.clear();
+  tab.getRange(1, 1, 1, PROGRESS_HEAD.length).setValues([PROGRESS_HEAD]).setFontWeight('bold').setHorizontalAlignment('center');
+  tab.setFrozenRows(1);
+  tab.setFrozenColumns(2);
+  tab.setColumnWidth(1, 190);
+  tab.setColumnWidth(2, 120);
+  tab.setColumnWidths(3, DAYS, 32);
+  tab.setColumnWidth(PROGRESS_HEAD.length, 64);
+  const rows = Object.keys(days).map((id, k) => progressRow(k + 2, id, known[id] || names[id], days[id]));
+  if (rows.length) tab.getRange(2, 1, rows.length, PROGRESS_HEAD.length).setValues(rows);
+  const body = tab.getRange(2, 1, tab.getMaxRows() - 1, PROGRESS_HEAD.length);
+  tab.getRange(2, 3, tab.getMaxRows() - 1, DAYS + 1).setHorizontalAlignment('center');
+  tab.setConditionalFormatRules([SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied(`=COUNTA($C2:$Z2)=${DAYS}`)
+    .setBackground(COMPLETE)
+    .setBold(true)
+    .setRanges([body])
+    .build()]);
+  return tab;
 }
 
 // takes every practice-run row (ID TEST) out of the Log and Progress tabs; returns how many pictures went
 function removePractice(ss) {
   let removed = 0;
-  [['Log', 1], ['Progress', 0]].forEach(([name, col]) => {
+  [['Log', 1], ['Progress', 1]].forEach(([name, col]) => {
     const tab = ss.getSheetByName(name);
     if (!tab) return;
     const rows = tab.getDataRange().getValues();
