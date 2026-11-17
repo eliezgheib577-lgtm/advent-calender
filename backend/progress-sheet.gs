@@ -24,8 +24,14 @@
  *   Progress  one row per member: ID, name, how many of the 24 they've hung, which days,
  *             when they were last in, and "Yes" once all 24 are on their wall.
  *   Log       one row per picture hung: when, ID, name, day, and whether it was on its day.
+ *
+ * Practice runs: in the website's test mode, ticking "Practice run" makes it behave like a member on
+ * the day the test pretends it is, and each picture comes here under the ID TEST (name "Test run").
+ * Those rows show how real ones will look; "Remove TEST from the sheet" on the test panel takes them
+ * all out again. Only the ID TEST is let in this way.
  */
 const TZ = 'Asia/Beirut';
+const TEST_ID = 'TEST';
 
 // the website sends one picture hung: {id, name, day, at}
 function doPost(e) {
@@ -34,16 +40,20 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const id = normalise(data.id);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const practice = data.test === true && id === TEST_ID;          // a practice run from the website's test mode
+    if (practice && data.clear) return reply({ ok: true, removed: removePractice(ss) });
     const day = Number(data.day);
     if (!id || !(day >= 1 && day <= 24)) return reply({ ok: false, reason: 'bad request' });
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const known = memberNames(ss);
+    const known = practice ? null : memberNames(ss);
     if (known && !(id in known)) return reply({ ok: false, reason: 'unknown member' });
-    const name = (known && known[id]) || String(data.name || '').slice(0, 120);
+    const name = practice ? 'Test run' : (known && known[id]) || String(data.name || '').slice(0, 120);
 
     const now = new Date();
-    const onTime = Number(Utilities.formatDate(now, TZ, 'M')) === 12 && Number(Utilities.formatDate(now, TZ, 'd')) === day;
+    // on its day: hung on that day of December in Lebanon (a practice run: on the day the test pretends it is)
+    const onTime = practice ? Number(data.today) === day
+      : Number(Utilities.formatDate(now, TZ, 'M')) === 12 && Number(Utilities.formatDate(now, TZ, 'd')) === day;
     const log = sheet(ss, 'Log', ['Received', 'LeMSIC ID', 'Name', 'Day', 'On its day']);
     log.appendRow([now, id, name, day, onTime ? 'Yes' : 'No']);
     const days = updateProgress(ss, log, id, name, now);
@@ -78,6 +88,23 @@ function updateProgress(ss, log, id, name, now) {
   if (row === -1) progress.appendRow(values);
   else progress.getRange(row + 1, 1, 1, values.length).setValues([values]);
   return days;
+}
+
+// takes every practice-run row (ID TEST) out of the Log and Progress tabs; returns how many pictures went
+function removePractice(ss) {
+  let removed = 0;
+  [['Log', 1], ['Progress', 0]].forEach(([name, col]) => {
+    const tab = ss.getSheetByName(name);
+    if (!tab) return;
+    const rows = tab.getDataRange().getValues();
+    for (let i = rows.length - 1; i >= 1; i--) {
+      if (normalise(rows[i][col]) === TEST_ID) {
+        tab.deleteRow(i + 1);
+        if (name === 'Log') removed += 1;
+      }
+    }
+  });
+  return removed;
 }
 
 // the optional Members tab: found by its headers (an "ID" column and a "Name" column, in any
