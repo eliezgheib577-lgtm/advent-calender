@@ -1,0 +1,142 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- The LeMSIC story on the phone in the promo video (1080 x 1920), drawn for a given time:
+     render(t) sets everything for t seconds into the scene; tools/video/story_frames.js screenshots it. -->
+<style>
+  @font-face { font-family: "Alegreya SC"; font-weight: 700; src: url("../../build/fonts/AlegreyaSC-Bold.ttf"); }
+  @font-face { font-family: "Alegreya Sans"; font-weight: 500; src: url("../../build/fonts/AlegreyaSans-Medium.ttf"); }
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+  body { font-family: "Alegreya Sans", sans-serif; color: #fff; }
+  .layer { position: absolute; inset: 0; }
+  /* the profile page */
+  #profile { background: #0e0b0a; }
+  .ph-top { position: absolute; left: 60px; right: 60px; top: 120px; display: flex; align-items: center; justify-content: space-between;
+    font: 700 54px/1 "Alegreya Sans"; letter-spacing: .5px; }
+  .ph-head { position: absolute; left: 60px; right: 60px; top: 230px; display: flex; align-items: center; gap: 56px; }
+  .ring { width: 250px; height: 250px; border-radius: 50%; padding: 9px; box-sizing: border-box;
+    background: conic-gradient(from 200deg, #f2a24f, #c0392b, #7d1f3d, #f2a24f); }
+  .ring .in { width: 100%; height: 100%; border-radius: 50%; padding: 8px; box-sizing: border-box; background: #0e0b0a; }
+  .avatar { width: 100%; height: 100%; border-radius: 50%; background: #fff url("../../site/assets/lemsic-emblem.png") center/118% no-repeat; }
+  .ph-name { font: 700 64px/1.05 "Alegreya SC"; }
+  .ph-bio { margin-top: 18px; font: 500 38px/1.35 "Alegreya Sans"; color: #e9dccb; }
+  .ph-bio b { color: #f2a24f; font-weight: 500; }
+  .grid { position: absolute; left: 0; right: 0; top: 700px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .grid div { aspect-ratio: 1; background: center/cover no-repeat; }
+  .tabs { position: absolute; left: 0; right: 0; top: 610px; height: 80px; border-top: 2px solid #2a2320; display: flex; }
+  .tabs span { flex: 1; border-top: 4px solid transparent; }
+  .tabs span:first-child { border-top-color: #fff; }
+  /* the story */
+  #story { background: radial-gradient(120% 80% at 50% 25%, #7a1414 0%, #4a0b0d 55%, #22070a 100%); overflow: hidden; }
+  .bars { position: absolute; left: 30px; right: 30px; top: 36px; display: flex; gap: 10px; }
+  .bars span { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.35); overflow: hidden; }
+  .bars i { display: block; height: 100%; width: 0; background: #fff; }
+  .s-head { position: absolute; left: 36px; top: 76px; display: flex; align-items: center; gap: 22px; font: 700 40px/1 "Alegreya Sans"; }
+  .s-head .avatar { width: 88px; height: 88px; border: 3px solid #fff; box-sizing: border-box; }
+  .s-head small { font: 500 34px/1 "Alegreya Sans"; color: rgba(255,255,255,.75); margin-left: 6px; }
+  .flake { position: absolute; border-radius: 50%; background: #fff; }
+  .kicker { position: absolute; left: 0; right: 0; top: 330px; text-align: center; font: 700 52px/1 "Alegreya SC"; color: #f2c27a; letter-spacing: 2px; }
+  .heart { position: absolute; left: 50%; top: 440px; width: 420px; height: 380px; margin-left: -210px; }
+  .fact { position: absolute; left: 60px; right: 60px; top: 900px; text-align: center; font: 700 86px/1.12 "Alegreya SC"; color: #fff8ec;
+    text-shadow: 0 4px 18px rgba(0,0,0,.35); }
+  .twist { position: absolute; left: 110px; right: 110px; top: 1250px; text-align: center; font: 500 50px/1.3 "Alegreya Sans"; color: #ffd9a8; }
+  .sticker { position: absolute; left: 50%; top: 1500px; transform-origin: 50% 50%; display: flex; align-items: center; gap: 22px;
+    padding: 30px 46px 30px 36px; border-radius: 26px; background: #fff; color: #8a1616; font: 700 54px/1 "Alegreya Sans"; letter-spacing: 3px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.4); white-space: nowrap; }
+  .sticker svg { width: 62px; height: 62px; }
+  .tap { position: absolute; width: 140px; height: 140px; margin: -70px 0 0 -70px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(255,255,255,.25) 45%, rgba(255,255,255,0) 70%); opacity: 0; }
+  #dim { background: #000; pointer-events: none; }
+</style></head>
+<body>
+  <div class="layer" id="profile">
+    <div class="ph-top"><span>lemsic</span><span style="font-size:60px">&#8942;</span></div>
+    <div class="ph-head">
+      <div class="ring" id="pring"><div class="in"><div class="avatar"></div></div></div>
+      <div><div class="ph-name">LeMSIC</div>
+        <div class="ph-bio"><b>Christmas Advent Calendar</b><br>1&ndash;24 December</div></div>
+    </div>
+    <div class="tabs"><span></span><span></span><span></span></div>
+    <div class="grid" id="grid"></div>
+  </div>
+  <div class="layer" id="story">
+    <div id="flakes"></div>
+    <div class="bars"><span><i id="bar"></i></span><span></span><span></span></div>
+    <div class="s-head"><div class="avatar"></div><span>lemsic<small>1h</small></span></div>
+    <div class="kicker" id="kicker">Day 2 &middot; Medical Fact</div>
+    <svg class="heart" id="heart" viewBox="0 0 420 380">
+      <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a52"/><stop offset="1" stop-color="#b3121f"/></linearGradient></defs>
+      <path d="M210 360 C 60 250, 10 170, 30 100 C 55 20, 160 5, 210 85 C 260 5, 365 20, 390 100 C 410 170, 360 250, 210 360 Z"
+            fill="url(#hg)" stroke="#ffd9a8" stroke-width="6"/>
+      <polyline id="ecg" points="40,190 140,190 165,140 190,250 215,110 240,215 262,190 380,190" fill="none" stroke="#fff8ec"
+                stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="700" stroke-dashoffset="700"/>
+    </svg>
+    <div class="fact" id="fact">Your heart beats<br>about 100,000<br>times a day!</div>
+    <div class="twist" id="twist">That&rsquo;s 100,000 little reasons to share some love this Christmas.</div>
+    <div class="sticker" id="sticker">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#8a1616" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      ENTER THE CABIN</div>
+  </div>
+  <div class="tap" id="tap"></div>
+  <div class="layer" id="dim"></div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const grid = $('grid');
+  for (const d of [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 2, 4, 6]) {
+    const c = document.createElement('div');
+    c.style.backgroundImage = `url("../../site/assets/days/day-${String(d).padStart(2, '0')}.png")`;
+    grid.appendChild(c);
+  }
+  const flakes = [];
+  for (let i = 0; i < 70; i++) {
+    const f = document.createElement('div');
+    f.className = 'flake';
+    const s = 4 + Math.random() * 10;
+    Object.assign(f.style, { width: s + 'px', height: s + 'px', opacity: (0.25 + Math.random() * 0.5).toFixed(2) });
+    $('flakes').appendChild(f);
+    flakes.push({ el: f, x: Math.random() * 1080, y: Math.random() * 1920, v: 40 + s * 9, w: Math.random() * 6 });
+  }
+  const clamp = (x) => Math.max(0, Math.min(1, x));
+  const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+  const back = (x) => { x = clamp(x); const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  // the timeline (seconds): the screen wakes, the profile, a tap on the story ring, the story, the link, a tap on it
+  const T = { wake: 0.0, tapRing: 3.0, open: 3.35, kicker: 4.0, heart: 4.5, fact: 5.2, twist: 6.6, sticker: 10.4, tapLink: 12.6, end: 16 };
+  window.render = (t) => {
+    $('dim').style.opacity = (1 - ease((t - T.wake) / 0.7)).toFixed(3);
+    const o = ease((t - T.open) / 0.35);
+    $('story').style.opacity = o.toFixed(3);
+    $('story').style.transform = `scale(${(0.35 + 0.65 * ease((t - T.open) / 0.35)).toFixed(4)})`;
+    $('story').style.transformOrigin = '275px 355px';
+    $('pring').style.transform = `scale(${1 - 0.06 * Math.sin(Math.PI * clamp((t - T.tapRing) / 0.3))})`;
+    $('bar').style.width = (100 * clamp((t - T.open) / (T.end - T.open))).toFixed(2) + '%';
+    for (const f of flakes) {
+      const y = (f.y + f.v * t) % 1960 - 20;
+      f.el.style.transform = `translate(${(f.x + 18 * Math.sin(t * 0.8 + f.w)).toFixed(1)}px, ${y.toFixed(1)}px)`;
+    }
+    const show = (el, at, dur = 0.6, rise = 40) => {
+      const k = ease((t - at) / dur);
+      el.style.opacity = k.toFixed(3);
+      el.style.transform = `translateY(${((1 - k) * rise).toFixed(1)}px)`;
+    };
+    show($('kicker'), T.kicker);
+    show($('fact'), T.fact, 0.7, 60);
+    show($('twist'), T.twist, 0.7, 40);
+    const hk = back((t - T.heart) / 0.6);
+    const beat = 1 + 0.045 * Math.max(0, Math.sin((t - T.heart) * 2 * Math.PI * 1.1)) ** 6;
+    $('heart').style.opacity = clamp((t - T.heart) / 0.25).toFixed(3);
+    $('heart').style.transform = `scale(${(Math.max(0, hk) * beat).toFixed(4)})`;
+    $('ecg').setAttribute('stroke-dashoffset', (700 * (1 - ease((t - T.heart - 0.5) / 1.2))).toFixed(1));
+    const sk = back((t - T.sticker) / 0.55), press = 1 - 0.07 * Math.sin(Math.PI * clamp((t - T.tapLink) / 0.28));
+    const pulse = 1 + 0.025 * Math.sin(Math.max(0, t - T.sticker - 0.6) * 4.2) * (t < T.tapLink ? 1 : 0);
+    $('sticker').style.opacity = clamp((t - T.sticker) / 0.15).toFixed(3);
+    $('sticker').style.transform = `translateX(-50%) rotate(-3deg) scale(${(Math.max(0, sk) * press * pulse).toFixed(4)})`;
+    // the finger's taps
+    const tapAt = (at, x, y) => { const k = (t - at) / 0.5; return k >= 0 && k <= 1 ? [x, y, k] : null; };
+    const tp = tapAt(T.tapRing, 185, 355) || tapAt(T.tapLink, 540, 1562);
+    $('tap').style.opacity = tp ? (Math.sin(Math.PI * tp[2]) * 0.9).toFixed(3) : '0';
+    if (tp) { $('tap').style.left = tp[0] + 'px'; $('tap').style.top = tp[1] + 'px'; $('tap').style.transform = `scale(${0.6 + 0.8 * tp[2]})`; }
+  };
+  window.STORY_T = T;
+  render(0);
+</script>
+</body></html>
