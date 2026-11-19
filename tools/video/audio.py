@@ -260,13 +260,13 @@ def voice_track():
     for ln in CUES["lines"]:
         src = os.path.join(B, "vo", ln["name"] + ".wav")
         dst = os.path.join(tmp, ln["name"] + ".wav")
-        subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", src, "-af",
-                        f"rubberband=pitch={pitch}:formant=preserved,equalizer=f=130:t=q:w=1:g=3,"
-                        "equalizer=f=3200:t=q:w=1.4:g=1.5,highshelf=f=9000:g=-3,aresample=48000",
-                        "-ac", "2", dst], check=True)
+        chain = ("highpass=f=60,aresample=48000" if abs(pitch - 1.0) < 1e-3 else       # a real-sounding voice: as it is
+                 f"rubberband=pitch={pitch}:formant=preserved,equalizer=f=130:t=q:w=1:g=3,"
+                 "equalizer=f=3200:t=q:w=1.4:g=1.5,highshelf=f=9000:g=-3,aresample=48000")
+        subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", src, "-af", chain, "-ac", "2", dst], check=True)
         a, sr = sf.read(dst, dtype="float32")
         add(out, a, ln["at"])
-    out = reverb(out, 1.1, 0.12, 4500)
+    out = reverb(out, 1.1, 0.12 if abs(pitch - 1.0) > 1e-3 else 0.05, 4500)
     pk = np.abs(out).max()
     return out * (0.7 / pk) if pk > 0 else out
 
