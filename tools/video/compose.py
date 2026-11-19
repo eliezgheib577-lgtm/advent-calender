@@ -119,6 +119,9 @@ def ext_frame(fi):
     come from the rough preview pass (every 4th frame, blended), so the film can be previewed early."""
     def one(k):
         k = int(clamp(k, 0, EXT["frames"] - 1))
+        interp = os.path.join(B, "exterior-interp", f"{k:04d}.png")
+        if k not in EXT_HAVE and os.path.exists(interp):            # an in-between frame made by interpolation
+            return load(interp, (W, H))
         if k in EXT_HAVE or not PRE_HAVE:
             if k not in EXT_HAVE:
                 j = bisect.bisect_left(EXT_HAVE, k)
