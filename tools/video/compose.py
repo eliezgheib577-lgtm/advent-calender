@@ -1,6 +1,6 @@
 """Puts the LeMSIC promo film together: renders, website recordings, titles, snow and smoke.
 
-    python3 tools/video/compose.py [--preview] [--frames=A-B]
+    python3 tools/video/compose.py [--preview] [--frames=A-B] [--tag=NAME]
 
 Reads build/video/{exterior,site,story,phone,wheel} and build/video/vo/timing.json (the narration),
 writes build/video/out/picture.mp4 (no sound) and build/video/out/cues.json (where each narration
@@ -664,7 +664,10 @@ def main():
         return
     span = next((a.split("=")[1] for a in ARGS if a.startswith("--frames=")), None)
     a, b = (int(x) for x in span.split("-")) if span else (0, n - 1)
+    tag = next((a.split("=")[1] for a in ARGS if a.startswith("--tag=")), None)    # one of several parts run side by side
     name = "picture-preview.mp4" if PREVIEW else "picture.mp4"
+    if tag:
+        name = f"picture-{tag}.mp4"
     ff = subprocess.Popen(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
                            "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "medium",
                            "-crf", "16" if not PREVIEW else "22", "-pix_fmt", "yuv420p", os.path.join(out_dir, name)],
@@ -676,7 +679,7 @@ def main():
             print(f"frame {k}/{n}", flush=True)
     ff.stdin.close()
     ff.wait()
-    with open(os.path.join(out_dir, "cues.json"), "w") as f:
+    with open(os.path.join(out_dir, f"cues-{tag}.json" if tag else "cues.json"), "w") as f:
         json.dump({"total": TOTAL, "lines": LINES, "sfx": CUES,
                    "scenes": {k: {"start": round(v["start"], 3), "dur": round(v["dur"], 3)} for k, v in SC.items()}}, f, indent=1)
     print("total", round(TOTAL, 1), "s;", n, "frames")

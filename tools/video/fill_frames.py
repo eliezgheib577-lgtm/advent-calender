@@ -28,6 +28,9 @@ for run in runs:
     tmp = tempfile.mkdtemp()
     for i, k in enumerate(run):
         os.symlink(os.path.join(EXT, f"{k:04d}.png"), os.path.join(tmp, f"{i:04d}.png"))
+    # the run's last frame once more: minterpolate stops at its last input, so without this the final
+    # in-between frame is never made
+    os.symlink(os.path.join(EXT, f"{run[-1]:04d}.png"), os.path.join(tmp, f"{len(run):04d}.png"))
     subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-framerate", "12", "-i", os.path.join(tmp, "%04d.png"),
                     "-vf", "minterpolate=fps=24:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1", os.path.join(tmp, "m%04d.png")], check=True)
     made = 0
