@@ -442,11 +442,11 @@ def s2(tau, sc):
     q = PHONE["screen"]
     scx = (q[0][0] + q[1][0] + q[2][0] + q[3][0]) / 4 * pw
     scy = (q[0][1] + q[1][1] + q[2][1] + q[3][1]) / 4 * phh
-    # where the link sticker's centre sits in the 4K still: story coords (540, 1823) of 1080 x 2340 (see the
+    # where the link sticker's centre sits in the 4K still: story coords (540, 1727) of 1080 x 2340 (see the
     # sticker and the tap in story.html), through the screen's perspective
     g = homography([(qx * pw, qy * phh) for qx, qy in q], [(0, 0), (1080, 0), (1080, 2340), (0, 2340)])
-    den = g[6] * 540 + g[7] * 1823 + 1
-    sx, sy = (g[0] * 540 + g[1] * 1823 + g[2]) / den, (g[3] * 540 + g[4] * 1823 + g[5]) / den
+    den = g[6] * 540 + g[7] * 1727 + 1
+    sx, sy = (g[0] * 540 + g[1] * 1727 + g[2]) / den, (g[3] * 540 + g[4] * 1727 + g[5]) / den
     tap = a2 + 0.6 * (b2 - a2)
     z = keys(tau, [(0, 1.0), (tap, 1.13)], smooth)
     cx, cy = keys(tau, [(0, (pw / 2, phh / 2)), (tap, (scx, scy))])

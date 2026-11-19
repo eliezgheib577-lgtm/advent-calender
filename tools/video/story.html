@@ -39,26 +39,27 @@
   .tabline { left: 54px; top: 1627px; width: 192px; height: 4px; background: #f8f9f9; }
   .igrid { left: 0; top: 1638px; width: 1206px; display: grid; grid-template-columns: repeat(3, 400px); gap: 3px; }
   .igrid div { height: 533px; background: center/cover no-repeat; }
-  /* the story */
-  #story { background: radial-gradient(120% 80% at 50% 25%, #7a1414 0%, #4a0b0d 55%, #22070a 100%); overflow: hidden; }
-  .bars { position: absolute; left: 30px; right: 30px; top: 26px; display: flex; gap: 10px; }
-  .bars span { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.35); overflow: hidden; }
+  /* the story: LeMSIC's Canva design (tools/video/story_card.py), 9:16 at full width under the status bar,
+     as Instagram shows it on a tall iPhone, with the reply bar on black below */
+  #story { background: #000; overflow: hidden; }
+  #card { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; border-radius: 30px; overflow: hidden;
+    background: url("../../build/video/ig/story-card.png") 0 0/100% 100% no-repeat; }
+  #card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 260px;
+    background: linear-gradient(rgba(0,0,0,.38), rgba(0,0,0,0)); }
+  .bars { position: absolute; left: 24px; right: 24px; top: 22px; display: flex; gap: 8px; }
+  .bars span { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.4); overflow: hidden; }
   .bars i { display: block; height: 100%; width: 0; background: #fff; }
-  .s-head { position: absolute; left: 36px; top: 62px; display: flex; align-items: center; gap: 22px; font: 600 38px/1 "Inter"; }
+  .s-head { position: absolute; left: 30px; top: 54px; display: flex; align-items: center; gap: 22px; font: 600 38px/1 "Inter";
+    text-shadow: 0 1px 6px rgba(0,0,0,.35); }
   .s-head .avatar { width: 88px; height: 88px; }
-  .s-head small { font: 400 34px/1 "Inter"; color: rgba(255,255,255,.75); margin-left: 6px; }
-  .flake { position: absolute; border-radius: 50%; background: #fff; }
-  .kicker { position: absolute; left: 0; right: 0; top: 460px; text-align: center; font: 700 52px/1 "Alegreya SC"; color: #f2c27a; letter-spacing: 2px; }
-  .heart { position: absolute; left: 50%; top: 560px; width: 420px; height: 380px; margin-left: -210px; }
-  .fact { position: absolute; left: 60px; right: 60px; top: 1010px; text-align: center; font: 700 86px/1.12 "Alegreya SC"; color: #fff8ec;
-    text-shadow: 0 4px 18px rgba(0,0,0,.35); }
-  .twist { position: absolute; left: 110px; right: 110px; top: 1360px; text-align: center; font: 500 50px/1.3 "Alegreya Sans"; color: #ffd9a8; }
-  .sticker { position: absolute; left: 50%; top: 1630px; transform-origin: 50% 50%; display: flex; align-items: center; gap: 22px;
-    padding: 30px 46px 30px 36px; border-radius: 26px; background: #fff; color: #8a1616; font: 700 54px/1 "Alegreya Sans"; letter-spacing: 3px;
-    box-shadow: 0 14px 40px rgba(0,0,0,.4); white-space: nowrap; }
-  .sticker svg { width: 62px; height: 62px; }
-  .reply { position: absolute; left: 36px; right: 36px; bottom: 60px; display: flex; align-items: center; gap: 34px; }
-  .reply .field { flex: 1; height: 104px; border-radius: 52px; border: 2.5px solid rgba(255,255,255,.75); box-sizing: border-box;
+  .s-head small { font: 400 34px/1 "Inter"; color: rgba(255,255,255,.8); margin-left: 6px; }
+  /* Instagram's link sticker, where the design had its "sticker link" placeholder (centre 540, 1595 of the card) */
+  .sticker { position: absolute; left: 540px; top: 1595px; display: flex; align-items: center; gap: 16px; padding: 0 40px 0 32px;
+    height: 100px; margin-top: -50px; border-radius: 22px; background: #fff; color: #b5271b; font: 700 42px/1 "Inter";
+    letter-spacing: 0.5px; box-shadow: 0 8px 26px rgba(0,0,0,.28); white-space: nowrap; transform-origin: 50% 50%; }
+  .sticker svg { width: 50px; height: 50px; }
+  .reply { position: absolute; left: 30px; right: 30px; top: 1990px; display: flex; align-items: center; gap: 34px; }
+  .reply .field { flex: 1; height: 104px; border-radius: 52px; border: 2.5px solid rgba(255,255,255,.55); box-sizing: border-box;
     padding-left: 44px; display: flex; align-items: center; font: 400 38px/1 "Inter"; color: rgba(255,255,255,.9); }
   .reply svg { stroke: #fff; fill: none; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
   .tap { position: absolute; width: 140px; height: 140px; margin: -70px 0 0 -70px; border-radius: 50%;
@@ -102,21 +103,11 @@
     <div class="igrid" id="grid"></div>
   </div></div>
   <div class="layer" id="story">
-    <div id="flakes"></div>
+    <div id="card"></div>
     <div class="bars"><span><i id="bar"></i></span><span></span><span></span></div>
     <div class="s-head"><div class="avatar"></div><span>lemsic.lebanon<small>1h</small></span></div>
-    <div class="kicker" id="kicker">Day 2 &middot; Medical Fact</div>
-    <svg class="heart" id="heart" viewBox="0 0 420 380">
-      <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a52"/><stop offset="1" stop-color="#b3121f"/></linearGradient></defs>
-      <path d="M210 360 C 60 250, 10 170, 30 100 C 55 20, 160 5, 210 85 C 260 5, 365 20, 390 100 C 410 170, 360 250, 210 360 Z"
-            fill="url(#hg)" stroke="#ffd9a8" stroke-width="6"/>
-      <polyline id="ecg" points="40,190 140,190 165,140 190,250 215,110 240,215 262,190 380,190" fill="none" stroke="#fff8ec"
-                stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="700" stroke-dashoffset="700"/>
-    </svg>
-    <div class="fact" id="fact">Your heart beats<br>about 100,000<br>times a day!</div>
-    <div class="twist" id="twist">That&rsquo;s 100,000 little reasons to share some love this Christmas.</div>
     <div class="sticker" id="sticker">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#8a1616" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#b5271b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       ENTER THE CABIN</div>
     <div class="reply"><div class="field">Send message</div>
@@ -143,15 +134,6 @@
     c.style.backgroundImage = `url("../../build/video/ig/post-${k}.png")`;
     grid.appendChild(c);
   }
-  const flakes = [];
-  for (let i = 0; i < 70; i++) {
-    const f = document.createElement('div');
-    f.className = 'flake';
-    const s = 4 + Math.random() * 10;
-    Object.assign(f.style, { width: s + 'px', height: s + 'px', opacity: (0.25 + Math.random() * 0.5).toFixed(2) });
-    $('flakes').appendChild(f);
-    flakes.push({ el: f, x: Math.random() * 1080, y: Math.random() * 2340, v: 40 + s * 9, w: Math.random() * 6 });
-  }
   const clamp = (x) => Math.max(0, Math.min(1, x));
   const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
   const back = (x) => { x = clamp(x); const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
@@ -165,30 +147,12 @@
     $('story').style.transformOrigin = '158px 323px';      // from the profile's story ring
     $('pring').style.transform = `scale(${1 - 0.06 * Math.sin(Math.PI * clamp((t - T.tapRing) / 0.3))})`;
     $('bar').style.width = (100 * clamp((t - T.open) / (T.end - T.open))).toFixed(2) + '%';
-    for (const f of flakes) {
-      const y = (f.y + f.v * t) % 2380 - 20;
-      f.el.style.transform = `translate(${(f.x + 18 * Math.sin(t * 0.8 + f.w)).toFixed(1)}px, ${y.toFixed(1)}px)`;
-    }
-    const show = (el, at, dur = 0.6, rise = 40) => {
-      const k = ease((t - at) / dur);
-      el.style.opacity = k.toFixed(3);
-      el.style.transform = `translateY(${((1 - k) * rise).toFixed(1)}px)`;
-    };
-    show($('kicker'), T.kicker);
-    show($('fact'), T.fact, 0.7, 60);
-    show($('twist'), T.twist, 0.7, 40);
-    const hk = back((t - T.heart) / 0.6);
-    const beat = 1 + 0.045 * Math.max(0, Math.sin((t - T.heart) * 2 * Math.PI * 1.1)) ** 6;
-    $('heart').style.opacity = clamp((t - T.heart) / 0.25).toFixed(3);
-    $('heart').style.transform = `scale(${(Math.max(0, hk) * beat).toFixed(4)})`;
-    $('ecg').setAttribute('stroke-dashoffset', (700 * (1 - ease((t - T.heart - 0.5) / 1.2))).toFixed(1));
-    const sk = back((t - T.sticker) / 0.55), press = 1 - 0.07 * Math.sin(Math.PI * clamp((t - T.tapLink) / 0.28));
-    const pulse = 1 + 0.025 * Math.sin(Math.max(0, t - T.sticker - 0.6) * 4.2) * (t < T.tapLink ? 1 : 0);
-    $('sticker').style.opacity = clamp((t - T.sticker) / 0.15).toFixed(3);
-    $('sticker').style.transform = `translateX(-50%) rotate(-3deg) scale(${(Math.max(0, sk) * press * pulse).toFixed(4)})`;
+    const nudge = t > T.sticker && t < T.tapLink ? 1 + 0.05 * Math.max(0, Math.sin((t - T.sticker) * Math.PI * 1.6)) ** 2 : 1;
+    const press = 1 - 0.07 * Math.sin(Math.PI * clamp((t - T.tapLink) / 0.28));
+    $('sticker').style.transform = `translateX(-50%) scale(${(nudge * press).toFixed(4)})`;
     // the finger's taps
     const tapAt = (at, x, y) => { const k = (t - at) / 0.5; return k >= 0 && k <= 1 ? [x, y, k] : null; };
-    const tp = tapAt(T.tapRing, 158, 455) || tapAt(T.tapLink, 540, 1824);
+    const tp = tapAt(T.tapRing, 158, 455) || tapAt(T.tapLink, 540, 1727);
     $('tap').style.opacity = tp ? (Math.sin(Math.PI * tp[2]) * 0.9).toFixed(3) : '0';
     if (tp) { $('tap').style.left = tp[0] + 'px'; $('tap').style.top = tp[1] + 'px'; $('tap').style.transform = `scale(${0.6 + 0.8 * tp[2]})`; }
   };
