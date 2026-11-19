@@ -1,4 +1,4 @@
-"""A phone on a wooden table by the fire, Christmas lights glowing out of focus behind it (one still).
+"""An iPhone 18 Pro Max on a wooden table by the fire, Christmas lights out of focus behind it (one still).
 
 The screen is left plain; the film lays the animated LeMSIC story into it (phone.json gives the
 screen's corners in the image).
@@ -28,35 +28,64 @@ OUT = os.path.join(ROOT, "build", "video", "phone")
 RES = (1280, 720) if PREVIEW else (3840, 2160)
 rng = np.random.default_rng(7)
 TILT = math.radians(14)                 # the phone leans back on its stand
-W, H, D = 0.0716, 0.1475, 0.0083        # a phone's size (m)
+# an iPhone 18 Pro Max (reported: 163.4 x 78 x 8.75 mm, 6.9-inch screen), its frame in Dark Cherry
+W, H, D = 0.078, 0.1634, 0.00875
+RC = 0.0118                             # the corners' radius, seen from the front
+BEZEL = 0.00165                         # glass edge to the lit screen
 BASE = Vector((0.0, 0.0, 0.0))
 
 
+def rounded_rect(w, h, r, seg=18, y0=0.0):
+    """Outline points (x, y) of a rounded rectangle w x h from y0, centred on x = 0, counter-clockwise."""
+    pts = []
+    for cx, cy, a0 in ((w / 2 - r, y0 + h - r, 0), (-w / 2 + r, y0 + h - r, 90), (-w / 2 + r, y0 + r, 180), (w / 2 - r, y0 + r, 270)):
+        for k in range(seg + 1):
+            a = math.radians(a0 + 90 * k / seg)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+def slab(name, outline, z0, z1, mat, bevel=0.0):
+    """A flat slab with that outline, from z0 (back) to z1 (front)."""
+    n = len(outline)
+    verts = [(x, y, z0) for x, y in outline] + [(x, y, z1) for x, y in outline]
+    faces = [list(range(n))[::-1], list(range(n, 2 * n))]
+    faces += [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    ob = link(bpy.data.objects.new(name, me))
+    ob.data.materials.append(mat)
+    if bevel:
+        bv = ob.modifiers.new("bevel", "BEVEL"); bv.width = bevel; bv.segments = 4; bv.limit_method = "ANGLE"
+        bv.angle_limit = math.radians(50)
+    for poly in me.polygons:
+        poly.use_smooth = True
+    return ob
+
+
 def phone():
-    body = simple_material("PhoneBody", (0.02, 0.022, 0.026), rough=0.25, metal=0.6)
-    frame = simple_material("PhoneFrame", (0.55, 0.56, 0.58), rough=0.2, metal=1.0)
-    glass = simple_material("ScreenBlack", (0.0, 0.0, 0.0), rough=0.03)
-    glass.node_tree.nodes["Principled BSDF"].inputs["Coat Weight"].default_value = 1.0
-    rot = Matrix.Rotation(math.radians(90) - TILT, 4, "X")         # standing up, leaning back
+    cherry = simple_material("DarkCherry", (0.3, 0.02, 0.045), rough=0.3, metal=0.9)       # anodised aluminium
+    back = simple_material("BackGlass", (0.12, 0.012, 0.02), rough=0.55)
+    black = simple_material("ScreenBlack", (0.0, 0.0, 0.0), rough=0.03)
+    black.node_tree.nodes["Principled BSDF"].inputs["Coat Weight"].default_value = 1.0
+    rot = Matrix.Rotation(math.radians(90) - TILT, 4, "X")          # standing up, leaning back
     piv = Matrix.Translation(BASE + Vector((0, 0.012, 0.012)))
-    def place(ob):                                  # (built from its own location and scale: matrix_world isn't updated yet)
-        ob.matrix_world = piv @ rot @ Matrix.LocRotScale(ob.location, ob.rotation_euler, ob.scale)
-    b = box("Phone", (W, H, D), (0, H / 2, -D / 2), frame)
-    b.modifiers["bevel"].width = 0.009
-    b.modifiers["bevel"].segments = 8
-    place(b)
-    bk = box("PhoneBack", (W - 0.002, H - 0.002, 0.001), (0, H / 2, -D + 0.0002), body)
-    bk.modifiers["bevel"].width = 0.008
-    place(bk)
-    sc = box("Screen", (W - 0.004, H - 0.004, 0.0006), (0, H / 2, 0.0001), glass)
-    sc.modifiers["bevel"].width = 0.0075
-    sc.modifiers["bevel"].segments = 8
-    place(sc)
-    # the screen's corners (where the story goes), inside the bezel
     m = piv @ rot
-    sw, sh = W - 0.0075, H - 0.0075
-    corners = [m @ Vector((x, y, 0.0005)) for x, y in ((-sw / 2, 0.00375 + sh), (sw / 2, 0.00375 + sh), (sw / 2, 0.00375), (-sw / 2, 0.00375))]
-    return corners
+    parts = []
+    parts.append(slab("Frame", rounded_rect(W, H, RC), -D, -0.0004, cherry, bevel=0.0011))
+    parts.append(slab("Back", rounded_rect(W - 0.0016, H - 0.0016, RC - 0.0008, y0=0.0008), -D - 0.0001, -D + 0.0006, back))
+    parts.append(slab("Glass", rounded_rect(W - 0.0007, H - 0.0007, RC - 0.0004, y0=0.00035), -0.0006, 0.0, black, bevel=0.0005))
+    # the buttons: on the right the side button and Camera Control, on the left the Action button and volume
+    for side, y_lo, length in ((1, 0.104, 0.019), (1, 0.052, 0.017), (-1, 0.122, 0.009), (-1, 0.104, 0.013), (-1, 0.086, 0.013)):
+        btn = box("Button", (0.0012, length, 0.0034), (side * (W / 2 + 0.0004), y_lo + length / 2, -D / 2), cherry)
+        btn.modifiers["bevel"].width = 0.0005
+        parts.append(btn)
+    for ob in parts:                                  # (from each part's own transform: matrix_world isn't updated yet)
+        ob.matrix_world = m @ Matrix.LocRotScale(ob.location, ob.rotation_euler, ob.scale)
+    # the lit screen, inside the bezel (the film lays the story there, rounded like the glass)
+    sw, sh = W - 2 * BEZEL, H - 2 * BEZEL
+    corners = [m @ Vector((x, y, 0.0002)) for x, y in ((-sw / 2, BEZEL + sh), (sw / 2, BEZEL + sh), (sw / 2, BEZEL), (-sw / 2, BEZEL))]
+    return corners, (RC - BEZEL) / sw
 
 
 def stand_and_table():
@@ -105,6 +134,11 @@ def background():
             z = zz + 0.05 * math.sin(x * 5 + row) + rng.normal(0, 0.008)
             bpy.ops.mesh.primitive_uv_sphere_add(radius=0.008, location=(x, yy + rng.normal(0, 0.03), z), segments=12, ring_count=6)
             bpy.context.active_object.data.materials.append(mats[k % 3])
+    for name, loc, power, col, size in (("RimRight", (0.3, 0.32, 0.16), 6, (1.0, 0.82, 0.7), 0.12),    # the frame's edge catches it
+                                        ("RimTop", (-0.05, 0.25, 0.45), 3, (1.0, 0.85, 0.7), 0.15)):
+        ld = bpy.data.lights.new(name, "AREA"); ld.energy = power; ld.color = col; ld.size = size
+        lo = link(bpy.data.objects.new(name, ld)); lo.location = loc
+        lo.rotation_euler = (Vector((0, 0.02, 0.1)) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
     for loc, power, col in (((-0.9, -0.6, 0.6), 30, (1.0, 0.55, 0.22)), ((0.7, 0.4, 0.9), 6, (1.0, 0.7, 0.4))):
         ld = bpy.data.lights.new("Warm", "AREA"); ld.energy = power; ld.color = col; ld.size = 0.5
         lo = link(bpy.data.objects.new("Warm", ld)); lo.location = loc
@@ -114,14 +148,14 @@ def background():
 def main():
     os.makedirs(OUT, exist_ok=True)
     scene = T.reset_scene()
-    corners = phone()
+    corners, radius = phone()
     stand_and_table()
     background()
     cam_d = bpy.data.cameras.new("Cam"); cam_d.lens = 70
     cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = 1.8
     cam = link(bpy.data.objects.new("Cam", cam_d))
-    target = Vector((0.0, 0.03, 0.085))
-    cam.location = Vector((0.06, -0.62, 0.17))
+    target = Vector((0.0, 0.03, 0.094))
+    cam.location = Vector((0.13, -0.665, 0.18))
     cam.rotation_euler = (target - cam.location).to_track_quat("-Z", "Y").to_euler()
     cam_d.dof.focus_distance = (target - cam.location).length
     scene.camera = cam
@@ -137,7 +171,7 @@ def main():
     scene.view_settings.look = "AgX - Medium High Contrast"
     bpy.context.view_layer.update()
     pts = [world_to_camera_view(scene, cam, p) for p in corners]
-    info = {"size": RES, "screen": [[round(p.x, 5), round(1 - p.y, 5)] for p in pts],
+    info = {"size": RES, "screen": [[round(p.x, 5), round(1 - p.y, 5)] for p in pts], "corner": round(radius, 4),
             "note": "screen corners: top-left, top-right, bottom-right, bottom-left, fractions of the image, y from the top"}
     with open(os.path.join(OUT, "phone.json"), "w") as f:
         json.dump(info, f, indent=1)

@@ -285,6 +285,14 @@ def homography(src, dst):
     return np.linalg.solve(np.array(A, float), np.array(bb, float))
 
 
+@functools.lru_cache(maxsize=2)
+def rounded_mask(sw, sh):
+    r = PHONE.get("corner", 0.0) * sw
+    m = Image.new("L", (sw, sh), 0)
+    ImageDraw.Draw(m).rounded_rectangle((0, 0, sw - 1, sh - 1), radius=int(r), fill=255)
+    return m
+
+
 def phone_shot(story_t, cx, cy, zoom):
     """The phone on its stand, the story on its screen, through the camera (cx, cy in the 4K still's pixels)."""
     ph = load(os.path.join(B, "phone", "phone.png"))
@@ -301,9 +309,7 @@ def phone_shot(story_t, cx, cy, zoom):
     sw, sh = story.size
     coef = homography([(0, 0), (sw, 0), (sw, sh), (0, sh)], quad)
     warped = story.transform((W, H), Image.PERSPECTIVE, tuple(coef), Image.BICUBIC)
-    mask = Image.new("L", (W * 2, H * 2), 0)
-    ImageDraw.Draw(mask).polygon([(x * 2, y * 2) for x, y in quad], fill=255)
-    mask = mask.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.6))
+    mask = rounded_mask(sw, sh).transform((W, H), Image.PERSPECTIVE, tuple(coef), Image.BILINEAR)   # the screen's round corners
     # the screen glows a little and catches a soft reflection
     warped = ImageEnhance.Brightness(warped).enhance(0.93)
     view.paste(warped, (0, 0), mask)
@@ -437,8 +443,8 @@ def s2(tau, sc):
     sx = lerp(lerp(q[3][0], q[2][0], 0.5), lerp(q[0][0], q[1][0], 0.5), 1 - 1562 / 1920) * pw
     sy = lerp(q[0][1], q[3][1], 1562 / 1920) * phh
     tap = a2 + 0.6 * (b2 - a2)
-    z = keys(tau, [(0, 1.0), (tap, 1.22)], smooth)
-    cx, cy = keys(tau, [(0, (pw / 2, phh / 2)), (tap, (scx, scy + 40))])
+    z = keys(tau, [(0, 1.0), (tap, 1.13)], smooth)
+    cx, cy = keys(tau, [(0, (pw / 2, phh / 2)), (tap, (scx, scy))])
     push = smooth((tau - tap - 0.25) / (d - tap - 0.25))
     if push > 0:
         z = z * (1 + 9 * push ** 2.2)

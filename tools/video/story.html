@@ -10,9 +10,9 @@
   .layer { position: absolute; inset: 0; }
   /* the profile page */
   #profile { background: #0e0b0a; }
-  .ph-top { position: absolute; left: 60px; right: 60px; top: 120px; display: flex; align-items: center; justify-content: space-between;
+  .ph-top { position: absolute; left: 60px; right: 60px; top: 170px; display: flex; align-items: center; justify-content: space-between;
     font: 700 54px/1 "Alegreya Sans"; letter-spacing: .5px; }
-  .ph-head { position: absolute; left: 60px; right: 60px; top: 230px; display: flex; align-items: center; gap: 56px; }
+  .ph-head { position: absolute; left: 60px; right: 60px; top: 270px; display: flex; align-items: center; gap: 56px; }
   .ring { width: 250px; height: 250px; border-radius: 50%; padding: 9px; box-sizing: border-box;
     background: conic-gradient(from 200deg, #f2a24f, #c0392b, #7d1f3d, #f2a24f); }
   .ring .in { width: 100%; height: 100%; border-radius: 50%; padding: 8px; box-sizing: border-box; background: #0e0b0a; }
@@ -20,32 +20,39 @@
   .ph-name { font: 700 64px/1.05 "Alegreya SC"; }
   .ph-bio { margin-top: 18px; font: 500 38px/1.35 "Alegreya Sans"; color: #e9dccb; }
   .ph-bio b { color: #f2a24f; font-weight: 500; }
-  .grid { position: absolute; left: 0; right: 0; top: 700px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .grid { position: absolute; left: 0; right: 0; top: 740px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .grid div { aspect-ratio: 1; background: center/cover no-repeat; }
-  .tabs { position: absolute; left: 0; right: 0; top: 610px; height: 80px; border-top: 2px solid #2a2320; display: flex; }
+  .tabs { position: absolute; left: 0; right: 0; top: 650px; height: 80px; border-top: 2px solid #2a2320; display: flex; }
   .tabs span { flex: 1; border-top: 4px solid transparent; }
   .tabs span:first-child { border-top-color: #fff; }
   /* the story */
   #story { background: radial-gradient(120% 80% at 50% 25%, #7a1414 0%, #4a0b0d 55%, #22070a 100%); overflow: hidden; }
-  .bars { position: absolute; left: 30px; right: 30px; top: 36px; display: flex; gap: 10px; }
+  .bars { position: absolute; left: 30px; right: 30px; top: 26px; display: flex; gap: 10px; }
   .bars span { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.35); overflow: hidden; }
   .bars i { display: block; height: 100%; width: 0; background: #fff; }
-  .s-head { position: absolute; left: 36px; top: 76px; display: flex; align-items: center; gap: 22px; font: 700 40px/1 "Alegreya Sans"; }
+  .s-head { position: absolute; left: 36px; top: 62px; display: flex; align-items: center; gap: 22px; font: 700 40px/1 "Alegreya Sans"; }
   .s-head .avatar { width: 88px; height: 88px; border: 3px solid #fff; box-sizing: border-box; }
   .s-head small { font: 500 34px/1 "Alegreya Sans"; color: rgba(255,255,255,.75); margin-left: 6px; }
   .flake { position: absolute; border-radius: 50%; background: #fff; }
-  .kicker { position: absolute; left: 0; right: 0; top: 330px; text-align: center; font: 700 52px/1 "Alegreya SC"; color: #f2c27a; letter-spacing: 2px; }
-  .heart { position: absolute; left: 50%; top: 440px; width: 420px; height: 380px; margin-left: -210px; }
-  .fact { position: absolute; left: 60px; right: 60px; top: 900px; text-align: center; font: 700 86px/1.12 "Alegreya SC"; color: #fff8ec;
+  .kicker { position: absolute; left: 0; right: 0; top: 250px; text-align: center; font: 700 52px/1 "Alegreya SC"; color: #f2c27a; letter-spacing: 2px; }
+  .heart { position: absolute; left: 50%; top: 350px; width: 420px; height: 380px; margin-left: -210px; }
+  .fact { position: absolute; left: 60px; right: 60px; top: 800px; text-align: center; font: 700 86px/1.12 "Alegreya SC"; color: #fff8ec;
     text-shadow: 0 4px 18px rgba(0,0,0,.35); }
-  .twist { position: absolute; left: 110px; right: 110px; top: 1250px; text-align: center; font: 500 50px/1.3 "Alegreya Sans"; color: #ffd9a8; }
-  .sticker { position: absolute; left: 50%; top: 1500px; transform-origin: 50% 50%; display: flex; align-items: center; gap: 22px;
+  .twist { position: absolute; left: 110px; right: 110px; top: 1150px; text-align: center; font: 500 50px/1.3 "Alegreya Sans"; color: #ffd9a8; }
+  .sticker { position: absolute; left: 50%; top: 1420px; transform-origin: 50% 50%; display: flex; align-items: center; gap: 22px;
     padding: 30px 46px 30px 36px; border-radius: 26px; background: #fff; color: #8a1616; font: 700 54px/1 "Alegreya Sans"; letter-spacing: 3px;
     box-shadow: 0 14px 40px rgba(0,0,0,.4); white-space: nowrap; }
   .sticker svg { width: 62px; height: 62px; }
   .tap { position: absolute; width: 140px; height: 140px; margin: -70px 0 0 -70px; border-radius: 50%;
     background: radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(255,255,255,.25) 45%, rgba(255,255,255,0) 70%); opacity: 0; }
   #dim { background: #000; pointer-events: none; }
+  /* the iPhone's status bar around the (smaller, 18 Pro) Dynamic Island */
+  #status { position: absolute; left: 0; right: 0; top: 0; height: 132px; background: #000; z-index: 5; }
+  #status .time { position: absolute; left: 112px; top: 46px; font: 600 46px/1 "Inter"; letter-spacing: -0.5px; color: #fff; }
+  #status .icons { position: absolute; right: 86px; top: 50px; display: flex; gap: 14px; align-items: center; }
+  #island { position: absolute; left: 50%; top: 28px; width: 200px; height: 74px; margin-left: -100px; border-radius: 37px; background: #000;
+    z-index: 6; box-shadow: inset 0 0 0 1px #111; }
+  #story { top: 132px !important; border-radius: 34px 34px 0 0; }
 </style></head>
 <body>
   <div class="layer" id="profile">
@@ -77,6 +84,16 @@
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       ENTER THE CABIN</div>
   </div>
+  <div id="status"><span class="time">9:41</span>
+    <span class="icons">
+      <svg width="54" height="34" viewBox="0 0 54 34"><rect x="0" y="22" width="9" height="12" rx="2" fill="#fff"/><rect x="14" y="15" width="9" height="19" rx="2" fill="#fff"/>
+        <rect x="28" y="8" width="9" height="26" rx="2" fill="#fff"/><rect x="42" y="0" width="9" height="34" rx="2" fill="#fff"/></svg>
+      <svg width="46" height="34" viewBox="0 0 46 34"><path d="M23 33 L15 24 A11 11 0 0 1 31 24 Z M23 33" fill="#fff"/>
+        <path d="M8 17 A21 21 0 0 1 38 17 L33.5 21.5 A15 15 0 0 0 12.5 21.5 Z" fill="#fff"/><path d="M1 10 A31 31 0 0 1 45 10 L40.5 14.5 A25 25 0 0 0 5.5 14.5 Z" fill="#fff"/></svg>
+      <svg width="74" height="34" viewBox="0 0 74 34"><rect x="1" y="2" width="64" height="30" rx="9" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="2.5"/>
+        <rect x="6" y="7" width="48" height="20" rx="5" fill="#fff"/><rect x="68" y="12" width="4" height="10" rx="2" fill="rgba(255,255,255,.5)"/></svg>
+    </span></div>
+  <div id="island"></div>
   <div class="tap" id="tap"></div>
   <div class="layer" id="dim"></div>
 <script>
@@ -106,7 +123,7 @@
     const o = ease((t - T.open) / 0.35);
     $('story').style.opacity = o.toFixed(3);
     $('story').style.transform = `scale(${(0.35 + 0.65 * ease((t - T.open) / 0.35)).toFixed(4)})`;
-    $('story').style.transformOrigin = '275px 355px';
+    $('story').style.transformOrigin = '235px 260px';
     $('pring').style.transform = `scale(${1 - 0.06 * Math.sin(Math.PI * clamp((t - T.tapRing) / 0.3))})`;
     $('bar').style.width = (100 * clamp((t - T.open) / (T.end - T.open))).toFixed(2) + '%';
     for (const f of flakes) {
@@ -132,7 +149,7 @@
     $('sticker').style.transform = `translateX(-50%) rotate(-3deg) scale(${(Math.max(0, sk) * press * pulse).toFixed(4)})`;
     // the finger's taps
     const tapAt = (at, x, y) => { const k = (t - at) / 0.5; return k >= 0 && k <= 1 ? [x, y, k] : null; };
-    const tp = tapAt(T.tapRing, 185, 355) || tapAt(T.tapLink, 540, 1562);
+    const tp = tapAt(T.tapRing, 185, 395) || tapAt(T.tapLink, 540, 1614);
     $('tap').style.opacity = tp ? (Math.sin(Math.PI * tp[2]) * 0.9).toFixed(3) : '0';
     if (tp) { $('tap').style.left = tp[0] + 'px'; $('tap').style.top = tp[1] + 'px'; $('tap').style.transform = `scale(${0.6 + 0.8 * tp[2]})`; }
   };
