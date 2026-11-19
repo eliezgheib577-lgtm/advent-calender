@@ -1,6 +1,6 @@
 """The lucky-draw wheel for the promo video, in layers the film puts together (Blender, Cycles).
 
-A wooden prize wheel of 24 numbered segments (red, cream and green, gold pegs), a ring of warm
+A wooden prize wheel of 24 segments (red, cream and green, gold pegs, no numbers), a ring of warm
 bulbs, the LeMSIC emblem on the hub and a gold pointer, with ornaments and presents floating
 around it, and the wrapped gift that appears when it stops. The wheel faces the camera square on,
 so the film can spin the disc layer exactly by turning the picture.
@@ -61,11 +61,10 @@ def text(body, size, loc, mat, rot=(math.radians(90), 0, 0)):
 
 
 def disc():
-    """The turning part: 24 segments with their numbers and the gold pegs between them."""
+    """The turning part: 24 plain segments and the gold pegs between them."""
     obs = []
     mats = [simple_material(f"Seg{k}", c, rough=0.35, coat=0.6) for k, c in enumerate(COLS)]
     gold = simple_material("Gold", (0.95, 0.68, 0.25), rough=0.22, metal=1.0)
-    ink = [simple_material("InkCream", (0.93, 0.87, 0.74), rough=0.4), simple_material("InkRed", (0.42, 0.025, 0.035), rough=0.4)]
     n = 24
     for k in range(n):
         a0, a1 = 2 * math.pi * k / n, 2 * math.pi * (k + 1) / n
@@ -77,10 +76,6 @@ def disc():
         ob.data.materials.append(mats[k % 3])
         sol = ob.modifiers.new("t", "SOLIDIFY"); sol.thickness = 0.04
         obs.append(ob)
-        am = (a0 + a1) / 2
-        num = text(str(k + 1), 0.13, (0.78 * R * math.cos(am), -0.03, 0.78 * R * math.sin(am)), ink[1 if k % 3 == 1 else 0])
-        num.rotation_euler = (math.radians(90), -(am - math.radians(90)), 0)   # reading outward along its segment
-        obs.append(num)
         bpy.ops.mesh.primitive_cylinder_add(radius=0.022, depth=0.08, location=(0.96 * R * math.cos(a0), -0.05, 0.96 * R * math.sin(a0)),
                                             rotation=(math.radians(90), 0, 0), vertices=20)
         peg = bpy.context.active_object; peg.data.materials.append(gold); obs.append(peg)

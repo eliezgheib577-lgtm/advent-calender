@@ -329,7 +329,7 @@ def wheel_cached():
     return wheel_layers()
 
 
-SPIN = 5 * 360 + 97.5                    # five turns, then 24 under the pointer
+SPIN = 5 * 360 + 97.5                    # five turns, stopping with a segment centred under the pointer
 
 
 def spin_angle(u):
