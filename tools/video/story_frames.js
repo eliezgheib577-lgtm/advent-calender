@@ -6,7 +6,7 @@ const [out, fps = '24'] = process.argv.slice(2);
 (async () => {
   fs.mkdirSync(out, { recursive: true });
   const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
+  const p = await b.newPage({ viewport: { width: 1080, height: 2340 } });
   await p.goto('file://' + path.join(__dirname, 'story.html'));
   await p.waitForTimeout(800);
   const end = await p.evaluate(() => window.STORY_T.end);
