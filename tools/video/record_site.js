@@ -10,14 +10,13 @@
 // ornament (today's ornament opened, its picture hung), timelapse (3 to 24 December, one after another).
 // For the recording only: the test-mode panel, the countdown and test notes are hidden, the
 // "How it works" sheet is skipped, a glowing pointer shows the clicks, and the day pictures are
-// swapped for mystery cards (build/video/mystery, from tools/video/mystery_cards.py). Writes <out-dir>/<clip>/
+// swapped for mystery cards (build/video/mystery, from tools/video/mystery_cards.py) with no captions. Writes <out-dir>/<clip>/
 // NNNNN.jpg with times.json (the time of each frame, in seconds).
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const [clip, outDir, site = 'http://localhost:8765/index.html'] = process.argv.slice(2);
 const SLOW = { door: 4, room: 3, ornament: 4, timelapse: 1.5 }[clip] || 1;
-const FACT = 'Did you know? Your heart beats about 100,000 times a day. That’s a lot of love to share this Christmas!';
 const POINTER = `
   #vidPointer { position: fixed; left: 0; top: 0; width: 44px; height: 44px; margin: -6px 0 0 -6px; z-index: 99999;
     pointer-events: none; transition: transform .12s ease; filter: drop-shadow(0 0 10px rgba(255, 214, 140, .9)) drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
@@ -43,8 +42,7 @@ const POINTER = `
   });
   await ctx.route('**/pictures.js', async (route) => {
     const res = await route.fetch();
-    const js = (await res.text()).replace(/2: +\{ picture: "assets\/days\/day-02.png", caption: "[^"]*" \}/,
-      `2:  { picture: "assets/days/day-02.png", caption: ${JSON.stringify(FACT)} }`);
+    const js = (await res.text()).replace(/caption: "[^"]*"/g, 'caption: ""');     // no captions under the pictures
     await route.fulfill({ response: res, body: js });
   });
   // the day pictures stay a surprise: each is swapped for its mystery card (tools/video/mystery_cards.py)
