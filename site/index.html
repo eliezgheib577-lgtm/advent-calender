@@ -255,6 +255,9 @@
   }
   .primary:disabled { opacity: .6; cursor: progress; }
   .fine { margin: 14px 0 0 !important; font-size: .82rem; }
+  .fine a { color: var(--ember); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+  #loginFine { text-wrap: balance; }
+  .fine a:hover, .fine a:focus-visible { color: #ffc27f; }
   .ghost { margin-top: 10px; width: 100%; padding: 10px; border-radius: 11px; border: 1px solid rgba(242, 236, 228, 0.18); background: transparent; cursor: pointer; }
 
   .prize { border: 1px solid var(--ember); border-radius: 12px; padding: 12px 14px; color: var(--snow) !important; background: rgba(242, 162, 79, 0.08); }
@@ -481,7 +484,7 @@
       <p class="error" id="loginError" role="alert"></p>
       <button type="submit" class="primary" id="loginBtn">Open the door</button>
       <p class="guest-note" id="guestNote">Not a LeMSIC member? Enter <strong id="guestCode">0000</strong> to come in as a guest.</p>
-      <p class="fine" id="loginFine">Your ID is checked against the LeMSIC member list.</p>
+      <p class="fine" id="loginFine">Having trouble signing in? Please contact <a href="mailto:nta@lemsic.org">the LeMSIC team</a>.</p>
     </form>
   </dialog>
 
