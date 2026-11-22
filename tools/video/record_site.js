@@ -9,7 +9,8 @@
 // Clips: door (the door, the login, the door opening, walking in), room (the room on 2 December, idle),
 // ornament (today's ornament opened, its picture hung), timelapse (3 to 24 December, one after another).
 // For the recording only: the test-mode panel, the countdown and test notes are hidden, the
-// "How it works" sheet is skipped, and a glowing pointer shows the clicks. Writes <out-dir>/<clip>/
+// "How it works" sheet is skipped, a glowing pointer shows the clicks, and the day pictures are
+// swapped for mystery cards (build/video/mystery, from tools/video/mystery_cards.py). Writes <out-dir>/<clip>/
 // NNNNN.jpg with times.json (the time of each frame, in seconds).
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -45,6 +46,12 @@ const POINTER = `
     const js = (await res.text()).replace(/2: +\{ picture: "assets\/days\/day-02.png", caption: "[^"]*" \}/,
       `2:  { picture: "assets/days/day-02.png", caption: ${JSON.stringify(FACT)} }`);
     await route.fulfill({ response: res, body: js });
+  });
+  // the day pictures stay a surprise: each is swapped for its mystery card (tools/video/mystery_cards.py)
+  const MYSTERY = path.join(__dirname, '..', '..', 'build', 'video', 'mystery');
+  await ctx.route('**/assets/days/day-*.png', async (route) => {
+    const name = route.request().url().split('/').pop().split('?')[0];
+    await route.fulfill({ path: path.join(MYSTERY, name), contentType: 'image/png' });
   });
   const page = await ctx.newPage();
   await page.addInitScript((SLOW) => {
