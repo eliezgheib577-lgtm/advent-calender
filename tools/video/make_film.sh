@@ -21,8 +21,7 @@ step "fill"
 python3 tools/video/fill_frames.py
 
 step "compose"
-N=$(python3 -c "import json; print(json.load(open('$OUT/cues.json'))['total'])" 2>/dev/null || echo 148.9)
-FRAMES=$(python3 -c "print(int(round($N*24)))")
+FRAMES=$(python3 tools/video/compose.py --total)
 PARTS=4
 pids=()
 for i in $(seq 0 $((PARTS-1))); do

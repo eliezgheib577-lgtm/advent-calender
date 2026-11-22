@@ -335,8 +335,14 @@ def wheel_cached():
 SPIN = 5 * 360 + 97.5                    # five turns, stopping with a segment centred under the pointer
 
 
+_SU = np.linspace(0, 1, 4001)
+_SV = np.clip(_SU / 0.08, 0, 1) ** 2 * (3 - 2 * np.clip(_SU / 0.08, 0, 1)) * (1 - _SU) ** 2.2
+_SA = np.concatenate([[0], np.cumsum((_SV[1:] + _SV[:-1]) / 2)])
+_SA /= _SA[-1]
+
+
 def spin_angle(u):
-    return SPIN * (1 - (1 - clamp(u)) ** 3.2)
+    return SPIN * float(np.interp(clamp(u), _SU, _SA))
 
 
 def place(lay, base, scale, dx=0.0, dy=0.0, alpha=1.0, centre=(0.5, 0.54)):
@@ -390,7 +396,7 @@ def finish(img, k):
 # ---------------------------------------------------------------- the timeline (from the narration)
 VO = json.load(open(os.path.join(B, "vo", "timing.json")))
 PLAN = {   # scene: (lead-in before the first line, gap between lines, tail after the last)
-    "s1": (1.8, 0.55, 0.9), "s2": (0.5, 0.45, 1.5), "s3": (3.3, 0.5, 2.6), "s4": (0.4, 0.45, 0.7),
+    "s1": (1.8, 0.55, 0.9), "s2": (0.5, 0.45, 0.7), "s3": (2.0, 0.5, 2.6), "s4": (0.4, 0.45, 0.7),
     "s5": (0.5, 0.45, 1.0), "s6": (0.3, 0.5, 1.9), "s7": (0.6, 0.45, 1.6), "s8": (0.9, 0.55, 3.6)}
 
 
@@ -431,7 +437,7 @@ def s1(tau, sc):
     l2s, l2e = sc["lines"][2]
     a = smooth((tau - l2s + 0.2) / 0.8) * (1 - smooth((tau - d + 0.5) / 0.5))
     img = with_text(img, [("LeMSIC", FONT_T, 120, CREAM), ("Christmas Advent Calendar", FONT_T, 64, GOLD)], 0.3, a)
-    return fade_black(img, tau / 1.0)
+    return fade_black(img, min(tau / 1.0, (d - tau) / 0.5))
 
 
 def s2(tau, sc):
@@ -450,17 +456,21 @@ def s2(tau, sc):
     tap = a2 + 0.6 * (b2 - a2)
     z = keys(tau, [(0, 1.0), (tap, 1.13)], smooth)
     cx, cy = keys(tau, [(0, (pw / 2, phh / 2)), (tap, (scx, scy))])
-    push = smooth((tau - tap - 0.25) / (d - tap - 0.25))
+    p0 = max(tap + 0.25, d - 1.2)
+    push = smooth((tau - p0) / (d - p0))
     if push > 0:
-        z = z * (1 + 9 * push ** 2.2)
+        z = z * (1 + 8 * push ** 2)
         cx, cy = lerp(cx, sx, smooth(push * 1.6)), lerp(cy, sy, smooth(push * 1.6))
     img, quad = phone_shot(st, cx, cy, z)
     if tau < 0.5:
         img = fade_black(img, tau / 0.5)
-    img = flash(img, smooth((tau - d + 0.55) / 0.55))
+    img = flash(img, smooth((tau - d + 0.45) / 0.45))
     if abs(tau - (tap - 0.05)) < 0.5 / FPS:
         cue("tap", sc["start"] + tau)
     return img
+
+
+CARD_GONE = 7.245                 # (door clip, page time) the login card is gone from one frame to the next
 
 
 def s3(tau, sc):
@@ -477,13 +487,18 @@ def s3(tau, sc):
         ext = img
     # the website's door: the card while the narration speaks, "0000" typed on "zero zero zero zero"
     typed = a1 + 0.62 * (b1 - a1)
-    pt = warp(tau, [(lead, 0.0), (lead + 0.6, 1.4), (typed - 1.1, 5.2), (typed + 0.6, 5.5), (b1 + 0.05, 7.15), (d, 7.15 + d - b1 - 0.05)])
+    # (the card waits with its caret blinking; "0000" is typed at page 4.5-5.0, at its own speed)
+    pt = warp(tau, [(lead, 0.0), (lead + 0.6, 1.4), (typed - 0.55, 4.4), (typed + 0.25, 5.2), (typed + 0.9, 5.5), (b1 + 0.05, 7.15),
+                    (d, 7.15 + d - b1 - 0.05)])
     z = keys(tau, [(lead, 1.0), (a0 + 0.5, 1.0), (a0 + 2.5, 1.32), (b1 - 0.6, 1.32), (b1 + 0.4, 1.0)])
-    img = site_view("door", pt, 960, keys(tau, [(a0 + 0.5, 502), (a0 + 2.5, 545), (b1 - 0.6, 545), (b1 + 0.4, 502)]), z)
+    cy = keys(tau, [(a0 + 0.5, 502), (a0 + 2.5, 545), (b1 - 0.6, 545), (b1 + 0.4, 502)])
+    img = site_view("door", pt, 960, cy, z)
+    if CARD_GONE <= pt < CARD_GONE + 0.4:
+        img = crossfade(site_view("door", CARD_GONE - 0.02, 960, cy, z), img, smooth((pt - CARD_GONE) / 0.4))
     img = snow(img, sc["start"] + tau, 0.35 * (1 - smooth((pt - 8.6) / 0.8)))
     if tau < lead + 0.5:
         img = crossfade(ext, img, (tau - lead) / 0.5)
-    for k, at in enumerate(np.linspace(typed - 0.35, typed + 0.35, 4)):
+    for k, at in enumerate(np.linspace(typed - 0.45, typed + 0.05, 4)):
         if abs(tau - at) < 0.5 / FPS:
             cue("key", sc["start"] + tau)
     if abs(pt - 7.15) < 0.6 / FPS * 1.0:
@@ -506,10 +521,12 @@ def s4(tau, sc):
 def s5(tau, sc):
     d = sc["dur"]
     (a0, b0), (a1, b1), (a2, b2) = sc["lines"]
-    click = a1 + 0.22 * (b1 - a1)
+    # the pointer glides to today's ornament (page 1.2-3.2) at its own speed and clicks; the popup (3.85) stays up,
+    # the camera easing in on it, until the picture is hung on "And just like magic" (page 10.39)
+    click = a0 + 2.9
     hang = a2 + 0.25
-    pt = warp(tau, [(0, 0.6), (click, 3.8), (hang, 9.72), (d, 9.72 + d - hang)])
-    path = [(0.0, (1150, 470, 1.45)), (click - 0.2, (1170, 440, 1.6)), (click + 0.7, (960, 500, 1.2)), (hang, (960, 500, 1.2)),
+    pt = warp(tau, [(0, 0.2), (click - 2.55, 1.2), (click, 3.75), (hang, 10.33), (d, 10.33 + d - hang)])
+    path = [(0.0, (1150, 470, 1.45)), (click - 0.2, (1170, 440, 1.6)), (click + 0.7, (960, 500, 1.15)), (hang - 0.3, (960, 470, 1.38)),
             (hang + 0.9, (700, 260, 1.5)), (d, (660, 250, 1.55))]
     cx, cy, z = keys(tau, path)
     img = site_view("ornament", pt, cx, cy, z)
@@ -520,22 +537,79 @@ def s5(tau, sc):
     return img
 
 
+def tl_states():
+    """The time-lapse's popup-free moments (page times): the wall before, after each day is hung, and at the end.
+    Found once from the frames' brightness (a popup dims the room) and kept in states.json beside the clip."""
+    path = os.path.join(B, "site", "timelapse", "states.json")
+    if os.path.exists(path):
+        return json.load(open(path))
+    tt = json.load(open(os.path.join(B, "site", "timelapse", "times.json")))
+    br = []
+    for name, _ in tt:
+        a = np.asarray(Image.open(os.path.join(B, "site", "timelapse", name)).convert("L").resize((192, 108)), np.float32)
+        br.append(np.r_[a[10:90, 0:30].ravel(), a[10:90, 160:192].ravel()].mean())
+    br = np.array(br)
+    clean = br > 0.85 * np.percentile(br, 90)
+    runs, start = [], None
+    for i, c in enumerate(list(clean) + [False]):
+        if c and start is None:
+            start = i
+        elif not c and start is not None:
+            runs.append((tt[start][1], tt[i - 1][1]))
+            start = None
+    runs = [r for r in runs if r[1] - r[0] > 1.5]                       # (not the short gap before the prize popup)
+    pts = [min(r[0] + 2.0, r[1] - 0.1) for r in runs[:-1]] + [runs[-1][1] - 0.05]
+    json.dump(pts, open(path, "w"))
+    return pts
+
+
+TL_PATCH = [(940, 815, 1010, 890), (740, 925, 1180, 995)]     # the resting pointer, and the "Day N is on your wall" note
+
+
+@functools.lru_cache(maxsize=6)
+def tl_frame(k):
+    """Time-lapse state k, with the pointer and the note under the tree painted out from the last state."""
+    st = tl_states()
+    img = site_frame("timelapse", st[k]).copy()
+    if k == len(st) - 1:
+        return img
+    last = site_frame("timelapse", st[-1])
+    m = Image.new("L", img.size, 0)
+    for box in TL_PATCH:
+        ImageDraw.Draw(m).rounded_rectangle(box, radius=18, fill=255)
+    return Image.composite(last, img, m.filter(ImageFilter.GaussianBlur(8)))
+
+
+def tl_view(f, cx, cy, z):
+    """The wall at fractional state f, through the film's camera (each new day dissolves in)."""
+    n = len(tl_states())
+    k = int(clamp(math.floor(f), 0, n - 1))
+    u = f - k
+    a = camera(tl_frame(k), cx, cy, STAGE[2] * z)
+    if u <= 0 or k + 1 >= n:
+        return a
+    return crossfade(a, camera(tl_frame(k + 1), cx, cy, STAGE[2] * z), u)
+
+
 def s6(tau, sc):
     d = sc["dur"]
-    L = site_len("timelapse")
-    pt = warp(tau, [(0, 2.0), (0.35 * d, 50.0), (0.78 * d, L - 6.0), (d, L - 0.2)])
-    cx, cy, z = keys(tau, [(0, (900, 420, 1.3)), (0.75 * d, (960, 470, 1.12)), (d, (960, 502, 1.0))])
-    img = site_view("timelapse", pt, cx, cy, z)
-    if tau < 0.4:
-        img = crossfade(SC_LAST.get("s5", img), img, tau / 0.4)
+    n = len(tl_states())
+    # day after day: each new picture dissolves in over the second half of its slot, a little faster as it goes
+    u = clamp((tau - 0.5) / (0.8 * d - 0.5)) ** 1.12 * (n - 1)
+    k = math.floor(u)
+    f = k + smooth(clamp((u - k - 0.45) / 0.55))
+    cx, cy, z = keys(tau, [(0, (680, 300, 1.5)), (0.5 * d, (760, 380, 1.3)), (0.82 * d, (900, 470, 1.08)), (d, (960, 502, 1.0))])
+    img = tl_view(f, cx, cy, z)
+    if tau < 0.5:
+        img = crossfade(SC_LAST.get("s5", img), img, smooth(tau / 0.5))
     return img
 
 
 def s7(tau, sc):
     d = sc["dur"]
     (a0, b0), (a1, b1), (a2, b2) = sc["lines"]
-    L = site_len("timelapse")
-    room = site_view("timelapse", L - 0.2, 760, keys(tau, [(0, 330), (1.2, 502)]), keys(tau, [(0, 1.35), (1.2, 1.0)]))
+    cx, cy, z = keys(tau, [(0, (960, 502, 1.0)), (2.2, (900, 470, 1.1))])
+    room = tl_view(len(tl_states()) - 1, cx, cy, z)
     blur = smooth((tau - 0.6) / 1.0)
     bg = room.filter(ImageFilter.GaussianBlur(10 * blur * W / 1920)) if blur > 0.01 else room
     bg = ImageEnhance.Brightness(bg).enhance(1 - 0.45 * blur)
@@ -558,7 +632,7 @@ def s7(tau, sc):
     if gift_t > 0:
         g = ease_out(gift_t / 0.7, 3)
         over = 1 + 0.12 * math.sin(clamp(gift_t / 0.7) * math.pi)
-        img = flash(img, 0.55 * (1 - smooth(gift_t / 0.7)) * smooth(gift_t / 0.1), (0.5, 0.52))
+        img = flash(img, 0.42 * (1 - smooth(gift_t / 0.9)) * smooth(gift_t / 0.3), (0.5, 0.52))
         img = place(L_["gift"], img, (0.4 + 0.75 * g) * over, 0, 0.02 * math.sin(tau * 1.4), smooth(gift_t / 0.25), (0.5, 0.5))
     # the wheel ticks as each peg passes the pointer
     prev = spin_angle(u - 1 / FPS / (spin_end - spin_start))
@@ -628,7 +702,7 @@ def s8(tau, sc):
 SC_LAST = {}
 SCENE_FN = {"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s6": s6, "s7": s7, "s8": s8}
 ORDER = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"]
-XFADE = {"s1": 0.7, "s4": 0.6, "s5": 0.5}       # dissolve into these scenes from the one before
+XFADE = {"s1": 0.7, "s3": 0.3, "s4": 0.6, "s5": 0.5}       # dissolve into these scenes from the one before
 
 
 def frame_at(t):
@@ -653,6 +727,9 @@ def main():
     out_dir = os.path.join(B, "out")
     os.makedirs(out_dir, exist_ok=True)
     n = int(round(TOTAL * FPS))
+    if "--total" in ARGS:
+        print(n)
+        return
     stills = next((a.split("=")[1] for a in ARGS if a.startswith("--stills=")), None)
     if stills:                                      # single moments, as pictures, for checking
         for spec in stills.split(","):
