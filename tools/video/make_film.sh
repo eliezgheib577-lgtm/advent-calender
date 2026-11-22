@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds the finished promo film from the rendered parts, start to end:
 #   bash tools/video/make_film.sh [PYTHON_FOR_AUDIO]
+#   (VERSIONS="music-only" bash tools/video/make_film.sh ... makes only that version; default both)
 # 1. the forest flight's in-between frames (fill_frames.py)
 # 2. the picture, in four parts side by side (compose.py --frames --tag), then joined
 # 3. the sound (audio.py; needs numpy, scipy, soundfile: pass that python as the first argument)
@@ -9,6 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 PYA="${1:-python3}"
+VERSIONS="${VERSIONS:-narrated music-only}"
 OUT=build/video/out
 LOG=$OUT/film.log
 mkdir -p "$OUT"
@@ -45,8 +47,8 @@ step "sound"
 "$PYA" tools/video/audio.py
 
 step "export"
-for v in voice novoice; do
-  name=$([ $v = voice ] && echo narrated || echo music-only)
+for name in $VERSIONS; do
+  v=$([ $name = narrated ] && echo voice || echo novoice)
   ffmpeg -y -hide_banner -loglevel error -i "$OUT/picture.mp4" -i "$OUT/mix-$v.wav" -map 0:v -map 1:a \
     -c:v copy -c:a aac -b:a 256k -shortest -movflags +faststart "$OUT/LeMSIC-advent-$name.mp4"
 done
@@ -61,7 +63,7 @@ wa() {  # master, out, scale height, video kbps, audio kbps
     -b:v "$4k" -pass 2 -passlogfile "$pl" -pix_fmt yuv420p -c:a aac -b:a "$5k" -movflags +faststart "$2"
   rm -f "$pl"*
 }
-for name in narrated music-only; do
+for name in $VERSIONS; do
   wa "$OUT/LeMSIC-advent-$name.mp4" "$OUT/LeMSIC-advent-$name-whatsapp.mp4" 720 720 96 &
   wa "$OUT/LeMSIC-advent-$name.mp4" "$OUT/LeMSIC-advent-$name-whatsapp-HD.mp4" 1080 2000 128 &
 done
