@@ -47,9 +47,9 @@ const POINTER = `
   });
   // the day pictures stay a surprise: each is swapped for its mystery card (tools/video/mystery_cards.py)
   const MYSTERY = path.join(__dirname, '..', '..', 'build', 'video', 'mystery');
-  await ctx.route('**/assets/days/day-*.png', async (route) => {
-    const name = route.request().url().split('/').pop().split('?')[0];
-    await route.fulfill({ path: path.join(MYSTERY, name), contentType: 'image/png' });
+  await ctx.route(/\/assets\/days\/day-\d+\.(png|jpe?g|webp)(\?.*)?$/, async (route) => {
+    const n = route.request().url().match(/day-(\d+)\./)[1];
+    await route.fulfill({ path: path.join(MYSTERY, `day-${n.padStart(2, '0')}.png`), contentType: 'image/png' });
   });
   const page = await ctx.newPage();
   await page.addInitScript((SLOW) => {
