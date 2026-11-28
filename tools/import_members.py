@@ -108,7 +108,7 @@ def pick_members(rows, column=None, name_column=None):
     name_cols = [i for i in name_cols if i != col]
     if name_cols:
         name_used = " + ".join(header[i] for i in name_cols)
-    members = {}
+    members, spare = {}, {}
     for r in (rows[1:] if has_header else rows):
         if col >= len(r):
             continue
@@ -118,9 +118,13 @@ def pick_members(rows, column=None, name_column=None):
         name = clean_name(" ".join(str(r[i]) for i in name_cols if i < len(r) and r[i] not in (None, "")))
         if not members.get(mid):
             members[mid] = name
+        raw = str(r[col]).strip()
+        if re.search(r"-{2,}", raw):                    # "O-M-27--97": a digit seems to be missing; "O-M-27-097" works too
+            spare[normalise(re.sub(r"-{2,}", "-0", raw))] = mid
     if not members:
         raise ValueError("No IDs found in that column.")
-    return sorted(members.items()), (header[col] if has_header else f"column {col + 1}"), name_used
+    aliases = [(a, members[mid], mid) for a, mid in sorted(spare.items()) if a not in members]
+    return sorted(members.items()) + aliases, (header[col] if has_header else f"column {col + 1}"), name_used
 
 
 def pick_ids(rows, column=None):
@@ -154,10 +158,12 @@ def existing_salt():
 
 def write_members(members, salt=None, sample=False, full_names=False):
     """Write members.js from [(id, name)] (or plain IDs); returns True if its contents changed.
-    Only first names are kept unless full_names is set."""
+    Only first names are kept unless full_names is set. An (id, name, main_id) entry is another way of
+    writing main_id: its sealed name also carries main_id, so the site logs that member in as main_id."""
     members = [(m, "") if isinstance(m, str) else m for m in members]
     if not full_names:
-        members = [(m, first_name(n)) for m, n in members]
+        members = [(m[0], first_name(m[1])) + tuple(m[2:]) for m in members]
+    members = [(m[0], m[1] + "\u0000" + m[2]) if len(m) > 2 else m for m in members]
     salt = salt or os.environ.get("MEMBERS_SALT") or existing_salt() or secrets.token_hex(16)
     table = {}
     for mid, name in members:
@@ -196,8 +202,10 @@ def main():
         sys.exit(str(e))
     changed = write_members(members, sample=os.path.basename(args.sheet) == "sample-members.csv",
                             full_names=args.full_names)
+    spare = [m for m in members if len(m) > 2]
+    members = [m for m in members if len(m) == 2]
     named = sum(1 for _, n in members if n)
-    print(f'{len(members)} member IDs from "{used}", {named} with {"full" if args.full_names else "first"} names'
+    print(f'{len(members)} member IDs from "{used}" (and {len(spare)} other ways of writing them), {named} with {"full" if args.full_names else "first"} names'
           f'{f" from {name_used!r}" if name_used else " (no name column found)"} -> {os.path.relpath(OUT, ROOT)}'
           f'{"" if changed else " (no change)"}')
 

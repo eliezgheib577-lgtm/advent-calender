@@ -718,7 +718,13 @@
   async function lookUp(id) {
     const { fp, key } = await stretch(id);
     if (!(fp in M.members)) return null;
-    return { key: fp, name: await openName(key, M.members[fp]) };
+    const name = await openName(key, M.members[fp]);
+    const [first, main] = name.split('\u0000');       // another way of writing a member's ID: log in as that ID
+    if (main) {
+      const m = await stretch(main);
+      if (m.fp in M.members) return { id: main, key: m.fp, name: first };
+    }
+    return { key: fp, name };
   }
   async function checkId(raw) {
     const id = normalise(raw);
@@ -726,7 +732,7 @@
     if (isCode(id, C.guestCode)) return { ok: true, id: 'GUEST', key: 'guest-visitor', guest: true, name: '' };
     const found = await lookUp(id);
     if (!found) return { ok: false, msg: "We couldn't find that LeMSIC ID. Check it and try again." };
-    return { ok: true, id, key: found.key, name: found.name };
+    return { ok: true, id: found.id || id, key: found.key, name: found.name };
   }
 
   // ---------------------------------------------------------------- outside: snow falling in front of the cabin
